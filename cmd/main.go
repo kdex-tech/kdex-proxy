@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 )
 
 var server string
@@ -59,6 +60,11 @@ func main() {
 
 // handler processes requests.
 func handler(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	defer func() {
+		log.Printf("Request processed in %v", time.Since(start))
+	}()
+
 	var url string
 	if r.URL.RawQuery != "" {
 		url = fmt.Sprintf("%s://%s%s?%s", r.URL.Scheme, server, r.URL.Path, r.URL.RawQuery)
@@ -71,7 +77,9 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		reqBody = r.Body
 	}
 
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: time.Second * 30,
+	}
 	req, err := http.NewRequest(r.Method, url, reqBody)
 
 	if err != nil {
