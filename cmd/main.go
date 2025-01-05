@@ -25,12 +25,22 @@ import (
 )
 
 var server string
+var port string
 var mapped_headers []string
 
 func main() {
-	http.HandleFunc("/*", handler)
+	http.HandleFunc("/", handler)
 
-	port := os.Getenv("PORT")
+	setup()
+
+	log.Printf("Listening on port %s", port)
+	if err := http.ListenAndServe(":"+port, nil); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func setup() {
+	port = os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 		log.Printf("Defaulting to port %s", port)
@@ -51,11 +61,6 @@ func main() {
 			"User-Agent",
 		}
 	}
-
-	log.Printf("Listening on port %s", port)
-	if err := http.ListenAndServe(":"+port, nil); err != nil {
-		log.Fatal(err)
-	}
 }
 
 // handler processes requests.
@@ -65,11 +70,17 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Request processed in %v", time.Since(start))
 	}()
 
+	// Default to http if scheme is empty
+	scheme := r.URL.Scheme
+	if scheme == "" {
+		scheme = "http"
+	}
+
 	var url string
 	if r.URL.RawQuery != "" {
-		url = fmt.Sprintf("%s://%s%s?%s", r.URL.Scheme, server, r.URL.Path, r.URL.RawQuery)
+		url = fmt.Sprintf("%s://%s%s?%s", scheme, server, r.URL.Path, r.URL.RawQuery)
 	} else {
-		url = fmt.Sprintf("%s://%s%s", r.URL.Scheme, server, r.URL.Path)
+		url = fmt.Sprintf("%s://%s%s", scheme, server, r.URL.Path)
 	}
 
 	var reqBody io.Reader
@@ -80,12 +91,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	client := &http.Client{
 		Timeout: time.Second * 30,
 	}
-	req, err := http.NewRequest(r.Method, url, reqBody)
 
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
+	req, _ := http.NewRequest(r.Method, url, reqBody)
 
 	for _, header := range mapped_headers {
 		mapHeader(r, req, header)
@@ -94,18 +101,12 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	resp, err := client.Do(req)
 
 	if err != nil {
+		// this is a network error like a timeout, so we should return 500
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
 
 	for key, values := range resp.Header {
 		for _, value := range values {
@@ -114,7 +115,11 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(resp.StatusCode)
-	w.Write(body)
+
+	// Finally copy body
+	if _, err := io.Copy(w, resp.Body); err != nil {
+		log.Printf("Error copying response body: %v", err)
+	}
 }
 
 func mapHeader(r *http.Request, req *http.Request, headerName string) {
