@@ -8,13 +8,26 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // mockTargetServer creates a test server that simulates the target server
 func mockTargetServer() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("X-Test-Header", "test-value")
+
+		if r.URL.Path == "/test/html_without_importmap" {
+			w.Header().Set("Content-Type", "text/html")
+			w.Write([]byte(`<html><body><h1>Hello, World!</h1></body></html>`))
+			return
+		}
+
+		if r.URL.Path == "/test/html_with_importmap" {
+			w.Header().Set("Content-Type", "text/html")
+			w.Write([]byte(`<html><head><script type="importmap">{"imports":{"@foo/bar":"/foo/bar.js"}}</script></head><body>test</body></html>`))
+			return
+		}
 
 		if r.URL.Path == "/test/400" {
 			http.Error(w, "Bad Request", http.StatusBadRequest)
@@ -25,6 +38,8 @@ func mockTargetServer() *httptest.Server {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
+
+		w.Header().Set("Content-Type", "application/json")
 
 		fmt.Fprintf(w, `{
 			"method": "%s",
@@ -37,7 +52,7 @@ func mockTargetServer() *httptest.Server {
 	}))
 }
 
-func TestProxyEndToEnd(t *testing.T) {
+func Test_handler(t *testing.T) {
 	// Start mock target server
 	targetServer := mockTargetServer()
 	defer targetServer.Close()
@@ -57,6 +72,7 @@ func TestProxyEndToEnd(t *testing.T) {
 		path           string
 		headers        map[string]string
 		expectedStatus int
+		expectedBody   string
 	}{
 		{
 			name:   "Basic GET request",
@@ -93,6 +109,20 @@ func TestProxyEndToEnd(t *testing.T) {
 				"User-Agent":    "test-agent-2",
 			},
 			expectedStatus: http.StatusOK,
+		},
+		{
+			name:           "GET request html without importmap",
+			method:         "GET",
+			path:           "/test/html_without_importmap",
+			expectedStatus: http.StatusOK,
+			expectedBody:   "<html><body><h1>Hello, World!</h1></body></html>",
+		},
+		{
+			name:           "GET request html with importmap",
+			method:         "GET",
+			path:           "/test/html_with_importmap",
+			expectedStatus: http.StatusOK,
+			expectedBody:   `<html><head><script type="importmap">{"imports":{"@foo/bar":"/foo/bar.js","@kdex-ui":"/_/kdex-ui.js"}}</script></head><body>test</body></html>`,
 		},
 	}
 
@@ -137,11 +167,12 @@ func TestProxyEndToEnd(t *testing.T) {
 
 			if resp.StatusCode == http.StatusOK {
 				// Verify response headers from target were forwarded
-				if resp.Header.Get("Content-Type") != "application/json" {
-					t.Error("Content-Type header not properly forwarded")
-				}
 				if resp.Header.Get("X-Test-Header") != "test-value" {
 					t.Error("X-Test-Header not properly forwarded")
+				}
+
+				if tt.expectedBody != "" {
+					assert.Equal(t, tt.expectedBody, string(body))
 				}
 			}
 		})

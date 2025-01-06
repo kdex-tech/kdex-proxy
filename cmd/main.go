@@ -15,6 +15,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -22,6 +23,9 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"golang.org/x/net/html"
+	"kdex.dev/proxy/internal/importmap"
 )
 
 var server string
@@ -108,17 +112,43 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	defer resp.Body.Close()
 
+	// Copy response headers first
 	for key, values := range resp.Header {
+		if key == "Content-Length" {
+			continue
+		}
 		for _, value := range values {
 			w.Header().Add(key, value)
 		}
 	}
 
+	// Write status code
 	w.WriteHeader(resp.StatusCode)
 
-	// Finally copy body
-	if _, err := io.Copy(w, resp.Body); err != nil {
-		log.Printf("Error copying response body: %v", err)
+	// Check if response is HTML and not streaming
+	contentType := resp.Header.Get("Content-Type")
+	isHTML := strings.Contains(contentType, "text/html")
+	isStreaming := resp.Header.Get("Transfer-Encoding") == "chunked"
+
+	if isHTML && !isStreaming {
+		// Buffer HTML content
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			log.Printf("Error reading HTML body: %v", err)
+			return
+		}
+		if err := mutateImportMap(&body); err != nil {
+			log.Printf("Error mutating import map: %v", err)
+			return
+		}
+		if _, err := w.Write(body); err != nil {
+			log.Printf("Error writing HTML body: %v", err)
+		}
+	} else {
+		// Stream other content types
+		if _, err := io.Copy(w, resp.Body); err != nil {
+			log.Printf("Error copying response body: %v", err)
+		}
 	}
 }
 
@@ -128,4 +158,24 @@ func mapHeader(r *http.Request, req *http.Request, headerName string) {
 	if headerValue != "" {
 		req.Header.Set(headerName, headerValue)
 	}
+}
+
+func mutateImportMap(body *[]byte) error {
+	doc, err := html.Parse(bytes.NewReader(*body))
+	if err != nil {
+		return err
+	}
+
+	importMapManager := importmap.Manager(doc)
+	if !importMapManager.Mutate() {
+		return nil
+	}
+
+	var buf bytes.Buffer
+	if err := html.Render(&buf, doc); err != nil {
+		log.Printf("Error rendering modified HTML: %v", err)
+		return err
+	}
+	*body = buf.Bytes()
+	return nil
 }
