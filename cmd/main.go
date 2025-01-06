@@ -166,7 +166,12 @@ func mutateImportMap(body *[]byte) error {
 		return err
 	}
 
-	importMapManager := importmap.Manager(doc)
+	importMapManager := importmap.Manager(doc).WithMutator(
+		func(importMap *importmap.ImportMap) {
+			importMap.Imports["@kdex-ui"] = "/_/kdex-ui.js"
+		},
+	)
+
 	if !importMapManager.Mutate() {
 		return nil
 	}

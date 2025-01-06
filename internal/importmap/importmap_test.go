@@ -45,7 +45,11 @@ func TestImportMapManager_Mutate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			importMapManager := Manager(tt.docNode)
+			importMapManager := Manager(tt.docNode).WithMutator(
+				func(importMap *ImportMap) {
+					importMap.Imports["@kdex-ui"] = "/_/kdex-ui.js"
+				},
+			)
 			got := importMapManager.Mutate()
 			if got != tt.want {
 				t.Errorf("ImportMapManager.Mutate() = %v, want %v", got, tt.want)

@@ -7,10 +7,13 @@ import (
 	"golang.org/x/net/html"
 )
 
+type Mutator func(importMap *ImportMap)
+
 type ImportMapManager struct {
 	docNode   *html.Node
 	mapNode   *html.Node
 	importMap ImportMap
+	mutator   Mutator
 }
 
 type ImportMap struct {
@@ -26,6 +29,11 @@ func Manager(doc *html.Node) *ImportMapManager {
 	return &importMapManager
 }
 
+func (importMapManager *ImportMapManager) WithMutator(mutator func(importMap *ImportMap)) *ImportMapManager {
+	importMapManager.mutator = mutator
+	return importMapManager
+}
+
 func (importMapManager *ImportMapManager) Mutate() bool {
 	if importMapManager.mapNode == nil {
 		return false
@@ -38,8 +46,16 @@ func (importMapManager *ImportMapManager) Mutate() bool {
 	if importMapManager.importMap.Imports == nil {
 		importMapManager.importMap.Imports = make(map[string]string)
 	}
+	if importMapManager.importMap.Integrity == nil {
+		importMapManager.importMap.Integrity = make(map[string]string)
+	}
+	if importMapManager.importMap.Scopes == nil {
+		importMapManager.importMap.Scopes = make(map[string]map[string]string)
+	}
 
-	importMapManager.importMap.Imports["@kdex-ui"] = "/_/kdex-ui.js"
+	if importMapManager.mutator != nil {
+		importMapManager.mutator(&importMapManager.importMap)
+	}
 
 	mapBytes, _ := json.Marshal(importMapManager.importMap)
 
