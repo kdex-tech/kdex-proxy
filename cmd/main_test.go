@@ -41,14 +41,20 @@ func mockTargetServer() *httptest.Server {
 
 		w.Header().Set("Content-Type", "application/json")
 
-		fmt.Fprintf(w, `{
-			"method": "%s",
-			"path": "%s",
-			"headers": {
-				"Authorization": "%s",
-				"User-Agent": "%s"
-			}
-		}`, r.Method, r.URL.Path, r.Header.Get("Authorization"), r.Header.Get("User-Agent"))
+		fmt.Fprintf(
+			w, `{
+				"method": "%s",
+				"path": "%s",
+				"headers": {
+					"Authorization": "%s",
+					"User-Agent": "%s"
+				}
+			}`,
+			r.Method,
+			r.URL.Path,
+			r.Header.Get("Authorization"),
+			r.Header.Get("User-Agent"),
+		)
 	}))
 }
 
@@ -58,7 +64,7 @@ func Test_handler(t *testing.T) {
 	defer targetServer.Close()
 
 	// Configure environment for proxy
-	os.Setenv("SERVER", strings.TrimPrefix(targetServer.URL, "http://"))
+	os.Setenv("UPSTREAM_ADDRESS", strings.TrimPrefix(targetServer.URL, "http://"))
 	os.Setenv("MAPPED_HEADERS", "Authorization,User-Agent")
 	setup()
 
@@ -150,6 +156,7 @@ func Test_handler(t *testing.T) {
 			// Check status code
 			if resp.StatusCode != tt.expectedStatus {
 				t.Errorf("Expected status %d, got %d", tt.expectedStatus, resp.StatusCode)
+				return
 			}
 
 			// Read and verify response

@@ -28,8 +28,9 @@ import (
 	"kdex.dev/proxy/internal/importmap"
 )
 
-var server string
-var port string
+var listen_address string = ""
+var listen_port string = "8080"
+var upstream_address string
 var mapped_headers []string
 
 func main() {
@@ -37,22 +38,27 @@ func main() {
 
 	setup()
 
-	log.Printf("Listening on port %s", port)
-	if err := http.ListenAndServe(":"+port, nil); err != nil {
+	log.Printf("Listening on %s:%s", listen_address, listen_port)
+	if err := http.ListenAndServe(listen_address+":"+listen_port, nil); err != nil {
 		log.Fatal(err)
 	}
 }
 
 func setup() {
-	port = os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-		log.Printf("Defaulting to port %s", port)
+	listen_port = os.Getenv("LISTEN_PORT")
+	if listen_port == "" {
+		listen_port = "8080"
+		log.Printf("Defaulting listen_port to %s", listen_port)
 	}
 
-	server = os.Getenv("SERVER")
-	if server == "" {
-		log.Fatal("SERVER environment variable not set")
+	listen_address = os.Getenv("LISTEN_ADDRESS")
+	if listen_address == "" {
+		log.Print("Defaulting listen_address to none (any address)")
+	}
+
+	upstream_address = os.Getenv("UPSTREAM_ADDRESS")
+	if upstream_address == "" {
+		log.Fatal("UPSTREAM_ADDRESS environment variable not set")
 	}
 
 	mapped_headers = strings.Split(os.Getenv("MAPPED_HEADERS"), ",")
@@ -82,9 +88,9 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	var url string
 	if r.URL.RawQuery != "" {
-		url = fmt.Sprintf("%s://%s%s?%s", scheme, server, r.URL.Path, r.URL.RawQuery)
+		url = fmt.Sprintf("%s://%s%s?%s", scheme, upstream_address, r.URL.Path, r.URL.RawQuery)
 	} else {
-		url = fmt.Sprintf("%s://%s%s", scheme, server, r.URL.Path)
+		url = fmt.Sprintf("%s://%s%s", scheme, upstream_address, r.URL.Path)
 	}
 
 	var reqBody io.Reader
