@@ -142,6 +142,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	req, _ := http.NewRequest(r.Method, url, reqBody)
 
+	// Map headers from request to upstream request
 	for _, header := range mapped_headers {
 		mapHeader(r, req, header)
 	}
@@ -149,7 +150,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	resp, err := client.Do(req)
 
 	if err != nil {
-		// this is a network error like a timeout, so we should return 500
+		// This is a network error like a timeout, so we should return 500
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
