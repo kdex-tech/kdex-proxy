@@ -30,12 +30,13 @@ import (
 
 var listen_address string = ""
 var listen_port string = "8080"
-var upstream_address string
 var mapped_headers []string
+var upstream_address string
+var upstream_healthz_path string = "/"
 
 func main() {
 	http.HandleFunc("/", handler)
-
+	http.HandleFunc("/.proxy.probe", probe)
 	setup()
 
 	log.Printf("Listening on %s:%s", listen_address, listen_port)
@@ -61,6 +62,11 @@ func setup() {
 		log.Fatal("UPSTREAM_ADDRESS environment variable not set")
 	}
 
+	upstream_healthz_path = os.Getenv("UPSTREAM_HEALTHZ_PATH")
+	if upstream_healthz_path == "" {
+		upstream_healthz_path = "/"
+	}
+
 	mapped_headers = strings.Split(os.Getenv("MAPPED_HEADERS"), ",")
 	if len(mapped_headers) == 0 {
 		mapped_headers = []string{
@@ -70,6 +76,38 @@ func setup() {
 			"Origin",
 			"User-Agent",
 		}
+	}
+}
+
+func probe(w http.ResponseWriter, r *http.Request) {
+	// Default to http if scheme is empty
+	scheme := r.URL.Scheme
+	if scheme == "" {
+		scheme = "http"
+	}
+
+	url := fmt.Sprintf("%s://%s%s", scheme, upstream_address, upstream_healthz_path)
+
+	req, _ := http.NewRequest("GET", url, nil)
+
+	client := &http.Client{
+		Timeout: time.Second * 30,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	defer resp.Body.Close()
+
+	w.WriteHeader(resp.StatusCode)
+	if resp.StatusCode == http.StatusOK {
+		w.Write([]byte("OK"))
+	} else {
+		w.Write([]byte(fmt.Sprintf("UPSTREAM_HEALTHZ_PATH returned %d", resp.StatusCode)))
 	}
 }
 
