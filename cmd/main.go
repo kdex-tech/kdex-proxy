@@ -22,6 +22,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -56,7 +57,12 @@ func middlewareLogger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		defer func() {
-			log.Printf("%s %s processed in %v", r.Method, r.URL.Path, time.Since(start))
+			code := r.Header.Get("Response-Code")
+			if code != "" {
+				log.Printf("%s %s %s processed in %v", r.Method, r.URL.Path, code, time.Since(start))
+			} else {
+				log.Printf("%s %s processed in %v", r.Method, r.URL.Path, time.Since(start))
+			}
 		}()
 
 		next.ServeHTTP(w, r)
@@ -175,6 +181,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	// Write status code
 	w.WriteHeader(resp.StatusCode)
+	r.Header.Set("Response-Code", strconv.Itoa(resp.StatusCode))
 
 	// Check if response is HTML and not streaming
 	contentType := resp.Header.Get("Content-Type")
