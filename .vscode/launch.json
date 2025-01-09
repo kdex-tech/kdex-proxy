@@ -1,0 +1,16 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch Proxy",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "cmd/main.go",
+            "env": {
+                "UPSTREAM_ADDRESS": "main.dxp.docker.localhost",
+                "UPSTREAM_HEALTHZ_PATH": "/c/portal/robots"
+            }
+        }
+    ]
+}
