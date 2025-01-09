@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -97,13 +98,7 @@ func setup() {
 }
 
 func probe(w http.ResponseWriter, r *http.Request) {
-	// Default to http if scheme is empty
-	scheme := r.URL.Scheme
-	if scheme == "" {
-		scheme = "http"
-	}
-
-	url := fmt.Sprintf("%s://%s%s", scheme, upstream_address, upstream_healthz_path)
+	url := fmt.Sprintf("%s://%s%s", getScheme(r), upstream_address, upstream_healthz_path)
 
 	req, _ := http.NewRequest("GET", url, nil)
 
@@ -124,17 +119,13 @@ func probe(w http.ResponseWriter, r *http.Request) {
 	if resp.StatusCode == http.StatusOK {
 		w.Write([]byte("OK"))
 	} else {
-		w.Write([]byte(fmt.Sprintf("UPSTREAM_HEALTHZ_PATH returned %d", resp.StatusCode)))
+		w.Write([]byte(fmt.Sprintf("GET %s returned %d", upstream_healthz_path, resp.StatusCode)))
 	}
 }
 
 // handler processes requests.
 func handler(w http.ResponseWriter, r *http.Request) {
-	// Default to http if scheme is empty
-	scheme := r.URL.Scheme
-	if scheme == "" {
-		scheme = "http"
-	}
+	scheme := getScheme(r)
 
 	var url string
 	if r.URL.RawQuery != "" {
@@ -158,6 +149,9 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	for _, header := range mapped_headers {
 		mapHeader(r, req, header)
 	}
+
+	// Add proxy headers to request
+	processProxyHeaders(r, req)
 
 	resp, err := client.Do(req)
 
@@ -209,6 +203,27 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func processProxyHeaders(r *http.Request, req *http.Request) {
+	setXForwardedFor(r, req)
+
+	if strings.Contains(r.Host, ":") {
+		hostName, _, _ := net.SplitHostPort(r.Host)
+		req.Header.Set("X-Forwarded-Host", hostName)
+	} else {
+		req.Header.Set("X-Forwarded-Host", r.Host)
+	}
+
+	req.Header.Set("X-Forwarded-Proto", getScheme(r))
+
+	if strings.Contains(r.Host, ":") {
+		if _, port, _ := net.SplitHostPort(r.Host); port != "" {
+			req.Header.Set("X-Forwarded-Port", port)
+		}
+	}
+
+	setForwarded(r, req)
+}
+
 func mapHeader(r *http.Request, req *http.Request, headerName string) {
 	headerValue := r.Header.Get(headerName)
 
@@ -240,4 +255,36 @@ func mutateImportMap(body *[]byte) error {
 	}
 	*body = buf.Bytes()
 	return nil
+}
+
+func getOutboundIP() net.IP {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close()
+
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+
+	return localAddr.IP
+}
+
+func getScheme(r *http.Request) string {
+	if r.URL.Scheme != "" {
+		return r.URL.Scheme
+	}
+	return "http"
+}
+
+func setForwarded(r *http.Request, req *http.Request) {
+	req.Header.Set("Forwarded", fmt.Sprintf("by=%s;for=%s;host=%s;proto=%s", getOutboundIP().String(), r.RemoteAddr, r.Host, getScheme(r)))
+}
+
+func setXForwardedFor(r *http.Request, req *http.Request) {
+	if xForwardedFor := r.Header.Values("X-Forwarded-For"); len(xForwardedFor) > 0 {
+		xForwardedFors := strings.Join(xForwardedFor, ", ")
+		req.Header.Set("X-Forwarded-For", fmt.Sprintf("%s, %s", xForwardedFors, getOutboundIP().String()))
+	} else {
+		req.Header.Set("X-Forwarded-For", fmt.Sprintf("%s, %s", r.RemoteAddr, getOutboundIP().String()))
+	}
 }

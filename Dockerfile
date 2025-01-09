@@ -12,7 +12,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 # Copy source code
-COPY cmd/main.go cmd/main.go
+COPY cmd/ cmd/
 COPY internal/ internal/
 
 # Build the binary
