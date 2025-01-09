@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kdex-proxy
+  labels:
+    app: kdex-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kdex-proxy
+  template:
+    metadata:
+      labels:
+        app: kdex-proxy
+    spec:
+      containers:
+      - name: proxy
+        image: registry:5000/kdex-tech/proxy:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: LISTEN_PORT
+          value: "8080"
+        - name: LISTEN_ADDRESS
+          value: ""
+        - name: UPSTREAM_ADDRESS
+          valueFrom:
+            configMapKeyRef:
+              name: kdex-proxy-config
+              key: upstream_address
+        - name: UPSTREAM_HEALTHZ_PATH
+          valueFrom:
+            configMapKeyRef:
+              name: kdex-proxy-config
+              key: upstream_healthz_path
+        - name: MAPPED_HEADERS
+          valueFrom:
+            configMapKeyRef:
+              name: kdex-proxy-config
+              key: mapped_headers
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+        livenessProbe:
+          httpGet:
+            path: /.proxy.probe
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /.proxy.probe
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
