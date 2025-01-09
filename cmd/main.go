@@ -35,14 +35,31 @@ var upstream_address string
 var upstream_healthz_path string = "/"
 
 func main() {
-	http.HandleFunc("/", handler)
-	http.HandleFunc("/.proxy.probe", probe)
+	mux := http.NewServeMux()
+
+	mainHandler := http.HandlerFunc(handler)
+	probeHandler := http.HandlerFunc(probe)
+
+	mux.Handle("/", middlewareLogger(mainHandler))
+	mux.Handle("/.proxy.probe", middlewareLogger(probeHandler))
+
 	setup()
 
 	log.Printf("Listening on %s:%s", listen_address, listen_port)
-	if err := http.ListenAndServe(listen_address+":"+listen_port, nil); err != nil {
+	if err := http.ListenAndServe(listen_address+":"+listen_port, mux); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func middlewareLogger(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		defer func() {
+			log.Printf("%s %s processed in %v", r.Method, r.URL.Path, time.Since(start))
+		}()
+
+		next.ServeHTTP(w, r)
+	})
 }
 
 func setup() {
@@ -113,11 +130,6 @@ func probe(w http.ResponseWriter, r *http.Request) {
 
 // handler processes requests.
 func handler(w http.ResponseWriter, r *http.Request) {
-	start := time.Now()
-	defer func() {
-		log.Printf("Request processed in %v", time.Since(start))
-	}()
-
 	// Default to http if scheme is empty
 	scheme := r.URL.Scheme
 	if scheme == "" {
