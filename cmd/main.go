@@ -42,7 +42,7 @@ func main() {
 	probeHandler := http.HandlerFunc(probe)
 
 	mux.Handle("/", middlewareLogger(mainHandler))
-	mux.Handle("/.proxy.probe", middlewareLogger(probeHandler))
+	mux.Handle("/.proxy.probe", probeHandler)
 
 	setup()
 
