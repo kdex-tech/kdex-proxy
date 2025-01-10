@@ -21,6 +21,8 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -34,18 +36,21 @@ var listen_address string = ""
 var listen_port string = "8080"
 var mapped_headers []string
 var upstream_address string
+var upstream_scheme string = "http"
 var upstream_healthz_path string = "/"
 
 func main() {
+	setup()
+
 	mux := http.NewServeMux()
 
-	mainHandler := http.HandlerFunc(handler)
 	probeHandler := http.HandlerFunc(probe)
-
-	mux.Handle("/", middlewareLogger(mainHandler))
 	mux.Handle("/.proxy.probe", probeHandler)
 
-	setup()
+	// mainHandler := http.HandlerFunc(handler)
+	// mux.Handle("/", middlewareLogger(mainHandler))
+
+	mux.Handle("/", middlewareLogger(http.HandlerFunc(reverseProxy())))
 
 	log.Printf("Listening on %s:%s", listen_address, listen_port)
 	if err := http.ListenAndServe(listen_address+":"+listen_port, mux); err != nil {
@@ -84,6 +89,11 @@ func setup() {
 	upstream_address = os.Getenv("UPSTREAM_ADDRESS")
 	if upstream_address == "" {
 		log.Fatal("UPSTREAM_ADDRESS environment variable not set")
+	}
+
+	upstream_scheme = os.Getenv("UPSTREAM_SCHEME")
+	if upstream_scheme == "" {
+		upstream_scheme = "http"
 	}
 
 	upstream_healthz_path = os.Getenv("UPSTREAM_HEALTHZ_PATH")
@@ -129,6 +139,33 @@ func probe(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func reverseProxy() func(http.ResponseWriter, *http.Request) {
+	proxy := httputil.NewSingleHostReverseProxy(
+		&url.URL{Scheme: upstream_scheme, Host: upstream_address})
+
+	proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
+		log.Printf("Error: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+
+	proxy.Director = func(req *http.Request) {
+		processProxyHeaders(req, req)
+	}
+
+	proxy.ModifyResponse = modifyResponse
+
+	handler := func(p *httputil.ReverseProxy) func(http.ResponseWriter, *http.Request) {
+		return func(w http.ResponseWriter, r *http.Request) {
+			r.Host = fmt.Sprintf("%s://%s", upstream_scheme, upstream_address)
+			r.URL.Scheme = upstream_scheme
+			r.URL.Host = upstream_address
+			p.ServeHTTP(w, r)
+		}
+	}
+
+	return handler(proxy)
+}
+
 // handler processes requests.
 func handler(w http.ResponseWriter, r *http.Request) {
 	scheme := getScheme(r)
@@ -160,10 +197,14 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	// Add proxy headers to request
 	processProxyHeaders(r, req)
 
+	log.Printf("Upstream request: %v", url)
+
 	resp, err := client.Do(req)
 
 	if err != nil {
 		// This is a network error like a timeout, so we should return 500
+		log.Printf("Error: %v", err)
+
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -209,6 +250,38 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			log.Printf("Error copying response body: %v", err)
 		}
 	}
+}
+
+func modifyResponse(r *http.Response) (err error) {
+	// Check if response is HTML and not streaming
+	contentType := r.Header.Get("Content-Type")
+	isHTML := strings.Contains(contentType, "text/html")
+	isStreaming := r.Header.Get("Transfer-Encoding") == "chunked"
+
+	if !isHTML || isStreaming {
+		return nil
+	}
+
+	// Buffer HTML content
+	b, err := io.ReadAll(r.Body)
+
+	if err != nil {
+		return err
+	}
+
+	if err = r.Body.Close(); err != nil {
+		return err
+	}
+
+	if err := mutateImportMap(&b); err != nil {
+		return err
+	}
+
+	r.Body = io.NopCloser(bytes.NewReader(b))
+	r.ContentLength = int64(len(b))
+	r.Header.Set("Content-Length", strconv.Itoa(len(b)))
+
+	return nil
 }
 
 func processProxyHeaders(r *http.Request, req *http.Request) {

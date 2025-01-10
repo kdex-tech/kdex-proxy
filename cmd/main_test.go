@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,6 +12,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
+
+type Result struct {
+	Method  string              `json:"method"`
+	Path    string              `json:"path"`
+	Headers map[string][]string `json:"headers"`
+}
 
 // mockTargetServer creates a test server that simulates the target server
 func mockTargetServer() *httptest.Server {
@@ -41,20 +48,19 @@ func mockTargetServer() *httptest.Server {
 
 		w.Header().Set("Content-Type", "application/json")
 
-		fmt.Fprintf(
-			w, `{
-				"method": "%s",
-				"path": "%s",
-				"headers": {
-					"Authorization": "%s",
-					"User-Agent": "%s"
-				}
-			}`,
-			r.Method,
-			r.URL.Path,
-			r.Header.Get("Authorization"),
-			r.Header.Get("User-Agent"),
-		)
+		result := Result{
+			Method:  r.Method,
+			Path:    r.URL.Path,
+			Headers: map[string][]string{},
+		}
+
+		for k, v := range r.Header {
+			result.Headers[k] = v
+		}
+
+		bytes, _ := json.Marshal(result)
+
+		fmt.Fprintf(w, "%s", string(bytes))
 	}))
 }
 
@@ -69,7 +75,7 @@ func Test_handler(t *testing.T) {
 	setup()
 
 	// Create test proxy server
-	proxyServer := httptest.NewServer(http.HandlerFunc(handler))
+	proxyServer := httptest.NewServer(http.HandlerFunc(reverseProxy()))
 	defer proxyServer.Close()
 
 	tests := []struct {
@@ -135,22 +141,24 @@ func Test_handler(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create request to proxy
-			req, err := http.NewRequest(tt.method, proxyServer.URL+tt.path, nil)
-			if err != nil {
-				t.Fatalf("Failed to create request: %v", err)
-			}
+			req, _ := http.NewRequest(tt.method, proxyServer.URL+tt.path, nil)
 
 			// Add headers
 			for k, v := range tt.headers {
 				req.Header.Set(k, v)
 			}
 
+			req.Header.Set("Host", proxyServer.URL)
+			// req.Host = fmt.Sprintf("%s://%s", upstream_scheme, upstream_address)
+
 			// Send request
 			client := &http.Client{}
 			resp, err := client.Do(req)
 			if err != nil {
 				t.Fatalf("Failed to send request: %v", err)
+				return
 			}
+
 			defer resp.Body.Close()
 
 			// Check status code
@@ -163,11 +171,15 @@ func Test_handler(t *testing.T) {
 			body, err := io.ReadAll(resp.Body)
 			if err != nil {
 				t.Fatalf("Failed to read response body: %v", err)
+				return
 			}
+
+			result := Result{}
+			json.Unmarshal(body, &result)
 
 			// Verify headers were properly forwarded
 			for k, v := range tt.headers {
-				if !strings.Contains(string(body), v) {
+				if strings.Join(result.Headers[k], ",") != v {
 					t.Errorf("Response doesn't contain expected header value %s: %s", k, v)
 				}
 			}
