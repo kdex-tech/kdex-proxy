@@ -151,9 +151,10 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	req, _ := http.NewRequest(r.Method, url, reqBody)
 
-	// Map headers from request to upstream request
-	for _, header := range mapped_headers {
-		mapHeader(r, req, header)
+	for key, values := range r.Header {
+		for _, value := range values {
+			req.Header.Add(key, value)
+		}
 	}
 
 	// Add proxy headers to request
