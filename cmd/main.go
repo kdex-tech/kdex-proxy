@@ -156,7 +156,6 @@ func reverseProxy() func(http.ResponseWriter, *http.Request) {
 
 	handler := func(p *httputil.ReverseProxy) func(http.ResponseWriter, *http.Request) {
 		return func(w http.ResponseWriter, r *http.Request) {
-			r.Host = fmt.Sprintf("%s://%s", upstream_scheme, upstream_address)
 			r.URL.Scheme = upstream_scheme
 			r.URL.Host = upstream_address
 			p.ServeHTTP(w, r)
