@@ -148,8 +148,9 @@ func Test_handler(t *testing.T) {
 				req.Header.Set(k, v)
 			}
 
-			req.Header.Set("Host", proxyServer.URL)
-			// req.Host = fmt.Sprintf("%s://%s", upstream_scheme, upstream_address)
+			req.Host = "foo.bar"
+			req.URL.Scheme = "http"
+			req.Header.Set("Host", req.Host)
 
 			// Send request
 			client := &http.Client{}
