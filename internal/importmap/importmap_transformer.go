@@ -25,9 +25,9 @@ type Imports struct {
 }
 
 type ImportMapTransformer struct {
-	Imports      Imports
-	ModuleBody   string
-	ModulePrefix string
+	ModuleImports Imports
+	ModuleBody    string
+	ModulePrefix  string
 }
 
 func NewImportMapTransformerFromEnv() *ImportMapTransformer {
@@ -74,9 +74,9 @@ func NewImportMapTransformerFromEnv() *ImportMapTransformer {
 	}
 
 	return &ImportMapTransformer{
-		Imports:      imports,
-		ModuleBody:   moduleBody,
-		ModulePrefix: DefaultModulesPrefix,
+		ModuleImports: imports,
+		ModuleBody:    moduleBody,
+		ModulePrefix:  DefaultModulesPrefix,
 	}
 }
 
@@ -120,7 +120,7 @@ func (t *ImportMapTransformer) Transform(body *[]byte) error {
 
 func (t *ImportMapTransformer) Mutator() ImportMapMutator {
 	return func(im *ImportMap) {
-		for key, value := range t.Imports.Imports {
+		for key, value := range t.ModuleImports.Imports {
 			im.Imports[key] = t.ModulePrefix + value
 		}
 	}

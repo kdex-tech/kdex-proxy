@@ -26,16 +26,15 @@ import (
 
 func main() {
 	ps := proxy.NewServerFromEnv()
-	fs, err := fileserver.NewFileServerFromEnv()
-
 	transformer := importmap.NewImportMapTransformerFromEnv()
-	transformer.WithModulePrefix(fs.Prefix)
-
-	ps.WithTransformer(transformer)
+	fs, err := fileserver.NewFileServerFromEnv()
 
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	transformer.WithModulePrefix(fs.Prefix)
+	ps.WithTransformer(transformer)
 
 	mux := http.NewServeMux()
 
