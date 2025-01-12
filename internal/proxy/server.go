@@ -26,6 +26,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"golang.org/x/net/html"
 	"kdex.dev/proxy/internal/importmap"
@@ -73,6 +74,32 @@ func NewServerFromEnv() *Server {
 		UpstreamAddress:     upstream_address,
 		UpstreamScheme:      upstream_scheme,
 		UpstreamHealthzPath: upstream_healthz_path,
+	}
+}
+
+func (s *Server) Probe(w http.ResponseWriter, r *http.Request) {
+	url := fmt.Sprintf("%s://%s%s", util.GetScheme(r), s.UpstreamAddress, s.UpstreamHealthzPath)
+
+	req, _ := http.NewRequest("GET", url, nil)
+
+	client := &http.Client{
+		Timeout: time.Second * 30,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	defer resp.Body.Close()
+
+	w.WriteHeader(resp.StatusCode)
+	if resp.StatusCode == http.StatusOK {
+		w.Write([]byte("OK"))
+	} else {
+		w.Write([]byte(fmt.Sprintf("GET %s returned %d", s.UpstreamHealthzPath, resp.StatusCode)))
 	}
 }
 
@@ -163,19 +190,14 @@ func processProxyHeaders(r *http.Request, req *http.Request) {
 	setXForwardedFor(r, req)
 
 	if strings.Contains(r.Host, ":") {
-		hostName, _, _ := net.SplitHostPort(r.Host)
+		hostName, port, _ := net.SplitHostPort(r.Host)
 		req.Header.Set("X-Forwarded-Host", hostName)
+		req.Header.Set("X-Forwarded-Port", port)
 	} else {
 		req.Header.Set("X-Forwarded-Host", r.Host)
 	}
 
 	req.Header.Set("X-Forwarded-Proto", util.GetScheme(r))
-
-	if strings.Contains(r.Host, ":") {
-		if _, port, _ := net.SplitHostPort(r.Host); port != "" {
-			req.Header.Set("X-Forwarded-Port", port)
-		}
-	}
 
 	setForwarded(r, req)
 }

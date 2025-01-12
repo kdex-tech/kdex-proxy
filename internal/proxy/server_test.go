@@ -37,6 +37,12 @@ func mockTargetServer() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Test-Header", "test-value")
 
+		if r.URL.Path == "/healthz" {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("OK"))
+			return
+		}
+
 		if r.URL.Path == "/test/html_without_importmap" {
 			w.Header().Set("Content-Type", "text/html")
 			w.Write([]byte(`<html><body><h1>Hello, World!</h1></body></html>`))
@@ -82,11 +88,13 @@ func TestServer_ReverseProxy(t *testing.T) {
 	targetServer := mockTargetServer()
 	defer targetServer.Close()
 
+	upstreamAddress := strings.TrimPrefix(targetServer.URL, "http://")
+
 	// Configure server for proxy
 	s := Server{
 		ListenAddress:       "localhost",
 		ListenPort:          "8080",
-		UpstreamAddress:     strings.TrimPrefix(targetServer.URL, "http://"),
+		UpstreamAddress:     upstreamAddress,
 		UpstreamScheme:      "http",
 		UpstreamHealthzPath: "/healthz",
 	}
@@ -96,12 +104,13 @@ func TestServer_ReverseProxy(t *testing.T) {
 	defer proxyServer.Close()
 
 	tests := []struct {
-		name           string
-		method         string
-		path           string
-		headers        map[string]string
-		expectedStatus int
-		expectedBody   string
+		name            string
+		method          string
+		path            string
+		headers         map[string]string
+		expectedStatus  int
+		expectedBody    string
+		upstreamAddress string
 	}{
 		{
 			name:   "Basic GET request",
@@ -113,7 +122,8 @@ func TestServer_ReverseProxy(t *testing.T) {
 				"X-Forwarded-Host":  "foo.bar",
 				"X-Forwarded-Proto": "http",
 			},
-			expectedStatus: http.StatusOK,
+			expectedStatus:  http.StatusOK,
+			upstreamAddress: upstreamAddress,
 		},
 		{
 			name:   "Basic GET request with query params",
@@ -125,13 +135,15 @@ func TestServer_ReverseProxy(t *testing.T) {
 				"X-Forwarded-Host":  "foo.bar",
 				"X-Forwarded-Proto": "http",
 			},
-			expectedStatus: http.StatusOK,
+			expectedStatus:  http.StatusOK,
+			upstreamAddress: upstreamAddress,
 		},
 		{
-			name:           "Basic GET request returns 500",
-			method:         "GET",
-			path:           "/test/500",
-			expectedStatus: http.StatusInternalServerError,
+			name:            "Basic GET request returns 500",
+			method:          "GET",
+			path:            "/test/500",
+			expectedStatus:  http.StatusInternalServerError,
+			upstreamAddress: upstreamAddress,
 		},
 		{
 			name:   "POST request",
@@ -143,26 +155,39 @@ func TestServer_ReverseProxy(t *testing.T) {
 				"X-Forwarded-Host":  "foo.bar",
 				"X-Forwarded-Proto": "http",
 			},
-			expectedStatus: http.StatusOK,
+			expectedStatus:  http.StatusOK,
+			upstreamAddress: upstreamAddress,
 		},
 		{
-			name:           "GET request html without importmap",
-			method:         "GET",
-			path:           "/test/html_without_importmap",
-			expectedStatus: http.StatusOK,
-			expectedBody:   `<html><head><script type="importmap">{"imports":{"@kdex-ui":"/_/kdex-ui.js"}}</script></head><body><h1>Hello, World!</h1></body></html>`,
+			name:            "GET request html without importmap",
+			method:          "GET",
+			path:            "/test/html_without_importmap",
+			expectedStatus:  http.StatusOK,
+			expectedBody:    `<html><head><script type="importmap">{"imports":{"@kdex-ui":"/_/kdex-ui.js"}}</script></head><body><h1>Hello, World!</h1></body></html>`,
+			upstreamAddress: upstreamAddress,
 		},
 		{
-			name:           "GET request html with importmap",
-			method:         "GET",
-			path:           "/test/html_with_importmap",
-			expectedStatus: http.StatusOK,
-			expectedBody:   `<html><head><script type="importmap">{"imports":{"@foo/bar":"/foo/bar.js","@kdex-ui":"/_/kdex-ui.js"}}</script></head><body>test</body></html>`,
+			name:            "GET request html with importmap",
+			method:          "GET",
+			path:            "/test/html_with_importmap",
+			expectedStatus:  http.StatusOK,
+			expectedBody:    `<html><head><script type="importmap">{"imports":{"@foo/bar":"/foo/bar.js","@kdex-ui":"/_/kdex-ui.js"}}</script></head><body>test</body></html>`,
+			upstreamAddress: upstreamAddress,
+		},
+		{
+			name:            "GET with bad upstream address",
+			method:          "GET",
+			path:            "/test/html_with_importmap",
+			expectedStatus:  http.StatusInternalServerError,
+			expectedBody:    `Get "http://upstreamAddress/test/html_with_importmap": dial tcp: lookup upstreamAddress: Temporary failure in name resolution`,
+			upstreamAddress: "upstreamAddress",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			s.UpstreamAddress = tt.upstreamAddress
+
 			// Create request to proxy
 			req, _ := http.NewRequest(tt.method, proxyServer.URL+tt.path, nil)
 
@@ -217,6 +242,75 @@ func TestServer_ReverseProxy(t *testing.T) {
 				if tt.expectedBody != "" {
 					assert.Equal(t, tt.expectedBody, string(body))
 				}
+			}
+		})
+	}
+}
+
+func TestServer_Probe(t *testing.T) {
+	targetServer := mockTargetServer()
+	defer targetServer.Close()
+
+	upstreamAddress := strings.TrimPrefix(targetServer.URL, "http://")
+
+	s := &Server{
+		ListenAddress:  "localhost",
+		ListenPort:     "8080",
+		UpstreamScheme: "http",
+	}
+
+	proxyServer := httptest.NewServer(http.HandlerFunc(s.ReverseProxy()))
+	defer proxyServer.Close()
+
+	tests := []struct {
+		name            string
+		upstreamAddress string
+		recorder        *httptest.ResponseRecorder
+		method          string
+		healthzPath     string
+		wantBody        string
+		wantStatus      int
+	}{
+		{
+			name:            "test",
+			upstreamAddress: upstreamAddress,
+			recorder:        httptest.NewRecorder(),
+			method:          "GET",
+			healthzPath:     "/healthz",
+			wantBody:        "OK",
+			wantStatus:      http.StatusOK,
+		},
+		{
+			name:            "test failed probe",
+			upstreamAddress: "upstreamAddress",
+			recorder:        httptest.NewRecorder(),
+			method:          "GET",
+			healthzPath:     "/healthz",
+			wantBody:        `Get "http://upstreamAddress/healthz": dial tcp: lookup upstreamAddress: Temporary failure in name resolution`,
+			wantStatus:      http.StatusInternalServerError,
+		},
+		{
+			name:            "test failed probe with 400",
+			upstreamAddress: upstreamAddress,
+			recorder:        httptest.NewRecorder(),
+			method:          "GET",
+			healthzPath:     "/test/400",
+			wantBody:        `GET /test/400 returned 400`,
+			wantStatus:      http.StatusBadRequest,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s.UpstreamAddress = tt.upstreamAddress
+			s.UpstreamHealthzPath = tt.healthzPath
+
+			s.Probe(tt.recorder, httptest.NewRequest(tt.method, proxyServer.URL, nil))
+
+			if tt.recorder.Code != tt.wantStatus {
+				t.Errorf("probe().Code = %v, want %v", tt.recorder.Code, tt.wantStatus)
+			}
+			if tt.recorder.Body.String() != tt.wantBody {
+				t.Errorf("probe().Body = %v, want %v", tt.recorder.Body.String(), tt.wantBody)
 			}
 		})
 	}
