@@ -6,11 +6,11 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"kdex.dev/proxy/internal/proxy"
 )
 
 type Result struct {
@@ -64,18 +64,22 @@ func mockTargetServer() *httptest.Server {
 	}))
 }
 
-func Test_handler(t *testing.T) {
+func Test_reverseProxy(t *testing.T) {
 	// Start mock target server
 	targetServer := mockTargetServer()
 	defer targetServer.Close()
 
-	// Configure environment for proxy
-	os.Setenv("UPSTREAM_ADDRESS", strings.TrimPrefix(targetServer.URL, "http://"))
-	os.Setenv("MAPPED_HEADERS", "Authorization,User-Agent")
-	setup()
+	// Configure server for proxy
+	s := proxy.Server{
+		ListenAddress:       "localhost",
+		ListenPort:          "8080",
+		UpstreamAddress:     strings.TrimPrefix(targetServer.URL, "http://"),
+		UpstreamScheme:      "http",
+		UpstreamHealthzPath: "/healthz",
+	}
 
 	// Create test proxy server
-	proxyServer := httptest.NewServer(http.HandlerFunc(reverseProxy()))
+	proxyServer := httptest.NewServer(http.HandlerFunc(s.ReverseProxy()))
 	defer proxyServer.Close()
 
 	tests := []struct {
