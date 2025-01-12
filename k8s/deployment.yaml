@@ -15,6 +15,20 @@ spec:
         app: kdex-proxy
     spec:
       containers:
+      # For testing. Copy module files onto the volume: `k cp -c bash <source> <pod>:/modules/`
+      - name: bash
+        image: bash
+        command: ["/usr/local/bin/bash", "-c", "sleep infinity"]
+        volumeMounts:
+        - mountPath: /modules
+          name: kdex-proxy-pvc
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
       - name: proxy
         image: registry:5000/kdex-tech/proxy:latest
         ports:
