@@ -19,6 +19,7 @@ import (
 	"net/http"
 	"time"
 
+	"kdex.dev/proxy/internal/fileserver"
 	"kdex.dev/proxy/internal/proxy"
 )
 
@@ -27,12 +28,19 @@ var s *proxy.Server
 func main() {
 	s = proxy.NewServerFromEnv()
 
+	fs, err := fileserver.NewFileServerFromEnv()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	mux := http.NewServeMux()
 
+	mux.Handle("GET "+fs.Prefix, middlewareLogger(fs.ServeHTTP()))
 	mux.Handle("GET /~/p/{$}", http.HandlerFunc(s.Probe))
 	mux.Handle("/", middlewareLogger(http.HandlerFunc(s.ReverseProxy())))
 
 	log.Printf("Listening on %s:%s", s.ListenAddress, s.ListenPort)
+
 	if err := http.ListenAndServe(s.ListenAddress+":"+s.ListenPort, mux); err != nil {
 		log.Fatal(err)
 	}

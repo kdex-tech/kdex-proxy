@@ -24,6 +24,8 @@ spec:
           value: "8080"
         - name: LISTEN_ADDRESS
           value: ""
+        - name: MODULES_DIR
+          value: "/modules"
         - name: UPSTREAM_ADDRESS
           valueFrom:
             configMapKeyRef:
@@ -58,7 +60,26 @@ spec:
             port: 8080
           initialDelaySeconds: 5
           periodSeconds: 10
+        volumeMounts:
+        - mountPath: /modules
+          name: kdex-proxy-pvc
+      volumes:
+      - name: kdex-proxy-pvc
+        persistentVolumeClaim:
+          claimName: kdex-proxy-pvc
       securityContext:
         runAsNonRoot: true
         runAsUser: 65532
         runAsGroup: 65532
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: kdex-proxy-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: rbd
