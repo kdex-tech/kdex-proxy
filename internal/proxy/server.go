@@ -33,9 +33,18 @@ import (
 	"kdex.dev/proxy/internal/util"
 )
 
+const (
+	DefaultListenAddress       = ""
+	DefaultListenPort          = "8080"
+	DefaultProbePrefix         = "/~/p/{$}"
+	DefaultUpstreamScheme      = "http"
+	DefaultUpstreamHealthzPath = "/"
+)
+
 type Server struct {
 	ListenAddress       string
 	ListenPort          string
+	ProbePrefix         string
 	UpstreamAddress     string
 	UpstreamScheme      string
 	UpstreamHealthzPath string
@@ -44,13 +53,20 @@ type Server struct {
 func NewServerFromEnv() *Server {
 	listen_port := os.Getenv("LISTEN_PORT")
 	if listen_port == "" {
-		listen_port = "8080"
+		listen_port = DefaultListenPort
 		log.Printf("Defaulting listen_port to %s", listen_port)
 	}
 
 	listen_address := os.Getenv("LISTEN_ADDRESS")
 	if listen_address == "" {
-		log.Print("Defaulting listen_address to none (any address)")
+		listen_address = DefaultListenAddress
+		log.Printf("Defaulting listen_address to %s", listen_address)
+	}
+
+	probe_prefix := os.Getenv("PROBE_PREFIX")
+	if probe_prefix == "" {
+		probe_prefix = DefaultProbePrefix
+		log.Printf("Defaulting probe_prefix to %s", probe_prefix)
 	}
 
 	upstream_address := os.Getenv("UPSTREAM_ADDRESS")
@@ -60,17 +76,20 @@ func NewServerFromEnv() *Server {
 
 	upstream_scheme := os.Getenv("UPSTREAM_SCHEME")
 	if upstream_scheme == "" {
-		upstream_scheme = "http"
+		upstream_scheme = DefaultUpstreamScheme
+		log.Printf("Defaulting upstream_scheme to %s", upstream_scheme)
 	}
 
 	upstream_healthz_path := os.Getenv("UPSTREAM_HEALTHZ_PATH")
 	if upstream_healthz_path == "" {
-		upstream_healthz_path = "/"
+		upstream_healthz_path = DefaultUpstreamHealthzPath
+		log.Printf("Defaulting upstream_healthz_path to %s", upstream_healthz_path)
 	}
 
 	return &Server{
 		ListenAddress:       listen_address,
 		ListenPort:          listen_port,
+		ProbePrefix:         probe_prefix,
 		UpstreamAddress:     upstream_address,
 		UpstreamScheme:      upstream_scheme,
 		UpstreamHealthzPath: upstream_healthz_path,
@@ -169,7 +188,7 @@ func mutateImportMap(body *[]byte) error {
 
 	importMapManager := importmap.Manager(doc).WithMutator(
 		func(importMap *importmap.ImportMap) {
-			importMap.Imports["@kdex-ui"] = "/_/kdex-ui.js"
+			importMap.Imports["@kdex-ui"] = "/~/m/kdex-ui/index.js"
 		},
 	)
 

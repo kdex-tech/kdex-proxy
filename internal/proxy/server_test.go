@@ -163,7 +163,7 @@ func TestServer_ReverseProxy(t *testing.T) {
 			method:          "GET",
 			path:            "/test/html_without_importmap",
 			expectedStatus:  http.StatusOK,
-			expectedBody:    `<html><head><script type="importmap">{"imports":{"@kdex-ui":"/_/kdex-ui.js"}}</script></head><body><h1>Hello, World!</h1><script type="module">import '@kdex-ui';</script></body></html>`,
+			expectedBody:    `<html><head><script type="importmap">{"imports":{"@kdex-ui":"/~/m/kdex-ui/index.js"}}</script></head><body><h1>Hello, World!</h1><script type="module">import '@kdex-ui';</script></body></html>`,
 			upstreamAddress: upstreamAddress,
 		},
 		{
@@ -171,7 +171,7 @@ func TestServer_ReverseProxy(t *testing.T) {
 			method:          "GET",
 			path:            "/test/html_with_importmap",
 			expectedStatus:  http.StatusOK,
-			expectedBody:    `<html><head><script type="importmap">{"imports":{"@foo/bar":"/foo/bar.js","@kdex-ui":"/_/kdex-ui.js"}}</script></head><body>test<script type="module">import '@kdex-ui';</script></body></html>`,
+			expectedBody:    `<html><head><script type="importmap">{"imports":{"@foo/bar":"/foo/bar.js","@kdex-ui":"/~/m/kdex-ui/index.js"}}</script></head><body>test<script type="module">import '@kdex-ui';</script></body></html>`,
 			upstreamAddress: upstreamAddress,
 		},
 		{
