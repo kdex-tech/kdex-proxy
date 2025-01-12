@@ -50,7 +50,20 @@ func (importMapManager *ImportMapManager) WithMutator(mutator func(importMap *Im
 
 func (importMapManager *ImportMapManager) Mutate() bool {
 	if importMapManager.mapNode == nil {
-		return false
+		headNode := findHead(importMapManager.docNode)
+		if headNode == nil {
+			return false
+		}
+
+		importMapManager.mapNode = &html.Node{
+			Type: html.ElementNode,
+			Data: "script",
+			Attr: []html.Attribute{
+				{Key: "type", Val: "importmap"},
+			},
+		}
+
+		headNode.InsertBefore(importMapManager.mapNode, headNode.FirstChild)
 	}
 
 	bytes := getNodeText(importMapManager.mapNode)
@@ -98,6 +111,22 @@ func collectText(n *html.Node, buf *bytes.Buffer) {
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
 		collectText(c, buf)
 	}
+}
+
+func findHead(doc *html.Node) *html.Node {
+	var find func(*html.Node) *html.Node
+	find = func(n *html.Node) *html.Node {
+		if n.Type == html.ElementNode && n.Data == "head" {
+			return n
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			if result := find(c); result != nil {
+				return result
+			}
+		}
+		return nil
+	}
+	return find(doc)
 }
 
 func findImportMap(doc *html.Node) *html.Node {

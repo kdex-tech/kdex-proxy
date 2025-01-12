@@ -32,12 +32,18 @@ func TestImportMapManager_Mutate(t *testing.T) {
 		{
 			name:    "no doc node",
 			docNode: toDoc(""),
-			want:    false,
+			imports: map[string]string{
+				"@kdex-ui": "/_/kdex-ui.js",
+			},
+			want: true,
 		},
 		{
 			name:    "no script node",
 			docNode: toDoc("<html></html>"),
-			want:    false,
+			imports: map[string]string{
+				"@kdex-ui": "/_/kdex-ui.js",
+			},
+			want: true,
 		},
 		{
 			name:    "mutate importmap",
