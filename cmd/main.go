@@ -29,7 +29,7 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	mux.Handle("/.proxy.probe", http.HandlerFunc(s.Probe))
+	mux.Handle("/~/p", http.HandlerFunc(s.Probe))
 	mux.Handle("/", middlewareLogger(http.HandlerFunc(s.ReverseProxy())))
 
 	log.Printf("Listening on %s:%s", s.ListenAddress, s.ListenPort)
