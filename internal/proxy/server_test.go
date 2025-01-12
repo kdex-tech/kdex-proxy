@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package proxy
 
 import (
 	"encoding/json"
@@ -24,7 +24,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"kdex.dev/proxy/internal/proxy"
 )
 
 type Result struct {
@@ -78,13 +77,13 @@ func mockTargetServer() *httptest.Server {
 	}))
 }
 
-func Test_reverseProxy(t *testing.T) {
+func TestServer_ReverseProxy(t *testing.T) {
 	// Start mock target server
 	targetServer := mockTargetServer()
 	defer targetServer.Close()
 
 	// Configure server for proxy
-	s := proxy.Server{
+	s := Server{
 		ListenAddress:       "localhost",
 		ListenPort:          "8080",
 		UpstreamAddress:     strings.TrimPrefix(targetServer.URL, "http://"),
@@ -151,7 +150,7 @@ func Test_reverseProxy(t *testing.T) {
 			method:         "GET",
 			path:           "/test/html_without_importmap",
 			expectedStatus: http.StatusOK,
-			expectedBody:   "<html><body><h1>Hello, World!</h1></body></html>",
+			expectedBody:   `<html><head><script type="importmap">{"imports":{"@kdex-ui":"/_/kdex-ui.js"}}</script></head><body><h1>Hello, World!</h1></body></html>`,
 		},
 		{
 			name:           "GET request html with importmap",
