@@ -112,6 +112,8 @@ license: install-addlicense
 		./**/*.go
 
 # Check license headers
+# in CI do: make check-license || exit 1
+# to fail if license headers are not present
 .PHONY: check-license
 check-license: install-addlicense
 	@echo "Checking license headers..."
