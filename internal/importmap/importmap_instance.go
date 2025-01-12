@@ -41,7 +41,13 @@ func Instance(doc *html.Node) *ImportMapInstance {
 	var importMapInstance ImportMapInstance
 	importMapInstance.docNode = doc
 	importMapInstance.mapNode = findElementByName("script", doc, func(n *html.Node) bool {
-		return n.Attr[0].Val == "importmap"
+		for _, a := range n.Attr {
+			if a.Key == "type" && a.Val == "importmap" {
+				return true
+			}
+		}
+
+		return false
 	})
 	return &importMapInstance
 }
