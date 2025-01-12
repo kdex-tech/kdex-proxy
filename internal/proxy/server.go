@@ -28,7 +28,7 @@ import (
 	"strings"
 	"time"
 
-	"kdex.dev/proxy/internal/importmap"
+	"kdex.dev/proxy/internal/transform"
 	"kdex.dev/proxy/internal/util"
 )
 
@@ -41,6 +41,7 @@ const (
 )
 
 type Server struct {
+	transformer         transform.Transformer
 	ListenAddress       string
 	ListenPort          string
 	ProbePrefix         string
@@ -95,6 +96,11 @@ func NewServerFromEnv() *Server {
 	}
 }
 
+func (s *Server) WithTransformer(transformer transform.Transformer) *Server {
+	s.transformer = transformer
+	return s
+}
+
 func (s *Server) Probe(w http.ResponseWriter, r *http.Request) {
 	url := fmt.Sprintf("%s://%s%s", util.GetScheme(r), s.UpstreamAddress, s.UpstreamHealthzPath)
 
@@ -134,7 +140,7 @@ func (s *Server) ReverseProxy() func(http.ResponseWriter, *http.Request) {
 		processProxyHeaders(req, req)
 	}
 
-	proxy.ModifyResponse = modifyResponse
+	proxy.ModifyResponse = s.modifyResponse
 
 	handler := func(p *httputil.ReverseProxy) func(http.ResponseWriter, *http.Request) {
 		return func(w http.ResponseWriter, r *http.Request) {
@@ -147,13 +153,12 @@ func (s *Server) ReverseProxy() func(http.ResponseWriter, *http.Request) {
 	return handler(proxy)
 }
 
-func modifyResponse(r *http.Response) (err error) {
-	// Check if response is HTML and not streaming
-	contentType := r.Header.Get("Content-Type")
-	isHTML := strings.Contains(contentType, "text/html")
-	isStreaming := r.Header.Get("Transfer-Encoding") == "chunked"
+func (s *Server) modifyResponse(r *http.Response) (err error) {
+	if s.transformer == nil {
+		return nil
+	}
 
-	if !isHTML || isStreaming {
+	if !(s.transformer).ShouldTransform(r) {
 		return nil
 	}
 
@@ -168,36 +173,13 @@ func modifyResponse(r *http.Response) (err error) {
 		return err
 	}
 
-	if err := mutateImportMap(&b); err != nil {
+	if err := (s.transformer).Transform(&b); err != nil {
 		return err
 	}
 
 	r.Body = io.NopCloser(bytes.NewReader(b))
 	r.ContentLength = int64(len(b))
 	r.Header.Set("Content-Length", strconv.Itoa(len(b)))
-
-	return nil
-}
-
-func mutateImportMap(body *[]byte) error {
-	importMapInstance, err := importmap.Parse(body)
-	if err != nil {
-		return err
-	}
-
-	importMapInstance.WithMutator(
-		func(importMap *importmap.ImportMap) {
-			importMap.Imports["@kdex-ui"] = "/~/m/kdex-ui/index.js"
-		},
-	)
-
-	if !importMapInstance.Mutate() {
-		return nil
-	}
-
-	if err := importMapInstance.Return(body); err != nil {
-		return err
-	}
 
 	return nil
 }

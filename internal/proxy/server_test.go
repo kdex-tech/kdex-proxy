@@ -24,6 +24,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"kdex.dev/proxy/internal/importmap"
 )
 
 type Result struct {
@@ -98,6 +99,8 @@ func TestServer_ReverseProxy(t *testing.T) {
 		UpstreamScheme:      "http",
 		UpstreamHealthzPath: "/healthz",
 	}
+
+	s.WithTransformer(importmap.NewImportMapTransformer())
 
 	// Create test proxy server
 	proxyServer := httptest.NewServer(http.HandlerFunc(s.ReverseProxy()))

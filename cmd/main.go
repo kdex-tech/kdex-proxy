@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"kdex.dev/proxy/internal/fileserver"
+	"kdex.dev/proxy/internal/importmap"
 	"kdex.dev/proxy/internal/proxy"
 )
 
@@ -27,6 +28,8 @@ var s *proxy.Server
 
 func main() {
 	s = proxy.NewServerFromEnv()
+
+	s.WithTransformer(importmap.NewImportMapTransformer())
 
 	fs, err := fileserver.NewFileServerFromEnv()
 	if err != nil {
