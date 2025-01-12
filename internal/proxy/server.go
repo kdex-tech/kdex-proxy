@@ -28,7 +28,6 @@ import (
 	"strings"
 	"time"
 
-	"golang.org/x/net/html"
 	"kdex.dev/proxy/internal/importmap"
 	"kdex.dev/proxy/internal/util"
 )
@@ -181,27 +180,25 @@ func modifyResponse(r *http.Response) (err error) {
 }
 
 func mutateImportMap(body *[]byte) error {
-	doc, err := html.Parse(bytes.NewReader(*body))
+	importMapInstance, err := importmap.Parse(body)
 	if err != nil {
 		return err
 	}
 
-	importMapManager := importmap.Manager(doc).WithMutator(
+	importMapInstance.WithMutator(
 		func(importMap *importmap.ImportMap) {
 			importMap.Imports["@kdex-ui"] = "/~/m/kdex-ui/index.js"
 		},
 	)
 
-	if !importMapManager.Mutate() {
+	if !importMapInstance.Mutate() {
 		return nil
 	}
 
-	var buf bytes.Buffer
-	if err := html.Render(&buf, doc); err != nil {
-		log.Printf("Error rendering modified HTML: %v", err)
+	if err := importMapInstance.Return(body); err != nil {
 		return err
 	}
-	*body = buf.Bytes()
+
 	return nil
 }
 

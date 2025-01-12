@@ -17,13 +17,14 @@ package importmap
 import (
 	"bytes"
 	"encoding/json"
+	"log"
 
 	"golang.org/x/net/html"
 )
 
 type Mutator func(importMap *ImportMap)
 
-type ImportMapManager struct {
+type ImportMapInstance struct {
 	docNode   *html.Node
 	mapNode   *html.Node
 	importMap ImportMap
@@ -36,8 +37,29 @@ type ImportMap struct {
 	Scopes    map[string]map[string]string `json:"scopes,omitempty"`
 }
 
-func Manager(doc *html.Node) *ImportMapManager {
-	var importMapManager ImportMapManager
+func Parse(body *[]byte) (*ImportMapInstance, error) {
+	doc, err := html.Parse(bytes.NewReader(*body))
+	if err != nil {
+		return nil, err
+	}
+
+	importMapManager := Manager(doc)
+
+	return importMapManager, nil
+}
+
+func (importMapInstance *ImportMapInstance) Return(body *[]byte) error {
+	var buf bytes.Buffer
+	if err := html.Render(&buf, importMapInstance.docNode); err != nil {
+		log.Printf("Error rendering modified HTML: %v", err)
+		return err
+	}
+	*body = buf.Bytes()
+	return nil
+}
+
+func Manager(doc *html.Node) *ImportMapInstance {
+	var importMapManager ImportMapInstance
 	importMapManager.docNode = doc
 	importMapManager.mapNode = findElementByName("script", doc, func(n *html.Node) bool {
 		return n.Attr[0].Val == "importmap"
@@ -45,12 +67,12 @@ func Manager(doc *html.Node) *ImportMapManager {
 	return &importMapManager
 }
 
-func (importMapManager *ImportMapManager) WithMutator(mutator func(importMap *ImportMap)) *ImportMapManager {
+func (importMapManager *ImportMapInstance) WithMutator(mutator func(importMap *ImportMap)) *ImportMapInstance {
 	importMapManager.mutator = mutator
 	return importMapManager
 }
 
-func (importMapManager *ImportMapManager) Mutate() bool {
+func (importMapManager *ImportMapInstance) Mutate() bool {
 	if importMapManager.mapNode == nil {
 		headNode := findElementByName("head", importMapManager.docNode, nil)
 		if headNode == nil {
