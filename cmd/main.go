@@ -24,14 +24,15 @@ import (
 	"kdex.dev/proxy/internal/proxy"
 )
 
-var s *proxy.Server
-
 func main() {
-	s = proxy.NewServerFromEnv()
-
-	s.WithTransformer(importmap.NewImportMapTransformer())
-
+	ps := proxy.NewServerFromEnv()
 	fs, err := fileserver.NewFileServerFromEnv()
+
+	transformer := importmap.NewImportMapTransformerFromEnv()
+	transformer.WithModulePrefix(fs.Prefix)
+
+	ps.WithTransformer(transformer)
+
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -39,12 +40,12 @@ func main() {
 	mux := http.NewServeMux()
 
 	mux.Handle("GET "+fs.Prefix, middlewareLogger(fs.ServeHTTP()))
-	mux.Handle("GET "+s.ProbePrefix, http.HandlerFunc(s.Probe))
-	mux.Handle("/", middlewareLogger(http.HandlerFunc(s.ReverseProxy())))
+	mux.Handle("GET "+ps.ProbePrefix, http.HandlerFunc(ps.Probe))
+	mux.Handle("/", middlewareLogger(http.HandlerFunc(ps.ReverseProxy())))
 
-	log.Printf("Listening on %s:%s", s.ListenAddress, s.ListenPort)
+	log.Printf("Listening on %s:%s", ps.ListenAddress, ps.ListenPort)
 
-	if err := http.ListenAndServe(s.ListenAddress+":"+s.ListenPort, mux); err != nil {
+	if err := http.ListenAndServe(ps.ListenAddress+":"+ps.ListenPort, mux); err != nil {
 		log.Fatal(err)
 	}
 }

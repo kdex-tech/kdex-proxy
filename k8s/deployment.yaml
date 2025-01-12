@@ -20,12 +20,6 @@ spec:
         ports:
         - containerPort: 8080
         env:
-        - name: LISTEN_PORT
-          value: "8080"
-        - name: LISTEN_ADDRESS
-          value: ""
-        - name: MODULES_DIR
-          value: "/modules"
         - name: UPSTREAM_ADDRESS
           valueFrom:
             configMapKeyRef:
@@ -36,11 +30,6 @@ spec:
             configMapKeyRef:
               name: kdex-proxy-config
               key: upstream_healthz_path
-        - name: MAPPED_HEADERS
-          valueFrom:
-            configMapKeyRef:
-              name: kdex-proxy-config
-              key: mapped_headers
         resources:
           requests:
             cpu: 100m
@@ -63,10 +52,19 @@ spec:
         volumeMounts:
         - mountPath: /modules
           name: kdex-proxy-pvc
+        - mountPath: /etc/kdex/module_imports
+          name: kdex-proxy-config
+          subPath: module_imports
+        - mountPath: /etc/kdex/module_body
+          name: kdex-proxy-config
+          subPath: module_body
       volumes:
       - name: kdex-proxy-pvc
         persistentVolumeClaim:
           claimName: kdex-proxy-pvc
+      - name: kdex-proxy-config
+        configMap:
+          name: kdex-proxy-config
       securityContext:
         runAsNonRoot: true
         runAsUser: 65532

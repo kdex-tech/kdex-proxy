@@ -100,7 +100,14 @@ func TestServer_ReverseProxy(t *testing.T) {
 		UpstreamHealthzPath: "/healthz",
 	}
 
-	s.WithTransformer(importmap.NewImportMapTransformer())
+	s.WithTransformer(&importmap.ImportMapTransformer{
+		Imports: importmap.Imports{
+			Imports: map[string]string{
+				"@kdex-ui": "/~/m/kdex-ui/index.js",
+			},
+		},
+		ModuleBody: "import '@kdex-ui';",
+	})
 
 	// Create test proxy server
 	proxyServer := httptest.NewServer(http.HandlerFunc(s.ReverseProxy()))

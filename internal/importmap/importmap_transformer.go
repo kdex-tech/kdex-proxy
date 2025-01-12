@@ -1,15 +1,88 @@
 package importmap
 
 import (
+	"encoding/json"
+	"log"
 	"net/http"
+	"os"
 	"strings"
 )
 
-type ImportMapTransformer struct {
+const (
+	DefaultModuleBodyPath    = "/etc/kdex/module_body"
+	DefaultModuleBody        = "import '@kdex-ui';"
+	DefaultModuleImportsPath = "/etc/kdex/module_imports"
+	DefaultModuleImports     = `{
+		"imports": {
+			"@kdex-ui": "@kdex-ui/index.js"
+		}
+	}`
+	DefaultModulesPrefix = "/~/m/"
+)
+
+type Imports struct {
+	Imports map[string]string `json:"imports"`
 }
 
-func NewImportMapTransformer() *ImportMapTransformer {
-	return &ImportMapTransformer{}
+type ImportMapTransformer struct {
+	Imports      Imports
+	ModuleBody   string
+	ModulePrefix string
+}
+
+func NewImportMapTransformerFromEnv() *ImportMapTransformer {
+	moduleImportsPath := os.Getenv("MODULE_IMPORTS_PATH")
+	if moduleImportsPath == "" {
+		moduleImportsPath = DefaultModuleImportsPath
+		log.Printf("Defaulting module_imports_path to %s", moduleImportsPath)
+	}
+
+	var imports Imports
+	var moduleImportsBytes []byte
+	if _, err := os.Stat(moduleImportsPath); !os.IsNotExist(err) {
+		moduleImportsBytes, err = os.ReadFile(moduleImportsPath)
+		if err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		moduleImportsBytes = []byte(DefaultModuleImports)
+		log.Printf("Defaulting module_imports to %s", moduleImportsBytes)
+	}
+
+	if err := json.Unmarshal(moduleImportsBytes, &imports); err != nil {
+		log.Fatal(err)
+	}
+
+	moduleBodyPath := os.Getenv("MODULE_BODY_PATH")
+	if moduleBodyPath == "" {
+		moduleBodyPath = DefaultModuleBodyPath
+		log.Printf("Defaulting module_body_path to %s", moduleBodyPath)
+	}
+
+	var moduleBody string
+	if _, err := os.Stat(moduleBodyPath); os.IsNotExist(err) {
+		moduleBody = DefaultModuleBody
+		log.Printf("Defaulting module_body to %s", moduleBody)
+	} else {
+		moduleBodyBytes, err := os.ReadFile(moduleBodyPath)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		moduleBody = string(moduleBodyBytes)
+	}
+
+	return &ImportMapTransformer{
+		Imports:      imports,
+		ModuleBody:   moduleBody,
+		ModulePrefix: DefaultModulesPrefix,
+	}
+}
+
+func (t *ImportMapTransformer) WithModulePrefix(modulePrefix string) *ImportMapTransformer {
+	t.ModulePrefix = modulePrefix
+	return t
 }
 
 func (t *ImportMapTransformer) ShouldTransform(r *http.Response) bool {
@@ -31,11 +104,8 @@ func (t *ImportMapTransformer) Transform(body *[]byte) error {
 		return err
 	}
 
-	importMapInstance.WithMutator(
-		func(importMap *ImportMap) {
-			importMap.Imports["@kdex-ui"] = "/~/m/kdex-ui/index.js"
-		},
-	)
+	importMapInstance.WithMutator(t.Mutator())
+	importMapInstance.WithModuleBody(t.ModuleBody)
 
 	if !importMapInstance.Mutate() {
 		return nil
@@ -46,4 +116,12 @@ func (t *ImportMapTransformer) Transform(body *[]byte) error {
 	}
 
 	return nil
+}
+
+func (t *ImportMapTransformer) Mutator() ImportMapMutator {
+	return func(im *ImportMap) {
+		for key, value := range t.Imports.Imports {
+			im.Imports[key] = t.ModulePrefix + value
+		}
+	}
 }

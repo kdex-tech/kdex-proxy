@@ -18,20 +18,20 @@ type FileServer struct {
 }
 
 func NewFileServerFromEnv() (*FileServer, error) {
-	dir := os.Getenv("MODULES_DIR")
+	dir := os.Getenv("MODULE_DIR")
 	if dir == "" {
 		dir = DefaultDir
-		log.Printf("Defaulting modules_dir to %s", dir)
+		log.Printf("Defaulting module_dir to %s", dir)
 	}
 
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		return nil, fmt.Errorf("modules directory %s does not exist", dir)
+		return nil, fmt.Errorf("module directory %s does not exist", dir)
 	}
 
-	prefix := os.Getenv("MODULES_PREFIX")
+	prefix := os.Getenv("MODULE_PREFIX")
 	if prefix == "" {
 		prefix = DefaultPrefix
-		log.Printf("Defaulting modules_prefix to %s", prefix)
+		log.Printf("Defaulting module_prefix to %s", prefix)
 	}
 
 	return &FileServer{Dir: dir, Prefix: prefix}, nil

@@ -43,7 +43,7 @@ func TestNewFileServerFromEnv(t *testing.T) {
 			args:   args{dir: "/foo", prefix: "/bar/"},
 			dir:    "/foo",
 			prefix: "/bar/",
-			err:    fmt.Errorf("modules directory %s does not exist", "/foo"),
+			err:    fmt.Errorf("module directory %s does not exist", "/foo"),
 		},
 		{
 			name:   "prefix is empty",
@@ -55,8 +55,8 @@ func TestNewFileServerFromEnv(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			os.Setenv("MODULES_DIR", tt.args.dir)
-			os.Setenv("MODULES_PREFIX", tt.args.prefix)
+			os.Setenv("MODULE_DIR", tt.args.dir)
+			os.Setenv("MODULE_PREFIX", tt.args.prefix)
 			got, err := NewFileServerFromEnv()
 			assert.Equal(t, err, tt.err)
 			if tt.err != nil {
