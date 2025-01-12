@@ -38,7 +38,7 @@ run: build
 deps:
 	$(GOMOD) download
 
-tidy:
+tidy: license
 	$(GOMOD) tidy
 
 coverage:
