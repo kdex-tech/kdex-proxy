@@ -14,6 +14,10 @@ LDFLAGS=-ldflags "-s -w"
 DOCKER_IMAGE=ghcr.io/kdex-tech/proxy
 DOCKER_TAG=latest
 
+# License parameters
+LICENSE_YEAR=2025
+LICENSE_HOLDER=KDex Tech
+
 .PHONY: all build test clean run debug deps tidy docker-build docker-run docker-push
 
 all: deps test build
@@ -91,5 +95,30 @@ manifest:org.opencontainers.image.description="KDex Proxy",\
 manifest:org.opencontainers.image.licenses=Apache-2.0' \
 		-f Dockerfile.cross .
 	rm Dockerfile.cross
+
+# Install addlicense tool if not present
+.PHONY: install-addlicense
+install-addlicense:
+	@which addlicense > /dev/null || go install github.com/google/addlicense@latest
+
+# Add/update license headers
+.PHONY: license
+license: install-addlicense
+	@echo "Updating license headers..."
+	@addlicense -v \
+		-f LICENSE.header \
+		-y $(LICENSE_YEAR) \
+		-c "$(LICENSE_HOLDER)" \
+		./**/*.go
+
+# Check license headers
+.PHONY: check-license
+check-license: install-addlicense
+	@echo "Checking license headers..."
+	@addlicense -check \
+		-f LICENSE.header \
+		-y $(LICENSE_YEAR) \
+		-c "$(LICENSE_HOLDER)" \
+		./**/*.go
 
 .DEFAULT_GOAL := all 
