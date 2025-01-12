@@ -33,7 +33,7 @@ func TestImportMapManager_Mutate(t *testing.T) {
 			name:    "no doc node",
 			docNode: toDoc(""),
 			imports: map[string]string{
-				"@kdex-ui": "/_/kdex-ui.js",
+				"@kdex-ui": "/~/m/kdex-ui/index.js",
 			},
 			want: true,
 		},
@@ -41,7 +41,7 @@ func TestImportMapManager_Mutate(t *testing.T) {
 			name:    "no script node",
 			docNode: toDoc("<html></html>"),
 			imports: map[string]string{
-				"@kdex-ui": "/_/kdex-ui.js",
+				"@kdex-ui": "/~/m/kdex-ui/index.js",
 			},
 			want: true,
 		},
@@ -49,7 +49,7 @@ func TestImportMapManager_Mutate(t *testing.T) {
 			name:    "mutate importmap",
 			docNode: toDoc(`<html><script type="importmap"></script></html>`),
 			imports: map[string]string{
-				"@kdex-ui": "/_/kdex-ui.js",
+				"@kdex-ui": "/~/m/kdex-ui/index.js",
 			},
 			want: true,
 		},
@@ -58,7 +58,7 @@ func TestImportMapManager_Mutate(t *testing.T) {
 			docNode: toDoc(`<html><script type="importmap">{"imports":{"@foo/bar":"/foo/bar.js"}}</script></html>`),
 			imports: map[string]string{
 				"@foo/bar": "/foo/bar.js",
-				"@kdex-ui": "/_/kdex-ui.js",
+				"@kdex-ui": "/~/m/kdex-ui/index.js",
 			},
 			want: true,
 		},
@@ -67,7 +67,7 @@ func TestImportMapManager_Mutate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			importMapManager := Manager(tt.docNode).WithMutator(
 				func(importMap *ImportMap) {
-					importMap.Imports["@kdex-ui"] = "/_/kdex-ui.js"
+					importMap.Imports["@kdex-ui"] = "/~/m/kdex-ui/index.js"
 				},
 			)
 			got := importMapManager.Mutate()
