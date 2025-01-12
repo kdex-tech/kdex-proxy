@@ -39,7 +39,9 @@ type ImportMap struct {
 func Manager(doc *html.Node) *ImportMapManager {
 	var importMapManager ImportMapManager
 	importMapManager.docNode = doc
-	importMapManager.mapNode = findImportMap(doc)
+	importMapManager.mapNode = findElementByName("script", doc, func(n *html.Node) bool {
+		return n.Attr[0].Val == "importmap"
+	})
 	return &importMapManager
 }
 
@@ -50,7 +52,7 @@ func (importMapManager *ImportMapManager) WithMutator(mutator func(importMap *Im
 
 func (importMapManager *ImportMapManager) Mutate() bool {
 	if importMapManager.mapNode == nil {
-		headNode := findHead(importMapManager.docNode)
+		headNode := findElementByName("head", importMapManager.docNode, nil)
 		if headNode == nil {
 			return false
 		}
@@ -101,6 +103,25 @@ func (importMapManager *ImportMapManager) Mutate() bool {
 	// Add new text node
 	importMapManager.mapNode.AppendChild(newTextNode)
 
+	// Append a new import script node to the bottom of the body
+	bodyNode := findElementByName("body", importMapManager.docNode, nil)
+	if bodyNode != nil {
+		scriptNode := &html.Node{
+			Type: html.ElementNode,
+			Data: "script",
+			Attr: []html.Attribute{
+				{Key: "type", Val: "module"},
+			},
+		}
+
+		scriptNode.AppendChild(&html.Node{
+			Type: html.TextNode,
+			Data: "import '@kdex-ui';",
+		})
+
+		bodyNode.AppendChild(scriptNode)
+	}
+
 	return true
 }
 
@@ -113,31 +134,14 @@ func collectText(n *html.Node, buf *bytes.Buffer) {
 	}
 }
 
-func findHead(doc *html.Node) *html.Node {
+func findElementByName(name string, doc *html.Node, predicate func(n *html.Node) bool) *html.Node {
 	var find func(*html.Node) *html.Node
 	find = func(n *html.Node) *html.Node {
-		if n.Type == html.ElementNode && n.Data == "head" {
+		if n.Type == html.ElementNode && n.Data == name {
+			if predicate != nil && !predicate(n) {
+				return nil
+			}
 			return n
-		}
-		for c := n.FirstChild; c != nil; c = c.NextSibling {
-			if result := find(c); result != nil {
-				return result
-			}
-		}
-		return nil
-	}
-	return find(doc)
-}
-
-func findImportMap(doc *html.Node) *html.Node {
-	var find func(*html.Node) *html.Node
-	find = func(n *html.Node) *html.Node {
-		if n.Type == html.ElementNode && n.Data == "script" {
-			for _, a := range n.Attr {
-				if a.Key == "type" && a.Val == "importmap" {
-					return n
-				}
-			}
 		}
 		for c := n.FirstChild; c != nil; c = c.NextSibling {
 			if result := find(c); result != nil {

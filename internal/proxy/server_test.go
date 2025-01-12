@@ -163,7 +163,7 @@ func TestServer_ReverseProxy(t *testing.T) {
 			method:          "GET",
 			path:            "/test/html_without_importmap",
 			expectedStatus:  http.StatusOK,
-			expectedBody:    `<html><head><script type="importmap">{"imports":{"@kdex-ui":"/_/kdex-ui.js"}}</script></head><body><h1>Hello, World!</h1></body></html>`,
+			expectedBody:    `<html><head><script type="importmap">{"imports":{"@kdex-ui":"/_/kdex-ui.js"}}</script></head><body><h1>Hello, World!</h1><script type="module">import '@kdex-ui';</script></body></html>`,
 			upstreamAddress: upstreamAddress,
 		},
 		{
@@ -171,7 +171,7 @@ func TestServer_ReverseProxy(t *testing.T) {
 			method:          "GET",
 			path:            "/test/html_with_importmap",
 			expectedStatus:  http.StatusOK,
-			expectedBody:    `<html><head><script type="importmap">{"imports":{"@foo/bar":"/foo/bar.js","@kdex-ui":"/_/kdex-ui.js"}}</script></head><body>test</body></html>`,
+			expectedBody:    `<html><head><script type="importmap">{"imports":{"@foo/bar":"/foo/bar.js","@kdex-ui":"/_/kdex-ui.js"}}</script></head><body>test<script type="module">import '@kdex-ui';</script></body></html>`,
 			upstreamAddress: upstreamAddress,
 		},
 		{
@@ -234,10 +234,7 @@ func TestServer_ReverseProxy(t *testing.T) {
 			}
 
 			if resp.StatusCode == http.StatusOK {
-				// Verify response headers from target were forwarded
-				if resp.Header.Get("X-Test-Header") != "test-value" {
-					t.Error("X-Test-Header not properly forwarded")
-				}
+				assert.Equal(t, resp.Header.Get("X-Test-Header"), "test-value")
 
 				if tt.expectedBody != "" {
 					assert.Equal(t, tt.expectedBody, string(body))
@@ -306,12 +303,8 @@ func TestServer_Probe(t *testing.T) {
 
 			s.Probe(tt.recorder, httptest.NewRequest(tt.method, proxyServer.URL, nil))
 
-			if tt.recorder.Code != tt.wantStatus {
-				t.Errorf("probe().Code = %v, want %v", tt.recorder.Code, tt.wantStatus)
-			}
-			if tt.recorder.Body.String() != tt.wantBody {
-				t.Errorf("probe().Body = %v, want %v", tt.recorder.Body.String(), tt.wantBody)
-			}
+			assert.Equal(t, tt.recorder.Code, tt.wantStatus)
+			assert.Equal(t, tt.recorder.Body.String(), tt.wantBody)
 		})
 	}
 }

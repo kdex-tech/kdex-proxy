@@ -83,7 +83,7 @@ func TestImportMapManager_Mutate(t *testing.T) {
 	}
 }
 
-func Test_findImportMap(t *testing.T) {
+func Test_findElementByName(t *testing.T) {
 	type args struct {
 		doc *html.Node
 	}
@@ -149,7 +149,9 @@ func Test_findImportMap(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := findImportMap(tt.args.doc); !reflect.DeepEqual(got, tt.want) {
+			if got := findElementByName("script", tt.args.doc, func(n *html.Node) bool {
+				return n.Attr[0].Val == "importmap"
+			}); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("findImportMap() = %v, want %v", got, tt.want)
 			}
 		})
