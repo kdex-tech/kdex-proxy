@@ -32,9 +32,8 @@ import (
 func main() {
 	ps := proxy.NewServerFromEnv()
 
-	httpServer := &http.Server{
-		Addr: ps.ListenAddress + ":" + ps.ListenPort,
-	}
+	httpServer := &http.Server{Addr: ps.ListenAddress + ":" + ps.ListenPort}
+
 	go func() {
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
