@@ -60,7 +60,7 @@ func NewServerFromEnv() *Server {
 	listen_address := os.Getenv("LISTEN_ADDRESS")
 	if listen_address == "" {
 		listen_address = DefaultListenAddress
-		log.Printf("Defaulting listen_address to %s", listen_address)
+		log.Printf("Defaulting listen_address to any address on all interfaces")
 	}
 
 	probe_prefix := os.Getenv("PROBE_PREFIX")
