@@ -15,8 +15,13 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"kdex.dev/proxy/internal/fileserver"
@@ -26,6 +31,24 @@ import (
 
 func main() {
 	ps := proxy.NewServerFromEnv()
+
+	httpServer := &http.Server{
+		Addr: ps.ListenAddress + ":" + ps.ListenPort,
+	}
+	go func() {
+		sigChan := make(chan os.Signal, 1)
+		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+		<-sigChan
+
+		shutdownCtx, shutdownRelease := context.WithTimeout(context.Background(), 10*time.Second)
+		defer shutdownRelease()
+
+		if err := httpServer.Shutdown(shutdownCtx); err != nil {
+			log.Fatalf("Server shutdown error: %v", err)
+		}
+		log.Println("Server graceful shutdown complete.")
+	}()
+
 	transformer := importmap.NewImportMapTransformerFromEnv()
 	fs, err := fileserver.NewFileServerFromEnv()
 
@@ -42,11 +65,15 @@ func main() {
 	mux.Handle("GET "+ps.ProbePrefix, middlewareLogger(http.HandlerFunc(ps.Probe)))
 	mux.Handle("/", middlewareLogger(http.HandlerFunc(ps.ReverseProxy())))
 
-	log.Printf("Listening on %s:%s", ps.ListenAddress, ps.ListenPort)
+	httpServer.Handler = mux
 
-	if err := http.ListenAndServe(ps.ListenAddress+":"+ps.ListenPort, mux); err != nil {
-		log.Fatal(err)
+	log.Printf("Server listening on %s:%s", ps.ListenAddress, ps.ListenPort)
+
+	if err := httpServer.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+		log.Fatalf("Server error: %v", err)
 	}
+
+	log.Println("Server stopped gracefully.")
 }
 
 func middlewareLogger(next http.Handler) http.Handler {

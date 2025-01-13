@@ -18,7 +18,13 @@ spec:
       # For testing. Copy module files onto the volume: `k cp -c bash <source> <pod>:/modules/`
       - name: bash
         image: bash
-        command: ["/usr/local/bin/bash", "-c", "sleep infinity"]
+        command:
+        - "/usr/local/bin/bash"
+        - "-c"
+        - |
+          trap 'echo "Received signal, exiting..."; exit 0' SIGINT SIGTERM
+          sleep infinity &
+          wait $!
         volumeMounts:
         - mountPath: /modules
           name: kdex-proxy-pvc
