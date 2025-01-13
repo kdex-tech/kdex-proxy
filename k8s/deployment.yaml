@@ -66,19 +66,22 @@ spec:
         volumeMounts:
         - mountPath: /modules
           name: kdex-proxy-pvc
-        - mountPath: /etc/kdex/module_imports
-          name: kdex-proxy-config
-          subPath: module_imports
         - mountPath: /etc/kdex/module_body
           name: kdex-proxy-config
           subPath: module_body
+        - mountPath: /etc/kdex/module_dependencies
+          name: kdex-proxy-config
+          subPath: module_dependencies
+        - mountPath: /etc/kdex/module_imports
+          name: kdex-proxy-config
+          subPath: module_imports
       volumes:
-      - name: kdex-proxy-pvc
-        persistentVolumeClaim:
-          claimName: kdex-proxy-pvc
       - name: kdex-proxy-config
         configMap:
           name: kdex-proxy-config
+      - name: kdex-proxy-pvc
+        persistentVolumeClaim:
+          claimName: kdex-proxy-pvc
       securityContext:
         runAsNonRoot: true
         runAsUser: 65532

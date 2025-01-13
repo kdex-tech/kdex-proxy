@@ -7,11 +7,15 @@ metadata:
 data:
   upstream_address: "liferay-helm.liferay-system:8080"
   upstream_healthz_path: "/c/portal/robots"
+  module_body: |
+    import '@kdex-ui';
+  module_dependencies: |
+    {
+      "highlight.js": "^11.11.1"
+    }
   module_imports: |
     {
       "imports": {
         "@kdex-ui": "@kdex-ui/index.js"
       }
     }
-  module_body: |
-    import '@kdex-ui';
