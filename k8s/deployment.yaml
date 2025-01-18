@@ -78,9 +78,6 @@ spec:
         - mountPath: /etc/kdex/module_dependencies
           name: kdex-proxy-config
           subPath: module_dependencies
-        - mountPath: /etc/kdex/module_imports
-          name: kdex-proxy-config
-          subPath: module_imports
       volumes:
       - name: kdex-proxy-config
         configMap:

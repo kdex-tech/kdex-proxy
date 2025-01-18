@@ -11,11 +11,5 @@ data:
     import '@kdex-ui';
   module_dependencies: |
     {
-      "highlight.js": "^11.11.1"
-    }
-  module_imports: |
-    {
-      "imports": {
-        "@kdex-ui": "@kdex-ui/index.js"
-      }
+      "mermaid": "^11.4.1"
     }

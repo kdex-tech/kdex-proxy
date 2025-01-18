@@ -56,6 +56,7 @@ func main() {
 	}
 
 	transformer.WithModulePrefix(fs.Prefix)
+	transformer.ScanForImports()
 	ps.WithTransformer(transformer)
 
 	mux := http.NewServeMux()

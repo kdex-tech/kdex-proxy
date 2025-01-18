@@ -41,6 +41,7 @@ const (
 )
 
 type Server struct {
+	proxy               *httputil.ReverseProxy
 	transformer         transform.Transformer
 	ListenAddress       string
 	ListenPort          string
@@ -128,29 +129,38 @@ func (s *Server) Probe(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) ReverseProxy() func(http.ResponseWriter, *http.Request) {
-	proxy := httputil.NewSingleHostReverseProxy(
-		&url.URL{Scheme: s.UpstreamScheme, Host: s.UpstreamAddress})
-
-	proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
-		log.Printf("Error: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	s.proxy = &httputil.ReverseProxy{
+		ErrorHandler:   s.errorHandler,
+		ModifyResponse: s.modifyResponse,
+		Rewrite:        s.rewrite,
 	}
 
-	proxy.Director = func(req *http.Request) {
-		processProxyHeaders(req, req)
-	}
+	return s.proxy.ServeHTTP
+}
 
-	proxy.ModifyResponse = s.modifyResponse
+func (s *Server) errorHandler(w http.ResponseWriter, r *http.Request, err error) {
+	log.Printf("Error: %v", err)
+	http.Error(w, err.Error(), http.StatusInternalServerError)
+}
 
-	handler := func(p *httputil.ReverseProxy) func(http.ResponseWriter, *http.Request) {
-		return func(w http.ResponseWriter, r *http.Request) {
-			r.URL.Host = s.UpstreamAddress
-			r.URL.Scheme = s.UpstreamScheme
-			p.ServeHTTP(w, r)
+func (s *Server) rewrite(r *httputil.ProxyRequest) {
+	r.SetURL(&url.URL{Scheme: s.UpstreamScheme, Host: s.UpstreamAddress})
+	r.Out.Host = r.In.Host
+	r.Out.Header["X-Forwarded-For"] = r.In.Header["X-Forwarded-For"]
+	r.SetXForwarded()
+	setXForwardedPort(r.In, r.Out)
+	setForwarded(r.In, r.Out)
+}
+
+func setXForwardedPort(in *http.Request, out *http.Request) {
+	if strings.Contains(in.Host, ":") {
+		_, port, err := net.SplitHostPort(in.Host)
+		if err != nil {
+			log.Printf("Error splitting host and port from %s: %v", in.Host, err)
+			return
 		}
+		out.Header.Set("X-Forwarded-Port", port)
 	}
-
-	return handler(proxy)
 }
 
 func (s *Server) modifyResponse(r *http.Response) (err error) {
@@ -184,22 +194,6 @@ func (s *Server) modifyResponse(r *http.Response) (err error) {
 	return nil
 }
 
-func processProxyHeaders(r *http.Request, req *http.Request) {
-	setXForwardedFor(r, req)
-
-	if strings.Contains(r.Host, ":") {
-		hostName, port, _ := net.SplitHostPort(r.Host)
-		req.Header.Set("X-Forwarded-Host", hostName)
-		req.Header.Set("X-Forwarded-Port", port)
-	} else {
-		req.Header.Set("X-Forwarded-Host", r.Host)
-	}
-
-	req.Header.Set("X-Forwarded-Proto", util.GetScheme(r))
-
-	setForwarded(r, req)
-}
-
 func getOutboundIP() net.IP {
 	conn, err := net.Dial("udp", "8.8.8.8:80")
 	if err != nil {
@@ -212,15 +206,13 @@ func getOutboundIP() net.IP {
 	return localAddr.IP
 }
 
-func setForwarded(r *http.Request, req *http.Request) {
-	req.Header.Set("Forwarded", fmt.Sprintf("by=%s;for=%s;host=%s;proto=%s", getOutboundIP().String(), r.RemoteAddr, r.Host, util.GetScheme(r)))
-}
-
-func setXForwardedFor(r *http.Request, req *http.Request) {
-	if xForwardedFor := r.Header.Values("X-Forwarded-For"); len(xForwardedFor) > 0 {
-		xForwardedFors := strings.Join(xForwardedFor, ", ")
-		req.Header.Set("X-Forwarded-For", fmt.Sprintf("%s, %s", xForwardedFors, getOutboundIP().String()))
-	} else {
-		req.Header.Set("X-Forwarded-For", fmt.Sprintf("%s, %s", r.RemoteAddr, getOutboundIP().String()))
-	}
+func setForwarded(in *http.Request, out *http.Request) {
+	out.Header.Set(
+		"Forwarded",
+		fmt.Sprintf(
+			"by=%s;for=%s;host=%s;proto=%s",
+			getOutboundIP().String(),
+			out.Header.Get("X-Forwarded-For"),
+			in.Host,
+			util.GetScheme(in)))
 }
