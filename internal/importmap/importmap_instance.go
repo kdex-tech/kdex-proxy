@@ -116,22 +116,24 @@ func (importMapInstance *ImportMapInstance) Mutate() bool {
 	importMapInstance.mapNode.AppendChild(newTextNode)
 
 	// Append a new import script node to the bottom of the body
-	bodyNode := findElementByName("body", importMapInstance.docNode, nil)
-	if bodyNode != nil {
-		scriptNode := &html.Node{
-			Type: html.ElementNode,
-			Data: "script",
-			Attr: []html.Attribute{
-				{Key: "type", Val: "module"},
-			},
+	if importMapInstance.moduleBody != "" {
+		bodyNode := findElementByName("body", importMapInstance.docNode, nil)
+		if bodyNode != nil {
+			scriptNode := &html.Node{
+				Type: html.ElementNode,
+				Data: "script",
+				Attr: []html.Attribute{
+					{Key: "type", Val: "module"},
+				},
+			}
+
+			scriptNode.AppendChild(&html.Node{
+				Type: html.TextNode,
+				Data: importMapInstance.moduleBody,
+			})
+
+			bodyNode.AppendChild(scriptNode)
 		}
-
-		scriptNode.AppendChild(&html.Node{
-			Type: html.TextNode,
-			Data: importMapInstance.moduleBody,
-		})
-
-		bodyNode.AppendChild(scriptNode)
 	}
 
 	return true
