@@ -25,6 +25,7 @@ var modulePackageDirs = [...]string{
 type PackageDependencies map[string]string
 
 type PackageJSON struct {
+	Browser      string              `json:"browser"`
 	Dependencies PackageDependencies `json:"dependencies"`
 	// exports can be a string, a map[string]interface{}, or a map[string]string
 	Exports interface{} `json:"exports"`
@@ -91,14 +92,17 @@ func (s *Scanner) ScanPackage(packageName string) error {
 	}
 
 	// Check for ES modules
-	if pkg.Type == "module" || pkg.Module != "" {
+	if pkg.Type == "module" || pkg.Module != "" || pkg.Browser != "" {
 		// Add main module entry
-		mainEntry := pkg.Module
-		if mainEntry == "" {
-			mainEntry = pkg.Main
+		moduleEntry := pkg.Main
+		if pkg.Browser != "" {
+			moduleEntry = pkg.Browser
 		}
-		if mainEntry != "" {
-			s.Imports[packageName] = filepath.Join(packageName, mainEntry)
+		if pkg.Module != "" {
+			moduleEntry = pkg.Module
+		}
+		if moduleEntry != "" {
+			s.Imports[packageName] = filepath.Join(packageName, moduleEntry)
 		}
 
 		// Handle exports field
@@ -172,9 +176,24 @@ func (s *Scanner) ProcessImport(importName string, importPath string) {
 			s.ProcessImport(importName, usedImport)
 		} else {
 			if _, ok := s.Imports[usedImport]; !ok {
-				delete(s.Imports, importName)
-				log.Printf("missing imports for %s: %s", importName, usedImport)
-				return
+				isImportModule := filepath.Join(s.ModuleDir, usedImport)
+				info, err := os.Stat(isImportModule)
+				if err == nil {
+					if info.IsDir() {
+						err = s.ScanPackage(usedImport)
+						if err != nil {
+							delete(s.Imports, importName)
+							log.Printf("missing imports for %s: %s", importName, usedImport)
+							return
+						}
+					} else {
+						s.ProcessImport(importName, usedImport)
+					}
+				} else {
+					delete(s.Imports, importName)
+					log.Printf("missing imports for %s: %s", importName, usedImport)
+					return
+				}
 			}
 		}
 	}
