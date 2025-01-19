@@ -40,14 +40,13 @@ func NewImportMapTransformerFromEnv() *ImportMapTransformer {
 	}
 
 	var dependencies map[string]string
-	var moduleDependenciesBytes []byte
-	if _, err := os.Stat(moduleDependenciesPath); !os.IsNotExist(err) {
-		moduleDependenciesBytes, err = os.ReadFile(moduleDependenciesPath)
-		if err != nil {
-			log.Fatal(err)
-		}
-		if err := json.Unmarshal(moduleDependenciesBytes, &dependencies); err != nil {
-			log.Fatal(err)
+	if _, err := os.Stat(moduleDependenciesPath); err == nil {
+		moduleDependenciesBytes, err := os.ReadFile(moduleDependenciesPath)
+		if err == nil {
+			err := json.Unmarshal(moduleDependenciesBytes, &dependencies)
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 	}
 
