@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"kdex.dev/proxy/internal/scanner"
@@ -16,10 +15,7 @@ const (
 	DefaultModuleBodyPath         = "/etc/kdex/module_body"
 	DefaultModuleBody             = "import '@kdex-ui';"
 	DefaultModuleDependenciesPath = "/etc/kdex/module_dependencies"
-	DefaultModuleDependencies     = `{
-		"mermaid": "^11.4.1"
-	}`
-	DefaultModulesPrefix = "/~/m/"
+	DefaultModulesPrefix          = "/~/m/"
 )
 
 type ImportMapTransformer struct {
@@ -43,20 +39,16 @@ func NewImportMapTransformerFromEnv() *ImportMapTransformer {
 		log.Printf("Defaulting module_dependencies_path to %s", moduleDependenciesPath)
 	}
 
+	var dependencies map[string]string
 	var moduleDependenciesBytes []byte
 	if _, err := os.Stat(moduleDependenciesPath); !os.IsNotExist(err) {
 		moduleDependenciesBytes, err = os.ReadFile(moduleDependenciesPath)
 		if err != nil {
 			log.Fatal(err)
 		}
-	} else {
-		moduleDependenciesBytes = []byte(DefaultModuleDependencies)
-		log.Printf("Defaulting module_dependencies to %s", moduleDependenciesBytes)
-	}
-
-	var dependencies map[string]string
-	if err := json.Unmarshal(moduleDependenciesBytes, &dependencies); err != nil {
-		log.Fatal(err)
+		if err := json.Unmarshal(moduleDependenciesBytes, &dependencies); err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	moduleBodyPath := os.Getenv("MODULE_BODY_PATH")
@@ -89,28 +81,18 @@ func NewImportMapTransformerFromEnv() *ImportMapTransformer {
 
 func (t *ImportMapTransformer) ScanForImports() error {
 	s := scanner.NewScanner(t.ModuleDir)
-	packagePath := filepath.Join(t.ModuleDir, "package.json")
 
-	if _, err := os.Stat(packagePath); os.IsNotExist(err) {
-		return nil
+	if t.ModuleDependencies != nil {
+		if err := s.ScanDependencies(t.ModuleDependencies); err != nil {
+			return err
+		}
+	} else {
+		if err := s.ScanRootDir(); err != nil {
+			return err
+		}
 	}
 
-	pkgData, err := os.ReadFile(packagePath)
-	if err != nil {
-		return err
-	}
-
-	var pkg scanner.PackageJSON
-	if err := json.Unmarshal(pkgData, &pkg); err != nil {
-		return err
-	}
-
-	// Scan all dependencies
-	if err := s.ScanDependencies(pkg.Dependencies); err != nil {
-		return err
-	}
-
-	t.ModuleImports = s.GenerateImports()
+	t.ModuleImports = s.GetImports()
 
 	return nil
 }

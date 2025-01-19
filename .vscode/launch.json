@@ -21,7 +21,7 @@
             "program": "cmd/scanner/main.go",
             "cwd": "${workspaceFolder}",
             "env": {
-                "MODULE_DIR": "${workspaceFolder}/tmp",
+                "MODULE_DIR": "${workspaceFolder}/tmp/node_modules",
             }
         }
     ]

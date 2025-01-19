@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"kdex.dev/proxy/internal/scanner"
 )
@@ -17,26 +16,16 @@ func main() {
 	}
 
 	s := scanner.NewScanner(rootDir)
-	pkgData, err := os.ReadFile(filepath.Join(rootDir, "package.json"))
-	if err != nil {
+
+	if err := s.ScanRootDir(); err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	var pkg scanner.PackageJSON
-	if err := json.Unmarshal(pkgData, &pkg); err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	// Scan all dependencies
-	if err := s.ScanDependencies(pkg.Dependencies); err != nil {
-		fmt.Println(err)
-		return
-	}
+	s.ValidateImports()
 
 	// Generate import map
-	imports := s.GenerateImports()
+	imports := s.GetImports()
 
 	bytes, err := json.MarshalIndent(imports, "", "  ")
 	if err != nil {

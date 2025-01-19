@@ -3,10 +3,24 @@ package scanner
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
+
+const (
+	ES_DIR  = "es"
+	ESM_DIR = "esm"
+	MJS_DIR = "mjs"
+)
+
+var modulePackageDirs = [...]string{
+	ESM_DIR,
+	ES_DIR,
+	MJS_DIR,
+}
 
 type PackageDependencies map[string]string
 
@@ -20,9 +34,24 @@ type PackageJSON struct {
 }
 
 type Scanner struct {
-	RootDir string
-	Imports map[string]string
-	Scanned map[string]bool
+	ModuleDir string
+	Imports   map[string]string
+	Scanned   map[string]bool
+}
+
+func (s *Scanner) ScanRootDir() error {
+	entries, err := os.ReadDir(s.ModuleDir)
+	if err != nil {
+		return err
+	}
+
+	for _, e := range entries {
+		if e.IsDir() {
+			s.ScanPackage(e.Name())
+		}
+	}
+
+	return nil
 }
 
 func (s *Scanner) ScanDependencies(dependencies PackageDependencies) error {
@@ -35,11 +64,11 @@ func (s *Scanner) ScanDependencies(dependencies PackageDependencies) error {
 	return nil
 }
 
-func NewScanner(rootDir string) *Scanner {
+func NewScanner(moduleDir string) *Scanner {
 	return &Scanner{
-		RootDir: rootDir,
-		Imports: make(map[string]string),
-		Scanned: make(map[string]bool),
+		ModuleDir: moduleDir,
+		Imports:   make(map[string]string),
+		Scanned:   make(map[string]bool),
 	}
 }
 
@@ -48,7 +77,7 @@ func (s *Scanner) ScanPackage(packageName string) error {
 		return nil
 	}
 
-	packagePath := filepath.Join(s.RootDir, "node_modules", packageName)
+	packagePath := filepath.Join(s.ModuleDir, packageName)
 
 	// Read package.json
 	pkgData, err := os.ReadFile(filepath.Join(packagePath, "package.json"))
@@ -69,22 +98,33 @@ func (s *Scanner) ScanPackage(packageName string) error {
 			mainEntry = pkg.Main
 		}
 		if mainEntry != "" {
-			s.Imports[packageName] = filepath.Join("/node_modules", packageName, mainEntry)
+			s.Imports[packageName] = filepath.Join(packageName, mainEntry)
 		}
 
 		// Handle exports field
 		if pkg.Exports != nil {
 			if targetStr, ok := pkg.Exports.(string); ok {
 				if strings.HasSuffix(targetStr, ".mjs") || strings.HasSuffix(targetStr, ".js") {
-					s.Imports[packageName] = filepath.Join("/node_modules", packageName, targetStr)
+					s.Imports[packageName] = filepath.Join(packageName, targetStr)
 				}
 			} else if targetMap, ok := pkg.Exports.(map[string]interface{}); ok {
 				for key, value := range targetMap {
 					if key == "import" {
 						if valueStr, ok := value.(string); ok {
-							s.Imports[packageName] = filepath.Join("/node_modules", packageName, valueStr)
+							s.Imports[packageName] = filepath.Join(packageName, valueStr)
 						}
 					}
+				}
+			}
+		}
+	} else {
+		for _, dir := range modulePackageDirs {
+			dirPath := filepath.Join(packagePath, dir)
+			if _, err := os.Stat(dirPath); err == nil {
+				mainFile := filepath.Join(dir, "index.js")
+				if _, err := os.Stat(filepath.Join(packagePath, mainFile)); err == nil {
+					s.Imports[packageName] = filepath.Join(packageName, mainFile)
+					break
 				}
 			}
 		}
@@ -97,6 +137,98 @@ func (s *Scanner) ScanPackage(packageName string) error {
 	return nil
 }
 
-func (s *Scanner) GenerateImports() map[string]string {
+func (s *Scanner) GetImports() map[string]string {
 	return s.Imports
+}
+
+func (s *Scanner) ValidateImports() {
+	for importName, importPath := range s.Imports {
+		s.ProcessImport(importName, importPath)
+	}
+}
+
+func (s *Scanner) ProcessImport(importName string, importPath string) {
+	if s.Scanned[importPath] {
+		return
+	}
+
+	s.Scanned[importPath] = true
+
+	// load the file and read all the javascript module usedImports statements and if any of them are not in the s.Imports map, remove the importName from the s.Imports map
+	usedImports, err := s.LoadImports(importPath)
+
+	if err != nil {
+		delete(s.Imports, importName)
+		log.Printf("error loading imports for %s: %v", importName, err)
+		return
+	}
+
+	for _, usedImport := range usedImports {
+		if strings.HasPrefix(usedImport, "./") {
+			usedImport = filepath.Join(filepath.Dir(importPath), usedImport)
+			s.ProcessImport(importName, usedImport)
+		} else if strings.HasPrefix(usedImport, "../") {
+			usedImport = filepath.Join(filepath.Dir(importPath), usedImport)
+			s.ProcessImport(importName, usedImport)
+		} else {
+			if _, ok := s.Imports[usedImport]; !ok {
+				delete(s.Imports, importName)
+				log.Printf("missing imports for %s: %s", importName, usedImport)
+				return
+			}
+		}
+	}
+}
+
+func (s *Scanner) LoadImports(importPath string) ([]string, error) {
+	filePath := filepath.Join(s.ModuleDir, importPath)
+
+	_, err := os.Stat(filePath)
+	if err != nil && !strings.HasSuffix(importPath, ".js") {
+		filePath = filepath.Join(s.ModuleDir, importPath+".js")
+		if _, err = os.Stat(filePath); err != nil {
+			err = s.ScanPackage(importPath)
+			if err != nil {
+				return nil, err
+			}
+			return nil, nil
+		}
+	}
+
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	return matchImport(string(content), filePath)
+}
+
+func matchImport(content string, filePath string) ([]string, error) {
+	singleLineCommentRegex := regexp.MustCompile(`(?mU)//[^\n]*\n`)
+	slrm := singleLineCommentRegex.FindAllStringSubmatch(content, -1)
+	for _, match := range slrm {
+		content = strings.ReplaceAll(content, match[0], "")
+	}
+	// if strings.Contains(filePath, "acorn") {
+	// 	os.WriteFile("acorn.txt.js", []byte(content), 0644)
+	// }
+
+	// strip all the javascript comments from the content
+	multiListCommentRegex := regexp.MustCompile(`(?s)/\*[\s\S]*?\*/`)
+	mlrm := multiListCommentRegex.FindAllStringSubmatch(content, -1)
+	for _, match := range mlrm {
+		content = strings.ReplaceAll(content, match[0], "")
+	}
+
+	exportOrImportRegex := regexp.MustCompile(`(export|import)\s+(?:(?:{[^}]*}|\*\s+as\s+\w+|\w+)\s+from\s+)?['"]([^'"]+)['"]`)
+	matches := exportOrImportRegex.FindAllStringSubmatch(content, -1)
+
+	imports := make([]string, 0)
+	for _, match := range matches {
+		if len(match) > 1 {
+			imports = append(imports, match[2])
+		}
+	}
+
+	return imports, nil
 }

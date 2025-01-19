@@ -9,7 +9,3 @@ data:
   upstream_healthz_path: "/c/portal/robots"
   module_body: |
     import '@kdex-ui';
-  module_dependencies: |
-    {
-      "mermaid": "^11.4.1"
-    }
