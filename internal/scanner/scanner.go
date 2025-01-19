@@ -80,8 +80,27 @@ func (s *Scanner) ScanPackage(packageName string) error {
 
 	packagePath := filepath.Join(s.ModuleDir, packageName)
 
+	packageJsonPath := filepath.Join(packagePath, "package.json")
+
+	_, err := os.Stat(packageJsonPath)
+	if err != nil {
+		// look at subdirectories
+		entries, err := os.ReadDir(packagePath)
+		if err != nil {
+			return err
+		}
+
+		for _, e := range entries {
+			if e.IsDir() {
+				s.ScanPackage(filepath.Join(packageName, e.Name()))
+			}
+		}
+
+		return nil
+	}
+
 	// Read package.json
-	pkgData, err := os.ReadFile(filepath.Join(packagePath, "package.json"))
+	pkgData, err := os.ReadFile(packageJsonPath)
 	if err != nil {
 		return fmt.Errorf("reading package.json: %w", err)
 	}
