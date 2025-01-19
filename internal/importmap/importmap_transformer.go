@@ -92,6 +92,8 @@ func (t *ImportMapTransformer) ScanForImports() error {
 		}
 	}
 
+	s.ValidateImports()
+
 	t.ModuleImports = s.GetImports()
 
 	return nil
