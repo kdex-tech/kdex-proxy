@@ -14,9 +14,32 @@ spec:
       labels:
         app: kdex-proxy
     spec:
+      initContainers:
+      - name: package-dependencies
+        image: registry:5000/package-dependencies
+        command:
+        - "sh"
+        - "-c"
+        - |
+          cp kdex-ui.tgz /tmp
+          cp package.json /tmp
+          cd /tmp
+          npm i
+          mv node_modules/* /modules
+          ls -l /modules
+        volumeMounts:
+        - mountPath: /modules
+          name: kdex-proxy-pvc
+        - mountPath: /app/package.json
+          name: kdex-proxy-config
+          subPath: package.json
+        resources:
+          limits:
+            cpu: 500m
+            memory: 256Mi
       containers:
-      # For testing. Copy module files onto the volume: `k cp -c bash <source> <pod>:/modules/`
       - name: bash
+        # For testing. So we can exec in to see the contents of /modules.
         image: bash
         command:
         - "/usr/local/bin/bash"
@@ -25,16 +48,13 @@ spec:
           trap 'echo "Received signal, exiting..."; exit 0' SIGINT SIGTERM
           sleep infinity &
           wait $!
-        volumeMounts:
-        - mountPath: /modules
-          name: kdex-proxy-pvc
         resources:
-          requests:
-            cpu: 100m
-            memory: 128Mi
           limits:
             cpu: 500m
             memory: 256Mi
+        volumeMounts:
+        - mountPath: /modules
+          name: kdex-proxy-pvc
       - name: proxy
         image: registry:5000/kdex-tech/proxy:latest
         ports:
@@ -51,9 +71,6 @@ spec:
               name: kdex-proxy-config
               key: upstream_healthz_path
         resources:
-          requests:
-            cpu: 100m
-            memory: 128Mi
           limits:
             cpu: 500m
             memory: 256Mi
@@ -75,16 +92,13 @@ spec:
         - mountPath: /etc/kdex/module_body
           name: kdex-proxy-config
           subPath: module_body
-        - mountPath: /etc/kdex/module_dependencies
-          name: kdex-proxy-config
-          subPath: module_dependencies
       volumes:
-      - name: kdex-proxy-config
-        configMap:
-          name: kdex-proxy-config
       - name: kdex-proxy-pvc
         persistentVolumeClaim:
           claimName: kdex-proxy-pvc
+      - name: kdex-proxy-config
+        configMap:
+          name: kdex-proxy-config
       securityContext:
         runAsNonRoot: true
         runAsUser: 65532

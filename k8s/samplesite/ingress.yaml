@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: samplesite
+  labels:
+    app: samplesite
+spec:
+  rules:
+  - host: samplesite.docker.localhost  # Replace with your domain
+    http:
+      paths:
+      - path: /
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: samplesite
+            port:
+              name: http
+  # tls:
+  # - hosts:
+  #   - proxy.kdex.dev  # Replace with your domain
+  #   secretName: kdex-proxy-tls  # Replace with your TLS secret name 

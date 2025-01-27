@@ -6,7 +6,7 @@ metadata:
     app: kdex-proxy
 spec:
   rules:
-  - host: main.dxp.docker.localhost  # Replace with your domain
+  - host: proxy.docker.localhost  # Replace with your domain
     http:
       paths:
       - path: /

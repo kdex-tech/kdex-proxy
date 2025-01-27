@@ -1,42 +1,19 @@
-# App Engine Task Handler
+# KDex Proxy
 
-This project is a getting starter guide for working with App Engine task
-handlers in Go.
+KDex Proxy is an intelligent reverse proxy designed to enhance the capabilities of any web application.
 
-## Download template locally with gonew
+## Features
 
-* Install [gonew](https://pkg.go.dev/golang.org/x/tools/cmd/gonew) if you have
-  not already.
-
-```bash
-go install golang.org/x/tools/cmd/gonew@latest
-```
-
-* Download this template locally:
-
-```bash
-gonew github.com/GoogleCloudPlatform/go-templates/appengine/taskhandler your.domain/taskhandler
-```
-
-## Deploy
-
-```bash
-# The name of the Cloud Task queue the handler will receive message from
-EXPORT AE_QUEUE=ae-queue
-
-# Deploy the app to App Engine
-gcloud app deploy
-
-# Create the Cloud Task queue
-gcloud tasks queues create $AE_QUEUE
-
-# Connect the Cloud Task queue to the App Engine handler endpoint
-gcloud tasks create-app-engine-task hello --queue=$AE_QUEUE --relative-uri=/task_handler --body-content="a friendly hello"
-```
-
-## Resources
-
-* [Create App Engine task handlers](https://cloud.google.com/tasks/docs/creating-appengine-handlers#go)
-* [Cloud Task queues with App Engine](https://cloud.google.com/tasks/docs/dual-overview#appe)
-* [gcloud tasks create-app-engine-task](https://cloud.google.com/sdk/gcloud/reference/tasks/create-app-engine-task)
-* [Create task with Client library](https://cloud.google.com/tasks/docs/samples/cloud-tasks-appengine-create-task?hl=en#cloud_tasks_appengine_create_task-go)
+- High performance reverse proxy
+- Dynamic enhancement of browser [Import Maps](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script/type/importmap)
+- Aggregate any number of applications into a single unified user interface using cloud native techniques
+- Share look and feel across any number of web applications without any duplication of resources
+- Share page templates across any number of web applications without any duplication of resources
+- Automatically aggregate and cache optimize JavaScript usage on a page by page basis without the aid of a build system
+- Designed from the ground up to be a cloud native and enterprise ready
+- Supports gated dependency management (only allow approved dependencies to be used)
+- Supports focused request and response transformation
+- Supports focused request and response validation
+- Supports focused request and response authentication
+- Supports focused request and response authorization
+- Enables you to adopt new web technologies without the need to rewrite your entire application

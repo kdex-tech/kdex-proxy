@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kdex-proxy-config
+  labels:
+    app: kdex-proxy
+data:
+  upstream_address: "samplesite"
+  upstream_healthz_path: "/"
+  module_body: |
+    import '@kdex/ui';
+  package.json: |
+    {
+      "name": "tmp",
+      "version": "1.0.0",
+      "dependencies": {
+        "@kdex/ui": "file:./kdex-ui.tgz"
+      }
+    }
