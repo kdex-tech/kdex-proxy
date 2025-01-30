@@ -57,7 +57,7 @@ func NewImportMapTransformerFromEnv() *ImportMapTransformer {
 	}
 
 	var moduleBody string
-	if _, err := os.Stat(moduleBodyPath); os.IsNotExist(err) {
+	if info, err := os.Stat(moduleBodyPath); err != nil || info.IsDir() {
 		moduleBody = DefaultModuleBody
 		log.Printf("Defaulting module_body to %s", moduleBody)
 	} else {

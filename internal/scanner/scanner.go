@@ -195,23 +195,28 @@ func (s *Scanner) ProcessImport(importName string, importPath string) {
 			s.ProcessImport(importName, usedImport)
 		} else {
 			if _, ok := s.Imports[usedImport]; !ok {
-				isImportModule := filepath.Join(s.ModuleDir, usedImport)
-				info, err := os.Stat(isImportModule)
-				if err == nil {
-					if info.IsDir() {
-						err = s.ScanPackage(usedImport)
-						if err != nil {
-							delete(s.Imports, importName)
-							log.Printf("missing imports for %s: %s", importName, usedImport)
-							return
-						}
-					} else {
-						s.ProcessImport(importName, usedImport)
+				fullPath := filepath.Join(s.ModuleDir, usedImport)
+				info, err := os.Stat(fullPath)
+				if err != nil {
+					info, err = os.Stat(fullPath + ".js")
+					if err == nil && !info.IsDir() {
+						s.ProcessImport(importName, usedImport+".js")
+						s.Imports[usedImport] = usedImport + ".js"
+						return
 					}
-				} else {
 					delete(s.Imports, importName)
 					log.Printf("missing imports for %s: %s", importName, usedImport)
 					return
+				}
+				if info.IsDir() {
+					err = s.ScanPackage(usedImport)
+					if err != nil {
+						delete(s.Imports, importName)
+						log.Printf("missing imports for %s: %s", importName, usedImport)
+						return
+					}
+				} else {
+					s.ProcessImport(importName, usedImport)
 				}
 			}
 		}
