@@ -1,19 +1,19 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: samplesite
+  name: sample-site
   labels:
-    app: samplesite
+    app: sample-site
 spec:
   rules:
-  - host: samplesite.docker.localhost  # Replace with your domain
+  - host: sample-site.docker.localhost  # Replace with your domain
     http:
       paths:
       - path: /
         pathType: ImplementationSpecific
         backend:
           service:
-            name: samplesite
+            name: sample-site
             port:
               name: http
   # tls:

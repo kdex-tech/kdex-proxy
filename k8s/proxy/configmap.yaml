@@ -5,15 +5,29 @@ metadata:
   labels:
     app: kdex-proxy
 data:
-  upstream_address: "samplesite"
+  upstream_address: "sample-site"
   upstream_healthz_path: "/"
-  module_body: |
-    import '@kdex/ui';
+  # TODO: design how apps are tracked and assigned to the proxy for embedding
+  # This array is just a preliminary approach to how they might be modelled and discovered by the proxy
+  apps: |
+    [
+      {
+        "address": "sample-app",
+        "element": "kdex-example",
+        "path": "app.js",
+        "targets": [
+          {
+            "page": "/posts",
+            "containerId": "main"
+          }
+        ],
+        "requiredScopes": []
+      }
+    ]
   package.json: |
     {
       "name": "tmp",
       "version": "1.0.0",
       "dependencies": {
-        "@kdex/ui": "file:./kdex-ui.tgz"
       }
     }

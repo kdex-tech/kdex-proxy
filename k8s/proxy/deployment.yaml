@@ -24,7 +24,9 @@ spec:
           cp kdex-ui.tgz /tmp
           cp package.json /tmp
           cd /tmp
-          npm i
+          npm i ./kdex-ui.tgz
+          npm i --save-dev esbuild
+          npx esbuild node_modules/**/*.js --allow-overwrite --outdir=node_modules --define:process.env.NODE_ENV=\"production\"
           mv node_modules/* /modules
           ls -l /modules
         volumeMounts:
@@ -55,6 +57,12 @@ spec:
         volumeMounts:
         - mountPath: /modules
           name: kdex-proxy-pvc
+        - mountPath: /etc/kdex/apps
+          name: kdex-proxy-config
+          subPath: apps
+        - mountPath: /etc/kdex/module_body
+          name: kdex-proxy-config
+          subPath: module_body
       - name: proxy
         image: registry:5000/kdex-tech/proxy:latest
         ports:
@@ -89,6 +97,9 @@ spec:
         volumeMounts:
         - mountPath: /modules
           name: kdex-proxy-pvc
+        - mountPath: /etc/kdex/apps
+          name: kdex-proxy-config
+          subPath: apps
         - mountPath: /etc/kdex/module_body
           name: kdex-proxy-config
           subPath: module_body
@@ -100,6 +111,7 @@ spec:
         configMap:
           name: kdex-proxy-config
       securityContext:
+        fsGroup: 65532
         runAsNonRoot: true
         runAsUser: 65532
         runAsGroup: 65532
