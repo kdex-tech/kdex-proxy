@@ -243,18 +243,15 @@ func (s *Scanner) LoadImports(importPath string) ([]string, error) {
 		return nil, err
 	}
 
-	return matchImport(string(content), filePath)
+	return matchImport(string(content))
 }
 
-func matchImport(content string, filePath string) ([]string, error) {
+func matchImport(content string) ([]string, error) {
 	singleLineCommentRegex := regexp.MustCompile(`(?mU)//[^\n]*\n`)
 	slrm := singleLineCommentRegex.FindAllStringSubmatch(content, -1)
 	for _, match := range slrm {
 		content = strings.ReplaceAll(content, match[0], "")
 	}
-	// if strings.Contains(filePath, "acorn") {
-	// 	os.WriteFile("acorn.txt.js", []byte(content), 0644)
-	// }
 
 	// strip all the javascript comments from the content
 	multiListCommentRegex := regexp.MustCompile(`(?s)/\*[\s\S]*?\*/`)
