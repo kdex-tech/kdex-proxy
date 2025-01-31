@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"golang.org/x/net/html"
+	"kdex.dev/proxy/internal/dom"
 )
 
 type ImportMapInstance struct {
@@ -40,7 +41,7 @@ func (importMapInstance *ImportMapInstance) Return(body *[]byte) error {
 func Instance(doc *html.Node) *ImportMapInstance {
 	var importMapInstance ImportMapInstance
 	importMapInstance.docNode = doc
-	importMapInstance.mapNode = findElementByName("script", doc, func(n *html.Node) bool {
+	importMapInstance.mapNode = dom.FindElementByName("script", doc, func(n *html.Node) bool {
 		for _, a := range n.Attr {
 			if a.Key == "type" && a.Val == "importmap" {
 				return true
@@ -64,7 +65,7 @@ func (importMapInstance *ImportMapInstance) WithModuleBody(moduleBody string) *I
 
 func (importMapInstance *ImportMapInstance) Mutate() bool {
 	if importMapInstance.mapNode == nil {
-		headNode := findElementByName("head", importMapInstance.docNode, nil)
+		headNode := dom.FindElementByName("head", importMapInstance.docNode, nil)
 		if headNode == nil {
 			return false
 		}
@@ -80,7 +81,7 @@ func (importMapInstance *ImportMapInstance) Mutate() bool {
 		headNode.InsertBefore(importMapInstance.mapNode, headNode.FirstChild)
 	}
 
-	bytes := getNodeText(importMapInstance.mapNode)
+	bytes := dom.GetNodeText(importMapInstance.mapNode)
 
 	json.Unmarshal(bytes, &importMapInstance.importMap)
 
@@ -117,7 +118,7 @@ func (importMapInstance *ImportMapInstance) Mutate() bool {
 
 	// Append a new import script node to the bottom of the body
 	if importMapInstance.moduleBody != "" {
-		bodyNode := findElementByName("body", importMapInstance.docNode, nil)
+		bodyNode := dom.FindElementByName("body", importMapInstance.docNode, nil)
 		if bodyNode != nil {
 			scriptNode := &html.Node{
 				Type: html.ElementNode,
@@ -137,38 +138,4 @@ func (importMapInstance *ImportMapInstance) Mutate() bool {
 	}
 
 	return true
-}
-
-func collectText(n *html.Node, buf *bytes.Buffer) {
-	if n.Type == html.TextNode {
-		buf.WriteString(n.Data)
-	}
-	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		collectText(c, buf)
-	}
-}
-
-func findElementByName(name string, doc *html.Node, predicate func(n *html.Node) bool) *html.Node {
-	var find func(*html.Node) *html.Node
-	find = func(n *html.Node) *html.Node {
-		if n.Type == html.ElementNode && n.Data == name {
-			if predicate != nil && !predicate(n) {
-				return nil
-			}
-			return n
-		}
-		for c := n.FirstChild; c != nil; c = c.NextSibling {
-			if result := find(c); result != nil {
-				return result
-			}
-		}
-		return nil
-	}
-	return find(doc)
-}
-
-func getNodeText(node *html.Node) []byte {
-	var buf bytes.Buffer
-	collectText(node, &buf)
-	return buf.Bytes()
 }

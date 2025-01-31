@@ -13,11 +13,27 @@
 // limitations under the License.
 package util
 
-import "net/http"
+import (
+	"net/http"
+
+	"golang.org/x/exp/rand"
+)
+
+const (
+	letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+)
 
 func GetScheme(r *http.Request) string {
 	if r.URL.Scheme != "" {
 		return r.URL.Scheme
 	}
 	return "http"
+}
+
+func RandStringBytes(length int) string {
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
 }

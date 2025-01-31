@@ -24,9 +24,11 @@ import (
 	"syscall"
 	"time"
 
+	"kdex.dev/proxy/internal/app"
 	"kdex.dev/proxy/internal/fileserver"
 	"kdex.dev/proxy/internal/importmap"
 	"kdex.dev/proxy/internal/proxy"
+	"kdex.dev/proxy/internal/transform"
 )
 
 func main() {
@@ -48,15 +50,19 @@ func main() {
 		log.Println("Server graceful shutdown complete.")
 	}()
 
-	transformer := importmap.NewImportMapTransformerFromEnv()
 	fs, err := fileserver.NewFileServerFromEnv()
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	transformer.WithModulePrefix(fs.Prefix)
-	transformer.ScanForImports()
+	transformer := &transform.AggregatedTransformer{
+		Transformers: []transform.Transformer{
+			importmap.NewImportMapTransformerFromEnv().WithModulePrefix(fs.Prefix),
+			&app.AppTransformer{AppManager: app.NewAppManagerFromEnv()},
+		},
+	}
+
 	ps.WithTransformer(transformer)
 
 	mux := http.NewServeMux()

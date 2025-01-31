@@ -70,12 +70,18 @@ func NewImportMapTransformerFromEnv() *ImportMapTransformer {
 		moduleBody = string(moduleBodyBytes)
 	}
 
-	return &ImportMapTransformer{
+	transformer := &ImportMapTransformer{
 		ModuleDir:          moduleDir,
 		ModuleDependencies: dependencies,
 		ModuleBody:         moduleBody,
 		ModulePrefix:       DefaultModulesPrefix,
 	}
+
+	if err := transformer.ScanForImports(); err != nil {
+		log.Fatal(err)
+	}
+
+	return transformer
 }
 
 func (t *ImportMapTransformer) ScanForImports() error {
@@ -116,7 +122,7 @@ func (t *ImportMapTransformer) ShouldTransform(r *http.Response) bool {
 	return true
 }
 
-func (t *ImportMapTransformer) Transform(body *[]byte) error {
+func (t *ImportMapTransformer) Transform(r *http.Response, body *[]byte) error {
 	importMapInstance, err := Parse(body)
 	if err != nil {
 		return err

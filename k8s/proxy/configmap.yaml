@@ -12,7 +12,8 @@ data:
   apps: |
     [
       {
-        "address": "sample-app",
+        "alias": "ke",
+        "address": "sample-app.docker.localhost",
         "element": "kdex-example",
         "path": "app.js",
         "targets": [

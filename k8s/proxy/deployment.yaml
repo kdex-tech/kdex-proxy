@@ -24,6 +24,7 @@ spec:
           cp kdex-ui.tgz /tmp
           cp package.json /tmp
           cd /tmp
+          npm i
           npm i ./kdex-ui.tgz
           npm i --save-dev esbuild
           npx esbuild node_modules/**/*.js --allow-overwrite --outdir=node_modules --define:process.env.NODE_ENV=\"production\"

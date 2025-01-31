@@ -183,7 +183,7 @@ func (s *Server) modifyResponse(r *http.Response) (err error) {
 		return err
 	}
 
-	if err := (s.transformer).Transform(&b); err != nil {
+	if err := (s.transformer).Transform(r, &b); err != nil {
 		return err
 	}
 
