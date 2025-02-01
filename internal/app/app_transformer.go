@@ -24,6 +24,8 @@ type AppTransformer struct {
 
 func (t *AppTransformer) Transform(r *http.Response, doc *html.Node) error {
 	path := strings.TrimSuffix(r.Request.URL.Path, "/")
+	appAlias := r.Request.Header.Get("X-Kdex-Proxy-App-Alias")
+	appPath := r.Request.Header.Get("X-Kdex-Proxy-App-Path")
 
 	log.Printf("Looking for apps for %s", path)
 
@@ -61,7 +63,7 @@ func (t *AppTransformer) Transform(r *http.Response, doc *html.Node) error {
 				}
 
 				// If the containerId is not found, but the containerId is empty, we can assume that this is the default container
-				if !foundId && target.Container == "" {
+				if !foundId && (target.Container == "" || target.Container == "main") {
 					return true
 				}
 
@@ -84,6 +86,10 @@ func (t *AppTransformer) Transform(r *http.Response, doc *html.Node) error {
 				},
 			}
 
+			if app.Alias == appAlias && appPath != "" {
+				customElement.Attr = append(customElement.Attr, html.Attribute{Key: "route-path", Val: appPath})
+			}
+
 			// remove all children of the app container node
 			for c := appContainerNode.FirstChild; c != nil; c = c.NextSibling {
 				appContainerNode.RemoveChild(c)
@@ -98,7 +104,12 @@ func (t *AppTransformer) Transform(r *http.Response, doc *html.Node) error {
 				Data: "script",
 				Attr: []html.Attribute{
 					{Key: "type", Val: "module"},
-					{Key: "src", Val: fmt.Sprintf("%s://%s/%s", util.GetScheme(r.Request), app.Address, app.Path)},
+					{Key: "src", Val: fmt.Sprintf(
+						"%s://%s/%s",
+						util.GetScheme(r.Request),
+						app.Address,
+						strings.TrimPrefix(app.Path, "/"),
+					)},
 				},
 			}
 

@@ -24,7 +24,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"kdex.dev/proxy/internal/app"
 	"kdex.dev/proxy/internal/importmap"
+	"kdex.dev/proxy/internal/transform"
 )
 
 type Result struct {
@@ -47,6 +49,12 @@ func mockTargetServer() *httptest.Server {
 		if r.URL.Path == "/test/html_without_importmap" {
 			w.Header().Set("Content-Type", "text/html")
 			w.Write([]byte(`<html><body><h1>Hello, World!</h1></body></html>`))
+			return
+		}
+
+		if r.URL.Path == "/test/app1" {
+			w.Header().Set("Content-Type", "text/html")
+			w.Write([]byte(`<html><body><kdex-ui-app-container></kdex-ui-app-container></body></html>`))
 			return
 		}
 
@@ -95,18 +103,44 @@ func TestServer_ReverseProxy(t *testing.T) {
 	s := Server{
 		ListenAddress:       "localhost",
 		ListenPort:          "8080",
+		PathSeparator:       "/_/",
 		UpstreamAddress:     upstreamAddress,
 		UpstreamScheme:      "http",
 		UpstreamHealthzPath: "/healthz",
 	}
 
-	s.WithTransformer(&importmap.ImportMapTransformer{
-		ModuleImports: map[string]string{
-			"@kdex-ui": "@kdex-ui/index.js",
+	transformer := &transform.AggregatedTransformer{
+		Transformers: []transform.Transformer{
+			&importmap.ImportMapTransformer{
+				ModuleImports: map[string]string{
+					"@kdex-ui": "@kdex-ui/index.js",
+				},
+				ModuleBody:   "import '@kdex-ui';",
+				ModulePrefix: "/~/m/",
+			},
+			&app.AppTransformer{
+				AppManager: &app.AppManager{
+					Apps: app.Apps{
+						app.App{
+							Alias:   "app1",
+							Address: "localhost:61345",
+							Element: "app-one",
+							Path:    "/app1.js",
+							Targets: []app.Target{
+								{
+									Page:      "/test/app1",
+									Container: "main",
+								},
+							},
+						},
+					},
+				},
+				PathSeparator: s.PathSeparator,
+			},
 		},
-		ModuleBody:   "import '@kdex-ui';",
-		ModulePrefix: "/~/m/",
-	})
+	}
+
+	s.WithTransformer(transformer)
 
 	// Create test proxy server
 	proxyServer := httptest.NewServer(http.HandlerFunc(s.ReverseProxy()))
@@ -190,6 +224,38 @@ func TestServer_ReverseProxy(t *testing.T) {
 			expectedStatus:  http.StatusInternalServerError,
 			expectedBody:    `Get "http://upstreamAddress/test/html_with_importmap": dial tcp: lookup upstreamAddress: Temporary failure in name resolution`,
 			upstreamAddress: "upstreamAddress",
+		},
+		{
+			name:            "GET path separator",
+			method:          "GET",
+			path:            "/test/_/foo/bar",
+			expectedStatus:  http.StatusOK,
+			expectedBody:    fmt.Sprintf(`{"method":"GET","path":"/test","headers":{"Accept-Encoding":["gzip"],"Forwarded":["by=%s;for=127.0.0.1;host=foo.bar;proto=http"],"User-Agent":["Go-http-client/1.1"],"X-Forwarded-For":["127.0.0.1"],"X-Forwarded-Host":["foo.bar"],"X-Forwarded-Proto":["http"],"X-Kdex-Proxy-App-Alias":["foo"],"X-Kdex-Proxy-App-Path":["/bar"]}}`, getOutboundIP().String()),
+			upstreamAddress: upstreamAddress,
+		},
+		{
+			name:            "GET path separator with html, route path matching app alias",
+			method:          "GET",
+			path:            "/test/app1/_/app1/bar",
+			expectedStatus:  http.StatusOK,
+			expectedBody:    `<html><head><script type="importmap">{"imports":{"@kdex-ui":"/~/m/@kdex-ui/index.js"}}</script><meta name="path-separator" content="/_/"/></head><body><kdex-ui-app-container><app-one id="app1" route-path="/bar"></app-one></kdex-ui-app-container><script type="module">import '@kdex-ui';</script><script type="module" src="http://localhost:61345/app1.js"></script></body></html>`,
+			upstreamAddress: upstreamAddress,
+		},
+		{
+			name:            "GET path separator with html, route path matching app alias but no app path",
+			method:          "GET",
+			path:            "/test/app1/_/app1",
+			expectedStatus:  http.StatusOK,
+			expectedBody:    `<html><head><script type="importmap">{"imports":{"@kdex-ui":"/~/m/@kdex-ui/index.js"}}</script><meta name="path-separator" content="/_/"/></head><body><kdex-ui-app-container><app-one id="app1"></app-one></kdex-ui-app-container><script type="module">import '@kdex-ui';</script><script type="module" src="http://localhost:61345/app1.js"></script></body></html>`,
+			upstreamAddress: upstreamAddress,
+		},
+		{
+			name:            "GET path separator with html, route path not matching app alias",
+			method:          "GET",
+			path:            "/test/app1/_/app2/bar",
+			expectedStatus:  http.StatusOK,
+			expectedBody:    `<html><head><script type="importmap">{"imports":{"@kdex-ui":"/~/m/@kdex-ui/index.js"}}</script><meta name="path-separator" content="/_/"/></head><body><kdex-ui-app-container><app-one id="app1"></app-one></kdex-ui-app-container><script type="module">import '@kdex-ui';</script><script type="module" src="http://localhost:61345/app1.js"></script></body></html>`,
+			upstreamAddress: upstreamAddress,
 		},
 	}
 

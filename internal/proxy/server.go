@@ -156,10 +156,37 @@ func (s *Server) errorHandler(w http.ResponseWriter, r *http.Request, err error)
 func (s *Server) rewrite(r *httputil.ProxyRequest) {
 	r.SetURL(&url.URL{Scheme: s.UpstreamScheme, Host: s.UpstreamAddress})
 	r.Out.Host = r.In.Host
-	r.Out.Header["X-Forwarded-For"] = r.In.Header["X-Forwarded-For"]
-	r.SetXForwarded()
-	setXForwardedPort(r.In, r.Out)
-	setForwarded(r.In, r.Out)
+
+	s.rewritePath(r)
+
+	{
+		// Everything bellow is about Proxy Protocol
+		r.Out.Header["X-Forwarded-For"] = r.In.Header["X-Forwarded-For"]
+		r.SetXForwarded()
+		setXForwardedPort(r.In, r.Out)
+		setForwarded(r.In, r.Out)
+	}
+}
+
+func (s *Server) rewritePath(r *httputil.ProxyRequest) {
+	parts := strings.SplitN(r.In.URL.Path, s.PathSeparator, 2)
+
+	if len(parts) > 1 {
+		newPath := parts[0]
+		r.Out.URL.Path = newPath
+		appParts := strings.SplitN(parts[1], "/", 2)
+
+		if len(appParts) > 1 {
+			appAlias := appParts[0]
+			appPath := fmt.Sprintf("/%s", appParts[1])
+			r.Out.Header["X-Kdex-Proxy-App-Alias"] = []string{appAlias}
+			r.Out.Header["X-Kdex-Proxy-App-Path"] = []string{appPath}
+			log.Printf("Path rewritten as: %s to %s (Alias: %s, Path: %s)", r.In.URL.Path, newPath, appAlias, appPath)
+		} else {
+			r.Out.Header["X-Kdex-Proxy-App-Alias"] = []string{appParts[0]}
+			log.Printf("Path rewritten as: %s to %s (Alias: %s)", r.In.URL.Path, newPath, appParts[0])
+		}
+	}
 }
 
 func setXForwardedPort(in *http.Request, out *http.Request) {

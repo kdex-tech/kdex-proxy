@@ -45,7 +45,7 @@ func TestAppManager_GetApps(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &AppManager{
-				apps: tt.fields.apps,
+				Apps: tt.fields.apps,
 			}
 			if got := m.GetApps(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("AppManager.GetApps() = %v, want %v", got, tt.want)
@@ -104,7 +104,7 @@ func TestAppManager_GetAppsForPage(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &AppManager{
-				apps: tt.fields.apps,
+				Apps: tt.fields.apps,
 			}
 			if got := m.GetAppsForPage(tt.args.page); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("AppManager.GetAppsForPage() = %v, want %v", got, tt.want)

@@ -30,7 +30,7 @@ type Target struct {
 }
 
 type AppManager struct {
-	apps Apps
+	Apps Apps
 }
 
 func NewAppManagerFromEnv() *AppManager {
@@ -57,17 +57,17 @@ func NewAppManagerFromEnv() *AppManager {
 	}
 
 	return &AppManager{
-		apps: apps,
+		Apps: apps,
 	}
 }
 
 func (m *AppManager) GetApps() Apps {
-	return m.apps
+	return m.Apps
 }
 
 func (m *AppManager) GetAppsForPage(page string) Apps {
 	var apps Apps
-	for _, app := range m.apps {
+	for _, app := range m.Apps {
 		for _, appTarget := range app.Targets {
 			if appTarget.Page == page {
 				apps = append(apps, app)
