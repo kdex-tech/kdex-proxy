@@ -7,7 +7,9 @@ import (
 	"os"
 	"strings"
 
+	"golang.org/x/net/html"
 	"kdex.dev/proxy/internal/scanner"
+	"kdex.dev/proxy/internal/transform"
 )
 
 const (
@@ -19,6 +21,7 @@ const (
 )
 
 type ImportMapTransformer struct {
+	transform.Transformer
 	ModuleDir          string
 	ModuleDependencies map[string]string
 	ModuleImports      map[string]string
@@ -122,22 +125,15 @@ func (t *ImportMapTransformer) ShouldTransform(r *http.Response) bool {
 	return true
 }
 
-func (t *ImportMapTransformer) Transform(r *http.Response, body *[]byte) error {
-	importMapInstance, err := Parse(body)
+func (t *ImportMapTransformer) Transform(r *http.Response, doc *html.Node) error {
+	importMapInstance, err := Parse(doc)
 	if err != nil {
 		return err
 	}
 
 	importMapInstance.WithMutator(t.Mutator())
 	importMapInstance.WithModuleBody(t.ModuleBody)
-
-	if !importMapInstance.Mutate() {
-		return nil
-	}
-
-	if err := importMapInstance.Return(body); err != nil {
-		return err
-	}
+	importMapInstance.Mutate()
 
 	return nil
 }

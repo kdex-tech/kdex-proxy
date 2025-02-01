@@ -1,9 +1,7 @@
 package importmap
 
 import (
-	"bytes"
 	"encoding/json"
-	"log"
 
 	"golang.org/x/net/html"
 	"kdex.dev/proxy/internal/dom"
@@ -17,25 +15,10 @@ type ImportMapInstance struct {
 	moduleBody string
 }
 
-func Parse(body *[]byte) (*ImportMapInstance, error) {
-	doc, err := html.Parse(bytes.NewReader(*body))
-	if err != nil {
-		return nil, err
-	}
-
+func Parse(doc *html.Node) (*ImportMapInstance, error) {
 	importMapInstance := Instance(doc)
 
 	return importMapInstance, nil
-}
-
-func (importMapInstance *ImportMapInstance) Return(body *[]byte) error {
-	var buf bytes.Buffer
-	if err := html.Render(&buf, importMapInstance.docNode); err != nil {
-		log.Printf("Error rendering modified HTML: %v", err)
-		return err
-	}
-	*body = buf.Bytes()
-	return nil
 }
 
 func Instance(doc *html.Node) *ImportMapInstance {
@@ -63,11 +46,11 @@ func (importMapInstance *ImportMapInstance) WithModuleBody(moduleBody string) *I
 	return importMapInstance
 }
 
-func (importMapInstance *ImportMapInstance) Mutate() bool {
+func (importMapInstance *ImportMapInstance) Mutate() {
 	if importMapInstance.mapNode == nil {
 		headNode := dom.FindElementByName("head", importMapInstance.docNode, nil)
 		if headNode == nil {
-			return false
+			return
 		}
 
 		importMapInstance.mapNode = &html.Node{
@@ -136,6 +119,4 @@ func (importMapInstance *ImportMapInstance) Mutate() bool {
 			bodyNode.AppendChild(scriptNode)
 		}
 	}
-
-	return true
 }

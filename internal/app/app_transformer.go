@@ -1,7 +1,6 @@
 package app
 
 import (
-	"bytes"
 	"fmt"
 	"log"
 	"net/http"
@@ -22,7 +21,7 @@ type AppTransformer struct {
 	AppManager *AppManager
 }
 
-func (t *AppTransformer) Transform(r *http.Response, body *[]byte) error {
+func (t *AppTransformer) Transform(r *http.Response, doc *html.Node) error {
 	path := strings.TrimSuffix(r.Request.URL.Path, "/")
 
 	log.Printf("Looking for apps for %s", path)
@@ -31,11 +30,6 @@ func (t *AppTransformer) Transform(r *http.Response, body *[]byte) error {
 
 	if len(apps) == 0 {
 		return nil
-	}
-
-	doc, err := html.Parse(bytes.NewReader(*body))
-	if err != nil {
-		return err
 	}
 
 	// <meta name="path-separator" content="/_/">
@@ -110,13 +104,6 @@ func (t *AppTransformer) Transform(r *http.Response, body *[]byte) error {
 			bodyNode.AppendChild(scriptNode)
 		}
 	}
-
-	var buf bytes.Buffer
-	if err := html.Render(&buf, doc); err != nil {
-		log.Printf("Error rendering modified HTML: %v", err)
-		return err
-	}
-	*body = buf.Bytes()
 
 	return nil
 }

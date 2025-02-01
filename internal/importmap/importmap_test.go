@@ -27,7 +27,6 @@ func TestImportMapManager_Mutate(t *testing.T) {
 		name    string
 		docNode *html.Node
 		imports map[string]string
-		want    bool
 	}{
 		{
 			name:    "no doc node",
@@ -35,7 +34,6 @@ func TestImportMapManager_Mutate(t *testing.T) {
 			imports: map[string]string{
 				"@kdex-ui": "/~/m/kdex-ui/index.js",
 			},
-			want: true,
 		},
 		{
 			name:    "no script node",
@@ -43,7 +41,6 @@ func TestImportMapManager_Mutate(t *testing.T) {
 			imports: map[string]string{
 				"@kdex-ui": "/~/m/kdex-ui/index.js",
 			},
-			want: true,
 		},
 		{
 			name:    "mutate importmap",
@@ -51,7 +48,6 @@ func TestImportMapManager_Mutate(t *testing.T) {
 			imports: map[string]string{
 				"@kdex-ui": "/~/m/kdex-ui/index.js",
 			},
-			want: true,
 		},
 		{
 			name:    "mutate importmap with existing imports",
@@ -60,7 +56,6 @@ func TestImportMapManager_Mutate(t *testing.T) {
 				"@foo/bar": "/foo/bar.js",
 				"@kdex-ui": "/~/m/kdex-ui/index.js",
 			},
-			want: true,
 		},
 	}
 	for _, tt := range tests {
@@ -70,10 +65,7 @@ func TestImportMapManager_Mutate(t *testing.T) {
 					importMap.Imports["@kdex-ui"] = "/~/m/kdex-ui/index.js"
 				},
 			)
-			got := importMapInstance.Mutate()
-			if got != tt.want {
-				t.Errorf("ImportMapManager.Mutate() = %v, want %v", got, tt.want)
-			}
+			importMapInstance.Mutate()
 			if tt.imports != nil {
 				if !reflect.DeepEqual(importMapInstance.importMap.Imports, tt.imports) {
 					t.Errorf("ImportMapManager.Mutate() = %v, want %v", importMapInstance.importMap.Imports, tt.imports)

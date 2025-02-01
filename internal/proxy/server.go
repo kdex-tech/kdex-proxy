@@ -28,6 +28,7 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/net/html"
 	"kdex.dev/proxy/internal/transform"
 	"kdex.dev/proxy/internal/util"
 )
@@ -183,13 +184,26 @@ func (s *Server) modifyResponse(r *http.Response) (err error) {
 		return err
 	}
 
-	if err := (s.transformer).Transform(r, &b); err != nil {
+	doc, err := html.Parse(bytes.NewReader(b))
+	if err != nil {
 		return err
 	}
 
+	if err := (s.transformer).Transform(r, doc); err != nil {
+		return err
+	}
+
+	var buf bytes.Buffer
+	if err := html.Render(&buf, doc); err != nil {
+		log.Printf("Error rendering modified HTML: %v", err)
+		return err
+	}
+
+	b = buf.Bytes()
+	contentLength := len(b)
 	r.Body = io.NopCloser(bytes.NewReader(b))
-	r.ContentLength = int64(len(b))
-	r.Header.Set("Content-Length", strconv.Itoa(len(b)))
+	r.ContentLength = int64(contentLength)
+	r.Header.Set("Content-Length", strconv.Itoa(contentLength))
 
 	return nil
 }
