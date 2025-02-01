@@ -35,7 +35,6 @@ func (t *AppTransformer) Transform(r *http.Response, doc *html.Node) error {
 		return nil
 	}
 
-	// <meta name="path-separator" content="/_/">
 	headNode := dom.FindElementByName("head", doc, nil)
 
 	if headNode != nil {
