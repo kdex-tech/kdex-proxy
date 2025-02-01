@@ -69,6 +69,8 @@ spec:
         ports:
         - containerPort: 8080
         env:
+        - name: ALWAYS_APPEND_SLASH
+          value: "true"
         - name: UPSTREAM_ADDRESS
           valueFrom:
             configMapKeyRef:

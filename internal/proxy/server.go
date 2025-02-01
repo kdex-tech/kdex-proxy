@@ -34,6 +34,7 @@ import (
 )
 
 const (
+	DefaultAlwaysAppendSlash   = false
 	DefaultListenAddress       = ""
 	DefaultListenPort          = "8080"
 	DefaultPathSeparator       = "/_/"
@@ -45,6 +46,7 @@ const (
 type Server struct {
 	proxy               *httputil.ReverseProxy
 	transformer         transform.Transformer
+	AlwaysAppendSlash   bool
 	ListenAddress       string
 	ListenPort          string
 	PathSeparator       string
@@ -55,6 +57,12 @@ type Server struct {
 }
 
 func NewServerFromEnv() *Server {
+	always_append_slash := os.Getenv("ALWAYS_APPEND_SLASH")
+	if always_append_slash == "" {
+		always_append_slash = strconv.FormatBool(DefaultAlwaysAppendSlash)
+		log.Printf("Defaulting always_append_slash to %s", always_append_slash)
+	}
+
 	listen_port := os.Getenv("LISTEN_PORT")
 	if listen_port == "" {
 		listen_port = DefaultListenPort
@@ -97,6 +105,7 @@ func NewServerFromEnv() *Server {
 	}
 
 	return &Server{
+		AlwaysAppendSlash:   always_append_slash == "true",
 		ListenAddress:       listen_address,
 		ListenPort:          listen_port,
 		PathSeparator:       path_separator,
@@ -154,10 +163,28 @@ func (s *Server) errorHandler(w http.ResponseWriter, r *http.Request, err error)
 }
 
 func (s *Server) rewrite(r *httputil.ProxyRequest) {
-	r.SetURL(&url.URL{Scheme: s.UpstreamScheme, Host: s.UpstreamAddress})
+	target := &url.URL{Scheme: s.UpstreamScheme, Host: s.UpstreamAddress}
+	req := r.Out
+
+	parts := s.rewritePath(r)
+
+	log.Printf("Path rewritten as: %s to %s (Alias: %s, Path: %s, Rawpath: %s)", r.In.URL.Path, parts.Path, parts.AppAlias, parts.AppPath, parts.RawPath)
+
+	targetQuery := target.RawQuery
+	req.URL.Scheme = target.Scheme
+	req.URL.Host = target.Host
+	req.URL.Path = parts.Path
+	req.URL.RawPath = parts.RawPath
+	if targetQuery == "" || req.URL.RawQuery == "" {
+		req.URL.RawQuery = targetQuery + req.URL.RawQuery
+	} else {
+		req.URL.RawQuery = targetQuery + "&" + req.URL.RawQuery
+	}
+
 	r.Out.Host = r.In.Host
 
-	s.rewritePath(r)
+	r.Out.Header["X-Kdex-Proxy-App-Alias"] = []string{parts.AppAlias}
+	r.Out.Header["X-Kdex-Proxy-App-Path"] = []string{parts.AppPath}
 
 	{
 		// Everything bellow is about Proxy Protocol
@@ -168,24 +195,50 @@ func (s *Server) rewrite(r *httputil.ProxyRequest) {
 	}
 }
 
-func (s *Server) rewritePath(r *httputil.ProxyRequest) {
+type PathParts struct {
+	AppAlias string
+	AppPath  string
+	Path     string
+	RawPath  string
+}
+
+func (s *Server) rewritePath(r *httputil.ProxyRequest) PathParts {
+	rpath := r.In.URL.RawPath
 	parts := strings.SplitN(r.In.URL.Path, s.PathSeparator, 2)
 
 	if len(parts) > 1 {
 		newPath := parts[0]
-		r.Out.URL.Path = newPath
+
+		if s.AlwaysAppendSlash && !strings.HasSuffix(newPath, "/") {
+			newPath = newPath + "/"
+		}
+
 		appParts := strings.SplitN(parts[1], "/", 2)
 
 		if len(appParts) > 1 {
 			appAlias := appParts[0]
 			appPath := fmt.Sprintf("/%s", appParts[1])
-			r.Out.Header["X-Kdex-Proxy-App-Alias"] = []string{appAlias}
-			r.Out.Header["X-Kdex-Proxy-App-Path"] = []string{appPath}
-			log.Printf("Path rewritten as: %s to %s (Alias: %s, Path: %s)", r.In.URL.Path, newPath, appAlias, appPath)
+			return PathParts{
+				AppAlias: appAlias,
+				AppPath:  appPath,
+				Path:     newPath,
+				RawPath:  rpath,
+			}
 		} else {
-			r.Out.Header["X-Kdex-Proxy-App-Alias"] = []string{appParts[0]}
-			log.Printf("Path rewritten as: %s to %s (Alias: %s)", r.In.URL.Path, newPath, appParts[0])
+			return PathParts{
+				AppAlias: parts[1],
+				AppPath:  "",
+				Path:     newPath,
+				RawPath:  rpath,
+			}
 		}
+	}
+
+	return PathParts{
+		AppAlias: "",
+		AppPath:  "",
+		Path:     r.In.URL.Path,
+		RawPath:  rpath,
 	}
 }
 
