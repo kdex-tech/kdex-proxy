@@ -59,7 +59,10 @@ func main() {
 	transformer := &transform.AggregatedTransformer{
 		Transformers: []transform.Transformer{
 			importmap.NewImportMapTransformerFromEnv().WithModulePrefix(fs.Prefix),
-			&app.AppTransformer{AppManager: app.NewAppManagerFromEnv()},
+			&app.AppTransformer{
+				AppManager:    app.NewAppManagerFromEnv(),
+				PathSeparator: ps.PathSeparator,
+			},
 		},
 	}
 

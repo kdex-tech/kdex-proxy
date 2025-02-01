@@ -10,8 +10,7 @@ import (
 )
 
 const (
-	DefaultAppsPath      = "/etc/kdex/apps"
-	DefaultPathSeparator = "/_/"
+	DefaultAppsPath = "/etc/kdex/apps"
 )
 
 type Apps []App
@@ -31,8 +30,7 @@ type Target struct {
 }
 
 type AppManager struct {
-	apps          Apps
-	pathSeparator string
+	apps Apps
 }
 
 func NewAppManagerFromEnv() *AppManager {
@@ -58,14 +56,8 @@ func NewAppManagerFromEnv() *AppManager {
 		}
 	}
 
-	pathSeparator := os.Getenv("PATH_SEPARATOR")
-	if pathSeparator == "" {
-		pathSeparator = DefaultPathSeparator
-	}
-
 	return &AppManager{
-		apps:          apps,
-		pathSeparator: pathSeparator,
+		apps: apps,
 	}
 }
 

@@ -18,7 +18,8 @@ const (
 
 type AppTransformer struct {
 	transform.Transformer
-	AppManager *AppManager
+	AppManager    *AppManager
+	PathSeparator string
 }
 
 func (t *AppTransformer) Transform(r *http.Response, doc *html.Node) error {
@@ -39,7 +40,7 @@ func (t *AppTransformer) Transform(r *http.Response, doc *html.Node) error {
 		metaNode := &html.Node{
 			Type: html.ElementNode,
 			Data: "meta",
-			Attr: []html.Attribute{{Key: "name", Val: "path-separator"}, {Key: "content", Val: t.AppManager.pathSeparator}},
+			Attr: []html.Attribute{{Key: "name", Val: "path-separator"}, {Key: "content", Val: t.PathSeparator}},
 		}
 		headNode.AppendChild(metaNode)
 	}

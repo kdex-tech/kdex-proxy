@@ -36,6 +36,7 @@ import (
 const (
 	DefaultListenAddress       = ""
 	DefaultListenPort          = "8080"
+	DefaultPathSeparator       = "/_/"
 	DefaultProbePrefix         = "/~/p/{$}"
 	DefaultUpstreamScheme      = "http"
 	DefaultUpstreamHealthzPath = "/"
@@ -46,6 +47,7 @@ type Server struct {
 	transformer         transform.Transformer
 	ListenAddress       string
 	ListenPort          string
+	PathSeparator       string
 	ProbePrefix         string
 	UpstreamAddress     string
 	UpstreamScheme      string
@@ -63,6 +65,12 @@ func NewServerFromEnv() *Server {
 	if listen_address == "" {
 		listen_address = DefaultListenAddress
 		log.Printf("Defaulting listen_address to any address on all interfaces")
+	}
+
+	path_separator := os.Getenv("PATH_SEPARATOR")
+	if path_separator == "" {
+		path_separator = DefaultPathSeparator
+		log.Printf("Defaulting path_separator to %s", path_separator)
 	}
 
 	probe_prefix := os.Getenv("PROBE_PREFIX")
@@ -91,6 +99,7 @@ func NewServerFromEnv() *Server {
 	return &Server{
 		ListenAddress:       listen_address,
 		ListenPort:          listen_port,
+		PathSeparator:       path_separator,
 		ProbePrefix:         probe_prefix,
 		UpstreamAddress:     upstream_address,
 		UpstreamScheme:      upstream_scheme,
