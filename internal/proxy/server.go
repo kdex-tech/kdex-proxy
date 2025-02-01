@@ -168,13 +168,19 @@ func (s *Server) rewrite(r *httputil.ProxyRequest) {
 
 	parts := s.rewritePath(r)
 
-	log.Printf("Path rewritten as: %s to %s (Alias: %s, Path: %s, Rawpath: %s)", r.In.URL.Path, parts.Path, parts.AppAlias, parts.AppPath, parts.RawPath)
-
 	targetQuery := target.RawQuery
 	req.URL.Scheme = target.Scheme
 	req.URL.Host = target.Host
-	req.URL.Path = parts.Path
-	req.URL.RawPath = parts.RawPath
+
+	if parts.AppAlias != "" {
+		req.URL.Path = parts.Path
+		log.Printf("Path rewritten as: %s to %s (Alias: %s, Path: %s)", r.In.URL.Path, parts.Path, parts.AppAlias, parts.AppPath)
+	} else {
+		req.URL.Path = r.In.URL.Path
+	}
+
+	req.URL.RawPath = r.In.URL.RawPath
+
 	if targetQuery == "" || req.URL.RawQuery == "" {
 		req.URL.RawQuery = targetQuery + req.URL.RawQuery
 	} else {
@@ -199,11 +205,9 @@ type PathParts struct {
 	AppAlias string
 	AppPath  string
 	Path     string
-	RawPath  string
 }
 
 func (s *Server) rewritePath(r *httputil.ProxyRequest) PathParts {
-	rpath := r.In.URL.RawPath
 	parts := strings.SplitN(r.In.URL.Path, s.PathSeparator, 2)
 
 	if len(parts) > 1 {
@@ -222,14 +226,12 @@ func (s *Server) rewritePath(r *httputil.ProxyRequest) PathParts {
 				AppAlias: appAlias,
 				AppPath:  appPath,
 				Path:     newPath,
-				RawPath:  rpath,
 			}
 		} else {
 			return PathParts{
 				AppAlias: parts[1],
 				AppPath:  "",
 				Path:     newPath,
-				RawPath:  rpath,
 			}
 		}
 	}
@@ -238,7 +240,6 @@ func (s *Server) rewritePath(r *httputil.ProxyRequest) PathParts {
 		AppAlias: "",
 		AppPath:  "",
 		Path:     r.In.URL.Path,
-		RawPath:  rpath,
 	}
 }
 
