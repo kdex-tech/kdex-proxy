@@ -18,7 +18,7 @@ data:
         "path": "app.js",
         "targets": [
           {
-            "page": "/posts",
+            "path": "/posts",
             "containerId": "main"
           }
         ],

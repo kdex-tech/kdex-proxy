@@ -23,13 +23,13 @@ type AppTransformer struct {
 }
 
 func (t *AppTransformer) Transform(r *http.Response, doc *html.Node) error {
-	path := strings.TrimSuffix(r.Request.URL.Path, "/")
+	targetPath := strings.TrimSuffix(r.Request.URL.Path, "/")
 	appAlias := r.Request.Header.Get("X-Kdex-Proxy-App-Alias")
 	appPath := r.Request.Header.Get("X-Kdex-Proxy-App-Path")
 
-	log.Printf("Looking for apps for %s", path)
+	log.Printf("Looking for apps for %s", targetPath)
 
-	apps := t.AppManager.GetAppsForPage(path)
+	apps := t.AppManager.GetAppsForTargetPath(targetPath)
 
 	if len(apps) == 0 {
 		return nil
@@ -70,11 +70,11 @@ func (t *AppTransformer) Transform(r *http.Response, doc *html.Node) error {
 			})
 
 			if appContainerNode == nil {
-				log.Printf("App container for element %s targeting %s/%s not found", app.Element, target.Page, target.Container)
+				log.Printf("App container for element %s targeting %s/%s not found", app.Element, target.Path, target.Container)
 				continue
 			}
 
-			log.Printf("App container for element %s targeting %s/%s found", app.Element, target.Page, target.Container)
+			log.Printf("App container for element %s targeting %s/%s found", app.Element, target.Path, target.Container)
 
 			// append a new custom element node to element
 			customElement := &html.Node{

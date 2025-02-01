@@ -25,7 +25,7 @@ type App struct {
 }
 
 type Target struct {
-	Page      string `json:"page"`
+	Path      string `json:"path"`
 	Container string `json:"containerId,omitempty"`
 }
 
@@ -65,11 +65,11 @@ func (m *AppManager) GetApps() Apps {
 	return m.Apps
 }
 
-func (m *AppManager) GetAppsForPage(page string) Apps {
+func (m *AppManager) GetAppsForTargetPath(targetPath string) Apps {
 	var apps Apps
 	for _, app := range m.Apps {
 		for _, appTarget := range app.Targets {
-			if appTarget.Page == page {
+			if appTarget.Path == targetPath {
 				apps = append(apps, app)
 			}
 		}
@@ -91,7 +91,7 @@ func ValidateApp(app App) error {
 		return fmt.Errorf("App must have at least one target")
 	}
 	for _, target := range app.Targets {
-		if target.Page == "" {
+		if target.Path == "" {
 			return fmt.Errorf("App targets page is required")
 		}
 	}

@@ -128,7 +128,7 @@ func TestServer_ReverseProxy(t *testing.T) {
 							Path:    "/app1.js",
 							Targets: []app.Target{
 								{
-									Page:      "/test/app1",
+									Path:      "/test/app1",
 									Container: "main",
 								},
 							},

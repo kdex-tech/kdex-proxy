@@ -59,7 +59,7 @@ func TestAppManager_GetAppsForPage(t *testing.T) {
 		apps Apps
 	}
 	type args struct {
-		page string
+		targetPath string
 	}
 	tests := []struct {
 		name   string
@@ -72,32 +72,32 @@ func TestAppManager_GetAppsForPage(t *testing.T) {
 			fields: fields{
 				apps: Apps{},
 			},
-			args: args{page: "/posts"},
+			args: args{targetPath: "/posts"},
 			want: nil,
 		},
 		{
 			name: "one app found among one app",
 			fields: fields{
 				apps: Apps{
-					{Address: "sample-app", Targets: []Target{{Page: "/posts", Container: "main"}}},
+					{Address: "sample-app", Targets: []Target{{Path: "/posts", Container: "main"}}},
 				},
 			},
-			args: args{page: "/posts"},
+			args: args{targetPath: "/posts"},
 			want: Apps{
-				{Address: "sample-app", Targets: []Target{{Page: "/posts", Container: "main"}}},
+				{Address: "sample-app", Targets: []Target{{Path: "/posts", Container: "main"}}},
 			},
 		},
 		{
 			name: "one app found among two apps",
 			fields: fields{
 				apps: Apps{
-					{Address: "sample-app", Targets: []Target{{Page: "/posts", Container: "main"}}},
-					{Address: "sample-app-2", Targets: []Target{{Page: "/other", Container: "main"}}},
+					{Address: "sample-app", Targets: []Target{{Path: "/posts", Container: "main"}}},
+					{Address: "sample-app-2", Targets: []Target{{Path: "/other", Container: "main"}}},
 				},
 			},
-			args: args{page: "/posts"},
+			args: args{targetPath: "/posts"},
 			want: Apps{
-				{Address: "sample-app", Targets: []Target{{Page: "/posts", Container: "main"}}},
+				{Address: "sample-app", Targets: []Target{{Path: "/posts", Container: "main"}}},
 			},
 		},
 	}
@@ -106,8 +106,8 @@ func TestAppManager_GetAppsForPage(t *testing.T) {
 			m := &AppManager{
 				Apps: tt.fields.apps,
 			}
-			if got := m.GetAppsForPage(tt.args.page); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("AppManager.GetAppsForPage() = %v, want %v", got, tt.want)
+			if got := m.GetAppsForTargetPath(tt.args.targetPath); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("AppManager.GetAppsForTargetPath() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -167,7 +167,7 @@ func TestValidateApp(t *testing.T) {
 		{
 			name: "valid app",
 			args: args{
-				app: App{Address: "sample-app", Element: "sample-element", Path: "sample-path", Targets: []Target{{Page: "sample-page", Container: "sample-container"}}},
+				app: App{Address: "sample-app", Element: "sample-element", Path: "sample-path", Targets: []Target{{Path: "sample-page", Container: "sample-container"}}},
 			},
 			wantErr: false,
 		},
