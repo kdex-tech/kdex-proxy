@@ -70,7 +70,25 @@ spec:
         - containerPort: 8080
         env:
         - name: ALWAYS_APPEND_SLASH
-          value: "true"
+          valueFrom:
+            configMapKeyRef:
+              name: kdex-proxy-config
+              key: always_append_slash
+        - name: PROTECTED_PATHS
+          valueFrom:
+            configMapKeyRef:
+              name: kdex-proxy-config
+              key: protected_paths
+        - name: USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: kdex-proxy-config
+              key: username
+        - name: PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              name: kdex-proxy-config
+              key: password
         - name: UPSTREAM_ADDRESS
           valueFrom:
             configMapKeyRef:

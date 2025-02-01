@@ -25,16 +25,17 @@ import (
 	"time"
 
 	"kdex.dev/proxy/internal/app"
+	"kdex.dev/proxy/internal/authn"
 	"kdex.dev/proxy/internal/fileserver"
 	"kdex.dev/proxy/internal/importmap"
-	mlog "kdex.dev/proxy/internal/middleware/log"
+	mAuthn "kdex.dev/proxy/internal/middleware/authn"
+	mLogger "kdex.dev/proxy/internal/middleware/log"
 	"kdex.dev/proxy/internal/proxy"
 	"kdex.dev/proxy/internal/transform"
 )
 
 func main() {
 	ps := proxy.NewServerFromEnv()
-
 	httpServer := &http.Server{Addr: ps.ListenAddress + ":" + ps.ListenPort}
 
 	go func() {
@@ -69,11 +70,28 @@ func main() {
 
 	ps.WithTransformer(transformer)
 
+	// Authn Middleware
+	authnConfig := authn.NewAuthnConfigFromEnv()
+	authnMW := mAuthn.NewAuthnMiddlewareFromEnv().WithValidator(
+		authnConfig.AuthValidator,
+	)
+
+	// Logger Middleware
+	loggerMW := &mLogger.LoggerMiddleware{
+		Impl: log.Default(),
+	}
+
 	mux := http.NewServeMux()
 
-	mux.Handle("GET "+fs.Prefix, mlog.LoggerMiddleware(fs.ServeHTTP()))
-	mux.Handle("GET "+ps.ProbePrefix, mlog.LoggerMiddleware(http.HandlerFunc(ps.Probe)))
-	mux.Handle("/", mlog.LoggerMiddleware(http.HandlerFunc(ps.ReverseProxy())))
+	mux.Handle("GET "+fs.Prefix, loggerMW.Log(fs.ServeHTTP()))
+	mux.Handle("GET "+ps.ProbePrefix, loggerMW.Log(http.HandlerFunc(ps.Probe)))
+	mux.Handle("/",
+		loggerMW.Log(
+			authnMW.Authn(
+				http.HandlerFunc(ps.ReverseProxy()),
+			),
+		),
+	)
 
 	httpServer.Handler = mux
 

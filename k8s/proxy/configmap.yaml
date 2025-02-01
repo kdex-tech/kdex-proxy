@@ -5,6 +5,10 @@ metadata:
   labels:
     app: kdex-proxy
 data:
+  always_append_slash: "true"
+  protected_paths: "/private"
+  username: "testuser"
+  password: "testpassword"
   upstream_address: "sample-site"
   upstream_healthz_path: "/"
   # TODO: design how apps are tracked and assigned to the proxy for embedding
