@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: keycloak
+  labels:
+    app: keycloak
+spec:
+  rules:
+  - host: keycloak.docker.localhost  # Replace with your domain
+    http:
+      paths:
+      - path: /
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: keycloak
+            port:
+              name: http
+  # tls:
+  # - hosts:
+  #   - proxy.kdex.dev  # Replace with your domain
+  #   secretName: kdex-proxy-tls  # Replace with your TLS secret name 
