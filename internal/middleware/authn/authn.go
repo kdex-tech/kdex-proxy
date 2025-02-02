@@ -11,22 +11,16 @@ import (
 )
 
 const (
-	DefaultAuthenticationHeader = "Proxy-Authorization"
-	ProtectedPathsEnvVar        = "PROTECTED_PATHS"
+	ProtectedPathsEnvVar = "PROTECTED_PATHS"
 )
 
 type AuthnMiddleware struct {
-	AuthenticationHeader string
-	ProtectedPaths       []string
-	AuthValidators       []iauthn.AuthValidator
+	AuthenticateHeader string
+	ProtectedPaths     []string
+	AuthValidators     []iauthn.AuthValidator
 }
 
 func NewAuthnMiddlewareFromEnv() *AuthnMiddleware {
-	authentication_header := os.Getenv("AUTHN_MIDDLEWARE_AUTHENTICATION_HEADER")
-	if authentication_header == "" {
-		authentication_header = DefaultAuthenticationHeader
-	}
-
 	var protected_paths []string
 
 	protected_paths_env := os.Getenv(ProtectedPathsEnvVar)
@@ -38,9 +32,13 @@ func NewAuthnMiddlewareFromEnv() *AuthnMiddleware {
 	log.Printf("Protected paths: %v", protected_paths)
 
 	return &AuthnMiddleware{
-		AuthenticationHeader: authentication_header,
-		ProtectedPaths:       protected_paths,
+		ProtectedPaths: protected_paths,
 	}
+}
+
+func (a *AuthnMiddleware) WithAuthenticateHeader(header string) *AuthnMiddleware {
+	a.AuthenticateHeader = header
+	return a
 }
 
 func (a *AuthnMiddleware) WithValidator(validator iauthn.AuthValidator) *AuthnMiddleware {
@@ -57,7 +55,7 @@ func (a *AuthnMiddleware) Authn(h http.Handler) http.HandlerFunc {
 		challenges := a.IsProtected(r)
 		if len(challenges) > 0 {
 			for _, challenge := range challenges {
-				w.Header().Add(a.AuthenticationHeader, fmt.Sprintf("%s realm=\"%s\"", challenge.Type, challenge.Realm))
+				w.Header().Add(a.AuthenticateHeader, fmt.Sprintf("%s realm=\"%s\"", challenge.Type, challenge.Realm))
 			}
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return

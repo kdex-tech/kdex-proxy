@@ -87,16 +87,14 @@ func TestNewAuthnMiddlewareFromEnv(t *testing.T) {
 			name: "no protected paths",
 			env:  "",
 			want: &AuthnMiddleware{
-				AuthenticationHeader: "Proxy-Authorization",
-				ProtectedPaths:       []string{},
+				ProtectedPaths: []string{},
 			},
 		},
 		{
 			name: "protected paths",
 			env:  "/protected",
 			want: &AuthnMiddleware{
-				AuthenticationHeader: "Proxy-Authorization",
-				ProtectedPaths:       []string{"/protected"},
+				ProtectedPaths: []string{"/protected"},
 			},
 		},
 	}

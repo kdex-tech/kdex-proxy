@@ -72,7 +72,9 @@ func main() {
 
 	// Authn Middleware
 	authnConfig := authn.NewAuthnConfigFromEnv()
-	authnMW := mAuthn.NewAuthnMiddlewareFromEnv().WithValidator(
+	authnMW := mAuthn.NewAuthnMiddlewareFromEnv().WithAuthenticateHeader(
+		authnConfig.AuthenticateHeader,
+	).WithValidator(
 		authnConfig.AuthValidator,
 	)
 

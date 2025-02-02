@@ -11,8 +11,10 @@ import (
 const (
 	AuthType_Basic = "Basic"
 
-	DefaultAuthorizationHeader    = "Proxy-Authorization"
-	Default_StaticBasicAuth_Realm = "KDEX Proxy"
+	DefaultAuthenticateHeader  = "Proxy-Authenticate"
+	DefaultAuthorizationHeader = "Proxy-Authorization"
+
+	DefaultRealm = "KDEX Proxy"
 
 	Validator_NoOp            = "noop"
 	Validator_StaticBasicAuth = "static_basic_auth"
@@ -25,21 +27,23 @@ type AuthChallenge struct {
 
 type AuthValidator interface {
 	Validate(r *http.Request) *AuthChallenge
-	GetAuthType() string
-	GetRealm() string
-}
-
-type AuthnMiddleware struct {
-	AuthenticationHeader string
-	ProtectedPaths       []string
-	AuthValidator        AuthValidator
 }
 
 type AuthnConfig struct {
-	AuthValidator AuthValidator
+	AuthenticateHeader  string
+	AuthorizationHeader string
+	AuthValidator       AuthValidator
 }
 
 func NewAuthnConfigFromEnv() *AuthnConfig {
+	authenticate_header := os.Getenv("AUTHENTICATE_HEADER")
+	if authenticate_header == "" {
+		authenticate_header = DefaultAuthenticateHeader
+	}
+	authorization_header := os.Getenv("AUTHORIZATION_HEADER")
+	if authorization_header == "" {
+		authorization_header = DefaultAuthorizationHeader
+	}
 	authn_validator_env := os.Getenv("AUTHN_VALIDATOR")
 	if authn_validator_env == "" {
 		authn_validator_env = Validator_NoOp
@@ -48,13 +52,9 @@ func NewAuthnConfigFromEnv() *AuthnConfig {
 	var authn_validator AuthValidator
 	switch authn_validator_env {
 	case Validator_StaticBasicAuth:
-		authorization_header := os.Getenv("STATIC_BASIC_AUTH_AUTHORIZATION_HEADER")
-		if authorization_header == "" {
-			authorization_header = DefaultAuthorizationHeader
-		}
 		realm := os.Getenv("STATIC_BASIC_AUTH_REALM")
 		if realm == "" {
-			realm = Default_StaticBasicAuth_Realm
+			realm = DefaultRealm
 		}
 		username := os.Getenv("STATIC_BASIC_AUTH_USERNAME")
 		password := os.Getenv("STATIC_BASIC_AUTH_PASSWORD")
@@ -72,7 +72,9 @@ func NewAuthnConfigFromEnv() *AuthnConfig {
 	}
 
 	return &AuthnConfig{
-		AuthValidator: authn_validator,
+		AuthenticateHeader:  authenticate_header,
+		AuthorizationHeader: authorization_header,
+		AuthValidator:       authn_validator,
 	}
 }
 
