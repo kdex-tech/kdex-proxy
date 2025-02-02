@@ -17,8 +17,10 @@ func (v *StaticBasicAuthValidator) Validate(r *http.Request) *AuthChallenge {
 	username, password, ok := v.basicAuth(r)
 	if !ok || username != v.Username || password != v.Password {
 		return &AuthChallenge{
-			Type:  AuthType_Basic,
-			Realm: v.Realm,
+			Scheme: AuthScheme_Basic,
+			Attributes: map[string]string{
+				"realm": v.Realm,
+			},
 		}
 	}
 	return nil
@@ -52,7 +54,7 @@ func toLower(c byte) byte {
 }
 
 func parseBasicAuth(auth string) (username, password string, ok bool) {
-	const prefix = "Basic "
+	const prefix = AuthScheme_Basic + " "
 	if len(auth) < len(prefix) || !equalFold(auth[:len(prefix)], prefix) {
 		return "", "", false
 	}

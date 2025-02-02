@@ -74,6 +74,21 @@ spec:
             configMapKeyRef:
               name: kdex-proxy-config
               key: always_append_slash
+        - name: AUTH_VALIDATOR
+          valueFrom:
+            configMapKeyRef:
+              name: kdex-proxy-config
+              key: auth_validator
+        - name: STATIC_BASIC_AUTH_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: kdex-proxy-config
+              key: username
+        - name: STATIC_BASIC_AUTH_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              name: kdex-proxy-config
+              key: password
         - name: PROTECTED_PATHS
           valueFrom:
             configMapKeyRef:

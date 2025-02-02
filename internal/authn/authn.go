@@ -8,7 +8,8 @@ import (
 )
 
 const (
-	AuthType_Basic = "Basic"
+	AuthScheme_Basic  = "Basic"
+	AuthScheme_Bearer = "Bearer"
 
 	DefaultAuthenticateHeader  = "Proxy-Authenticate"
 	DefaultAuthorizationHeader = "Proxy-Authorization"
@@ -17,11 +18,12 @@ const (
 
 	Validator_NoOp            = "noop"
 	Validator_StaticBasicAuth = "static_basic_auth"
+	Validator_BearerAuth      = "bearer_auth"
 )
 
 type AuthChallenge struct {
-	Type  string
-	Realm string
+	Scheme     string
+	Attributes map[string]string
 }
 
 type AuthValidator interface {
@@ -80,6 +82,20 @@ func NewAuthnConfigFromEnv() *AuthnConfig {
 			Realm:               realm,
 			Username:            username,
 			Password:            password,
+		}
+	case Validator_BearerAuth:
+		realm := os.Getenv("BEARER_AUTH_REALM")
+		if realm == "" {
+			realm = DefaultRealm
+		}
+		scopes := os.Getenv("BEARER_AUTH_SCOPES")
+		if scopes == "" {
+			scopes = "read write"
+		}
+		auth_validator = &BearerAuthValidator{
+			AuthorizationHeader: authorization_header,
+			Realm:               realm,
+			Scopes:              strings.Split(scopes, " "),
 		}
 	default: // Validator_NoOp
 		auth_validator = &NoOpAuthValidator{}

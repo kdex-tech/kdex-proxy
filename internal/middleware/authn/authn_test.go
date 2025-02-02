@@ -260,8 +260,10 @@ func TestAuthnMiddleware_IsProtected(t *testing.T) {
 			},
 			want: []iauthn.AuthChallenge{
 				{
-					Type:  "Basic",
-					Realm: "testrealm",
+					Scheme: "Basic",
+					Attributes: map[string]string{
+						"realm": "testrealm",
+					},
 				},
 			},
 		},
@@ -284,8 +286,10 @@ func TestAuthnMiddleware_IsProtected(t *testing.T) {
 			},
 			want: []iauthn.AuthChallenge{
 				{
-					Type:  "Basic",
-					Realm: "testrealm",
+					Scheme: "Basic",
+					Attributes: map[string]string{
+						"realm": "testrealm",
+					},
 				},
 			},
 		},

@@ -31,7 +31,13 @@ func (a *AuthnMiddleware) Authn(h http.Handler) http.HandlerFunc {
 		challenges := a.IsProtected(r)
 		if len(challenges) > 0 {
 			for _, challenge := range challenges {
-				w.Header().Add(a.AuthenticateHeader, fmt.Sprintf("%s realm=\"%s\"", challenge.Type, challenge.Realm))
+				attributesString := ""
+				delimiter := " "
+				for k, v := range challenge.Attributes {
+					attributesString += fmt.Sprintf(`%s%s="%s"`, delimiter, k, v)
+					delimiter = ", "
+				}
+				w.Header().Add(a.AuthenticateHeader, fmt.Sprintf("%s%s", challenge.Scheme, attributesString))
 			}
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return

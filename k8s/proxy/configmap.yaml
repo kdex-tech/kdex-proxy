@@ -6,11 +6,12 @@ metadata:
     app: kdex-proxy
 data:
   always_append_slash: "true"
+  auth_validator: "static_basic_auth"
   protected_paths: "/private"
-  username: "testuser"
   password: "testpassword"
   upstream_address: "sample-site"
   upstream_healthz_path: "/"
+  username: "testuser"
   # TODO: design how apps are tracked and assigned to the proxy for embedding
   # This array is just a preliminary approach to how they might be modelled and discovered by the proxy
   apps: |
