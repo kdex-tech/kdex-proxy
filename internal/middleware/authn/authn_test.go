@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -73,36 +72,6 @@ func TestStaticBasicAuthValidator_Validate(t *testing.T) {
 			}
 			got := v.Validate(tt.args.r)
 			assert.Equal(t, tt.wantErr, got != nil)
-		})
-	}
-}
-
-func TestNewAuthnMiddlewareFromEnv(t *testing.T) {
-	tests := []struct {
-		name string
-		env  string
-		want *AuthnMiddleware
-	}{
-		{
-			name: "no protected paths",
-			env:  "",
-			want: &AuthnMiddleware{
-				ProtectedPaths: []string{},
-			},
-		},
-		{
-			name: "protected paths",
-			env:  "/protected",
-			want: &AuthnMiddleware{
-				ProtectedPaths: []string{"/protected"},
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			os.Setenv(ProtectedPathsEnvVar, tt.env)
-			got := NewAuthnMiddlewareFromEnv()
-			assert.Equal(t, tt.want, got)
 		})
 	}
 }

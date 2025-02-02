@@ -1,7 +1,6 @@
 package authn
 
 import (
-	"encoding/base64"
 	"log"
 	"net/http"
 	"os"
@@ -32,7 +31,8 @@ type AuthValidator interface {
 type AuthnConfig struct {
 	AuthenticateHeader  string
 	AuthorizationHeader string
-	AuthValidator       AuthValidator
+	AuthValidators      []AuthValidator
+	ProtectedPaths      []string
 }
 
 func NewAuthnConfigFromEnv() *AuthnConfig {
@@ -40,17 +40,31 @@ func NewAuthnConfigFromEnv() *AuthnConfig {
 	if authenticate_header == "" {
 		authenticate_header = DefaultAuthenticateHeader
 	}
+	log.Printf("Authenticate header: %s", authenticate_header)
+
 	authorization_header := os.Getenv("AUTHORIZATION_HEADER")
 	if authorization_header == "" {
 		authorization_header = DefaultAuthorizationHeader
 	}
-	authn_validator_env := os.Getenv("AUTHN_VALIDATOR")
-	if authn_validator_env == "" {
-		authn_validator_env = Validator_NoOp
-	}
+	log.Printf("Authorization header: %s", authorization_header)
 
-	var authn_validator AuthValidator
-	switch authn_validator_env {
+	auth_validator_env := os.Getenv("AUTH_VALIDATOR")
+	if auth_validator_env == "" {
+		auth_validator_env = Validator_NoOp
+	}
+	log.Printf("Auth validator: %s", auth_validator_env)
+
+	var protected_paths []string
+	protected_paths_env := os.Getenv("PROTECTED_PATHS")
+	if protected_paths_env == "" {
+		protected_paths = []string{}
+	} else {
+		protected_paths = strings.Split(protected_paths_env, ",")
+	}
+	log.Printf("Protected paths: %v", protected_paths)
+
+	var auth_validator AuthValidator
+	switch auth_validator_env {
 	case Validator_StaticBasicAuth:
 		realm := os.Getenv("STATIC_BASIC_AUTH_REALM")
 		if realm == "" {
@@ -61,55 +75,20 @@ func NewAuthnConfigFromEnv() *AuthnConfig {
 		if username == "" || password == "" {
 			log.Fatalf("STATIC_BASIC_AUTH_USERNAME and STATIC_BASIC_AUTH_PASSWORD must be set when using %s validator", Validator_StaticBasicAuth)
 		}
-		authn_validator = &StaticBasicAuthValidator{
+		auth_validator = &StaticBasicAuthValidator{
 			AuthorizationHeader: authorization_header,
 			Realm:               realm,
 			Username:            username,
 			Password:            password,
 		}
 	default: // Validator_NoOp
-		authn_validator = &NoOpAuthValidator{}
+		auth_validator = &NoOpAuthValidator{}
 	}
 
 	return &AuthnConfig{
 		AuthenticateHeader:  authenticate_header,
 		AuthorizationHeader: authorization_header,
-		AuthValidator:       authn_validator,
+		AuthValidators:      []AuthValidator{auth_validator},
+		ProtectedPaths:      protected_paths,
 	}
-}
-
-func equalFold(s, t string) bool {
-	if len(s) != len(t) {
-		return false
-	}
-	for i := 0; i < len(s); i++ {
-		if toLower(s[i]) != toLower(t[i]) {
-			return false
-		}
-	}
-	return true
-}
-
-func toLower(c byte) byte {
-	if c >= 'A' && c <= 'Z' {
-		return c + ('a' - 'A')
-	}
-	return c
-}
-
-func parseBasicAuth(auth string) (username, password string, ok bool) {
-	const prefix = "Basic "
-	if len(auth) < len(prefix) || !equalFold(auth[:len(prefix)], prefix) {
-		return "", "", false
-	}
-	c, err := base64.StdEncoding.DecodeString(auth[len(prefix):])
-	if err != nil {
-		return "", "", false
-	}
-	cs := string(c)
-	username, password, ok = strings.Cut(cs, ":")
-	if !ok {
-		return "", "", false
-	}
-	return username, password, true
 }

@@ -2,16 +2,10 @@ package authn
 
 import (
 	"fmt"
-	"log"
 	"net/http"
-	"os"
 	"strings"
 
 	iauthn "kdex.dev/proxy/internal/authn"
-)
-
-const (
-	ProtectedPathsEnvVar = "PROTECTED_PATHS"
 )
 
 type AuthnMiddleware struct {
@@ -20,30 +14,12 @@ type AuthnMiddleware struct {
 	AuthValidators     []iauthn.AuthValidator
 }
 
-func NewAuthnMiddlewareFromEnv() *AuthnMiddleware {
-	var protected_paths []string
-
-	protected_paths_env := os.Getenv(ProtectedPathsEnvVar)
-	if protected_paths_env == "" {
-		protected_paths = []string{}
-	} else {
-		protected_paths = strings.Split(protected_paths_env, ",")
-	}
-	log.Printf("Protected paths: %v", protected_paths)
-
+func NewAuthnMiddleware(config *iauthn.AuthnConfig) *AuthnMiddleware {
 	return &AuthnMiddleware{
-		ProtectedPaths: protected_paths,
+		AuthenticateHeader: config.AuthenticateHeader,
+		ProtectedPaths:     config.ProtectedPaths,
+		AuthValidators:     config.AuthValidators,
 	}
-}
-
-func (a *AuthnMiddleware) WithAuthenticateHeader(header string) *AuthnMiddleware {
-	a.AuthenticateHeader = header
-	return a
-}
-
-func (a *AuthnMiddleware) WithValidator(validator iauthn.AuthValidator) *AuthnMiddleware {
-	a.AuthValidators = append(a.AuthValidators, validator)
-	return a
 }
 
 func (a *AuthnMiddleware) Authn(h http.Handler) http.HandlerFunc {

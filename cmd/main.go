@@ -71,11 +71,8 @@ func main() {
 	ps.WithTransformer(transformer)
 
 	// Authn Middleware
-	authnConfig := authn.NewAuthnConfigFromEnv()
-	authnMW := mAuthn.NewAuthnMiddlewareFromEnv().WithAuthenticateHeader(
-		authnConfig.AuthenticateHeader,
-	).WithValidator(
-		authnConfig.AuthValidator,
+	authnMW := mAuthn.NewAuthnMiddleware(
+		authn.NewAuthnConfigFromEnv(),
 	)
 
 	// Logger Middleware
