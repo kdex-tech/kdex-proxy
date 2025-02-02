@@ -182,8 +182,9 @@ func TestAuthnMiddleware_Authn(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			a := &AuthnMiddleware{
-				ProtectedPaths: tt.fields.ProtectedPaths,
-				AuthValidators: tt.fields.AuthValidators,
+				AuthenticateStatusCode: http.StatusUnauthorized,
+				AuthValidators:         tt.fields.AuthValidators,
+				ProtectedPaths:         tt.fields.ProtectedPaths,
 			}
 			got := a.Authn(tt.args.h)
 			if got == nil {
@@ -316,8 +317,9 @@ func TestAuthnMiddleware_IsProtected(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			a := &AuthnMiddleware{
-				ProtectedPaths: tt.fields.ProtectedPaths,
-				AuthValidators: tt.fields.AuthValidators,
+				AuthenticateStatusCode: http.StatusUnauthorized,
+				ProtectedPaths:         tt.fields.ProtectedPaths,
+				AuthValidators:         tt.fields.AuthValidators,
 			}
 			got := a.IsProtected(tt.args.r)
 			assert.Equal(t, tt.want, got)

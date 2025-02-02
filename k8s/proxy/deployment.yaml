@@ -74,6 +74,21 @@ spec:
             configMapKeyRef:
               name: kdex-proxy-config
               key: always_append_slash
+        - name: AUTHENTICATE_HEADER
+          valueFrom:
+            configMapKeyRef:
+              name: kdex-proxy-config
+              key: authenticate_header
+        - name: AUTHORIZATION_HEADER
+          valueFrom:
+            configMapKeyRef:
+              name: kdex-proxy-config
+              key: authorization_header
+        - name: AUTHENTICATE_STATUS_CODE
+          valueFrom:
+            configMapKeyRef:
+              name: kdex-proxy-config
+              key: authenticate_status_code
         - name: AUTH_VALIDATOR
           valueFrom:
             configMapKeyRef:

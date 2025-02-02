@@ -6,6 +6,9 @@ metadata:
     app: kdex-proxy
 data:
   always_append_slash: "true"
+  authenticate_header: "WWW-Authenticate"
+  authorization_header: "Authorization"
+  authenticate_status_code: "401"
   auth_validator: "static_basic_auth"
   protected_paths: "/private"
   password: "testpassword"

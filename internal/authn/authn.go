@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -11,10 +12,10 @@ const (
 	AuthScheme_Basic  = "Basic"
 	AuthScheme_Bearer = "Bearer"
 
-	DefaultAuthenticateHeader  = "Proxy-Authenticate"
-	DefaultAuthorizationHeader = "Proxy-Authorization"
-
-	DefaultRealm = "KDEX Proxy"
+	DefaultAuthenticateHeader     = "WWW-Authenticate"
+	DefaultAuthorizationHeader    = "Authorization"
+	DefaultAuthenticateStatusCode = 401
+	DefaultRealm                  = "KDEX Proxy"
 
 	Validator_NoOp            = "noop"
 	Validator_StaticBasicAuth = "static_basic_auth"
@@ -31,10 +32,11 @@ type AuthValidator interface {
 }
 
 type AuthnConfig struct {
-	AuthenticateHeader  string
-	AuthorizationHeader string
-	AuthValidators      []AuthValidator
-	ProtectedPaths      []string
+	AuthenticateHeader     string
+	AuthorizationHeader    string
+	AuthenticateStatusCode int
+	AuthValidators         []AuthValidator
+	ProtectedPaths         []string
 }
 
 func NewAuthnConfigFromEnv() *AuthnConfig {
@@ -49,6 +51,11 @@ func NewAuthnConfigFromEnv() *AuthnConfig {
 		authorization_header = DefaultAuthorizationHeader
 	}
 	log.Printf("Authorization header: %s", authorization_header)
+	authenticate_status_code, err := strconv.Atoi(os.Getenv("AUTHENTICATE_STATUS_CODE"))
+	if err != nil {
+		authenticate_status_code = DefaultAuthenticateStatusCode
+	}
+	log.Printf("Authenticate status code: %d", authenticate_status_code)
 
 	auth_validator_env := os.Getenv("AUTH_VALIDATOR")
 	if auth_validator_env == "" {
@@ -102,9 +109,10 @@ func NewAuthnConfigFromEnv() *AuthnConfig {
 	}
 
 	return &AuthnConfig{
-		AuthenticateHeader:  authenticate_header,
-		AuthorizationHeader: authorization_header,
-		AuthValidators:      []AuthValidator{auth_validator},
-		ProtectedPaths:      protected_paths,
+		AuthenticateHeader:     authenticate_header,
+		AuthorizationHeader:    authorization_header,
+		AuthenticateStatusCode: authenticate_status_code,
+		AuthValidators:         []AuthValidator{auth_validator},
+		ProtectedPaths:         protected_paths,
 	}
 }

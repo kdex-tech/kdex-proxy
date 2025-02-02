@@ -2,6 +2,7 @@ package authn
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 
@@ -9,16 +10,18 @@ import (
 )
 
 type AuthnMiddleware struct {
-	AuthenticateHeader string
-	ProtectedPaths     []string
-	AuthValidators     []iauthn.AuthValidator
+	AuthenticateHeader     string
+	AuthenticateStatusCode int
+	ProtectedPaths         []string
+	AuthValidators         []iauthn.AuthValidator
 }
 
 func NewAuthnMiddleware(config *iauthn.AuthnConfig) *AuthnMiddleware {
 	return &AuthnMiddleware{
-		AuthenticateHeader: config.AuthenticateHeader,
-		ProtectedPaths:     config.ProtectedPaths,
-		AuthValidators:     config.AuthValidators,
+		AuthenticateHeader:     config.AuthenticateHeader,
+		AuthenticateStatusCode: config.AuthenticateStatusCode,
+		ProtectedPaths:         config.ProtectedPaths,
+		AuthValidators:         config.AuthValidators,
 	}
 }
 
@@ -28,6 +31,7 @@ func (a *AuthnMiddleware) Authn(h http.Handler) http.HandlerFunc {
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
+		ah := a.AuthenticateHeader
 		challenges := a.IsProtected(r)
 		if len(challenges) > 0 {
 			for _, challenge := range challenges {
@@ -37,9 +41,11 @@ func (a *AuthnMiddleware) Authn(h http.Handler) http.HandlerFunc {
 					attributesString += fmt.Sprintf(`%s%s="%s"`, delimiter, k, v)
 					delimiter = ", "
 				}
-				w.Header().Add(a.AuthenticateHeader, fmt.Sprintf("%s%s", challenge.Scheme, attributesString))
+				w.Header().Add(ah, fmt.Sprintf("%s%s", challenge.Scheme, attributesString))
 			}
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+
+			log.Printf("Sending %d Unauthorized, %s: %v", a.AuthenticateStatusCode, ah, w.Header().Get(ah))
+			http.Error(w, "Unauthorized", a.AuthenticateStatusCode)
 			return
 		}
 
