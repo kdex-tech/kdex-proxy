@@ -21,7 +21,7 @@ spec:
         - "sh"
         - "-c"
         - |
-          sha256sum -c /modules/sums.txt 2&>/dev/null
+          [ $(wc -l < /modules/sums.txt) -eq 2 ] && sha256sum -c /modules/sums.txt 2&>/dev/null
           if [ $? -ne 0 ]; then
             rm -rf /modules/* 2&>/dev/null
             cp kdex-ui.tgz /tmp
