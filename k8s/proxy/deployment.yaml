@@ -21,15 +21,22 @@ spec:
         - "sh"
         - "-c"
         - |
-          cp kdex-ui.tgz /tmp
-          cp package.json /tmp
-          cd /tmp
-          npm i
-          npm i ./kdex-ui.tgz
-          npm i --save-dev esbuild
-          npx esbuild node_modules/**/*.js --allow-overwrite --outdir=node_modules --define:process.env.NODE_ENV=\"production\"
-          mv node_modules/* /modules
-          ls -l /modules
+          sha256sum -c /modules/sums.txt 2&>/dev/null
+          if [ $? -ne 0 ]; then
+            rm -rf /modules/* 2&>/dev/null
+            cp kdex-ui.tgz /tmp
+            cp package.json /tmp
+            (
+              cd /tmp
+              npm i
+              npm i ./kdex-ui.tgz
+              npm i --save-dev esbuild
+              npx esbuild node_modules/**/*.js --allow-overwrite --outdir=node_modules --define:process.env.NODE_ENV=\"production\"
+              cp -r node_modules/* /modules
+            )
+            sha256sum kdex-ui.tgz package.json > /modules/sums.txt
+            ls -l /modules
+          fi
         volumeMounts:
         - mountPath: /modules
           name: kdex-proxy-pvc
@@ -166,14 +173,3 @@ spec:
         runAsNonRoot: true
         runAsUser: 65532
         runAsGroup: 65532
----
-kind: PersistentVolumeClaim
-apiVersion: v1
-metadata:
-  name: kdex-proxy-pvc
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
