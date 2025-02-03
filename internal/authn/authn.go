@@ -19,7 +19,7 @@ const (
 
 	Validator_NoOp            = "noop"
 	Validator_StaticBasicAuth = "static_basic_auth"
-	Validator_BearerAuth      = "bearer_auth"
+	Validator_OAuth           = "oauth"
 )
 
 type AuthChallenge struct {
@@ -28,7 +28,8 @@ type AuthChallenge struct {
 }
 
 type AuthValidator interface {
-	Validate(r *http.Request) *AuthChallenge
+	Validate(w http.ResponseWriter, r *http.Request) (*AuthChallenge, any)
+	Register(mux *http.ServeMux)
 }
 
 type AuthnConfig struct {
@@ -90,18 +91,38 @@ func NewAuthnConfigFromEnv() *AuthnConfig {
 			Username:            username,
 			Password:            password,
 		}
-	case Validator_BearerAuth:
-		realm := os.Getenv("BEARER_AUTH_REALM")
+	case Validator_OAuth:
+		auth_server_url := os.Getenv("OAUTH_AUTH_SERVER_URL")
+		if auth_server_url == "" {
+			log.Fatalf("OAUTH_AUTH_SERVER_URL must be set when using %s validator", Validator_OAuth)
+		}
+		realm := os.Getenv("OAUTH_AUTH_REALM")
 		if realm == "" {
 			realm = DefaultRealm
 		}
-		scopes := os.Getenv("BEARER_AUTH_SCOPES")
+		client_id := os.Getenv("OAUTH_CLIENT_ID")
+		if client_id == "" {
+			log.Fatalf("OAUTH_CLIENT_ID must be set when using %s validator", Validator_OAuth)
+		}
+		client_secret := os.Getenv("OAUTH_CLIENT_SECRET")
+		if client_secret == "" {
+			log.Fatalf("OAUTH_CLIENT_SECRET must be set when using %s validator", Validator_OAuth)
+		}
+		redirect_uri := os.Getenv("OAUTH_REDIRECT_URI")
+		if redirect_uri == "" {
+			log.Fatalf("OAUTH_REDIRECT_URI must be set when using %s validator", Validator_OAuth)
+		}
+		scopes := os.Getenv("OAUTH_SCOPES")
 		if scopes == "" {
 			scopes = "read write"
 		}
-		auth_validator = &BearerAuthValidator{
+		auth_validator = &OAuthValidator{
 			AuthorizationHeader: authorization_header,
+			AuthServerURL:       auth_server_url,
 			Realm:               realm,
+			ClientID:            client_id,
+			ClientSecret:        client_secret,
+			RedirectURI:         redirect_uri,
 			Scopes:              strings.Split(scopes, " "),
 		}
 	default: // Validator_NoOp
@@ -115,4 +136,11 @@ func NewAuthnConfigFromEnv() *AuthnConfig {
 		AuthValidators:         []AuthValidator{auth_validator},
 		ProtectedPaths:         protected_paths,
 	}
+}
+
+func (c *AuthnConfig) Register(mux *http.ServeMux) *AuthnConfig {
+	for _, validator := range c.AuthValidators {
+		validator.Register(mux)
+	}
+	return c
 }

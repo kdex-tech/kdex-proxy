@@ -13,7 +13,11 @@ type StaticBasicAuthValidator struct {
 	Password            string
 }
 
-func (v *StaticBasicAuthValidator) Validate(r *http.Request) *AuthChallenge {
+func (v *StaticBasicAuthValidator) Register(mux *http.ServeMux) {
+	// noop
+}
+
+func (v *StaticBasicAuthValidator) Validate(w http.ResponseWriter, r *http.Request) (*AuthChallenge, any) {
 	username, password, ok := v.basicAuth(r)
 	if !ok || username != v.Username || password != v.Password {
 		return &AuthChallenge{
@@ -21,9 +25,9 @@ func (v *StaticBasicAuthValidator) Validate(r *http.Request) *AuthChallenge {
 			Attributes: map[string]string{
 				"realm": v.Realm,
 			},
-		}
+		}, nil
 	}
-	return nil
+	return nil, nil
 }
 
 func (v *StaticBasicAuthValidator) basicAuth(r *http.Request) (username, password string, ok bool) {

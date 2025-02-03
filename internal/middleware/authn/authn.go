@@ -1,6 +1,7 @@
 package authn
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,7 +14,7 @@ type AuthnMiddleware struct {
 	AuthenticateHeader     string
 	AuthenticateStatusCode int
 	ProtectedPaths         []string
-	AuthValidators         []iauthn.AuthValidator
+	AuthValidator          iauthn.AuthValidator
 }
 
 func NewAuthnMiddleware(config *iauthn.AuthnConfig) *AuthnMiddleware {
@@ -21,7 +22,7 @@ func NewAuthnMiddleware(config *iauthn.AuthnConfig) *AuthnMiddleware {
 		AuthenticateHeader:     config.AuthenticateHeader,
 		AuthenticateStatusCode: config.AuthenticateStatusCode,
 		ProtectedPaths:         config.ProtectedPaths,
-		AuthValidators:         config.AuthValidators,
+		AuthValidator:          config.AuthValidators[0],
 	}
 }
 
@@ -32,40 +33,43 @@ func (a *AuthnMiddleware) Authn(h http.Handler) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		ah := a.AuthenticateHeader
-		challenges := a.IsProtected(r)
-		if len(challenges) > 0 {
-			for _, challenge := range challenges {
-				attributesString := ""
-				delimiter := " "
-				for k, v := range challenge.Attributes {
-					attributesString += fmt.Sprintf(`%s%s="%s"`, delimiter, k, v)
-					delimiter = ", "
-				}
-				w.Header().Add(ah, fmt.Sprintf("%s%s", challenge.Scheme, attributesString))
+		challenge, data := a.IsProtected(w, r)
+
+		if challenge != nil {
+			attributesString := ""
+			delimiter := " "
+			for k, v := range challenge.Attributes {
+				attributesString += fmt.Sprintf(`%s%s="%s"`, delimiter, k, v)
+				delimiter = ", "
 			}
+			w.Header().Add(ah, fmt.Sprintf("%s%s", challenge.Scheme, attributesString))
 
 			log.Printf("Sending %d Unauthorized, %s: %v", a.AuthenticateStatusCode, ah, w.Header().Get(ah))
 			http.Error(w, "Unauthorized", a.AuthenticateStatusCode)
 			return
 		}
 
+		if data != nil {
+			r = r.WithContext(context.WithValue(r.Context(), ContextUserDataKey, data))
+		}
+
 		h.ServeHTTP(w, r)
 	}
 }
 
-func (a *AuthnMiddleware) IsProtected(r *http.Request) []iauthn.AuthChallenge {
+func (a *AuthnMiddleware) IsProtected(w http.ResponseWriter, r *http.Request) (*iauthn.AuthChallenge, any) {
 	path := r.URL.Path
-	var challenges []iauthn.AuthChallenge
 	for _, p := range a.ProtectedPaths {
 		if strings.HasPrefix(path, p) {
-			for _, validator := range a.AuthValidators {
-				challenge := validator.Validate(r)
-				if challenge != nil {
-					challenges = append(challenges, *challenge)
-				}
+			challenge, datum := a.AuthValidator.Validate(w, r)
+			if challenge != nil {
+				return challenge, datum
 			}
-			return challenges
 		}
 	}
-	return nil
+	return nil, nil
 }
+
+type ContextKey string
+
+const ContextUserDataKey ContextKey = "user_data"

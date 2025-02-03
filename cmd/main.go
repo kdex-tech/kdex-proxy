@@ -58,29 +58,29 @@ func main() {
 		log.Fatal(err)
 	}
 
-	transformer := &transform.AggregatedTransformer{
-		Transformers: []transform.Transformer{
-			importmap.NewImportMapTransformerFromEnv().WithModulePrefix(fs.Prefix),
-			&app.AppTransformer{
-				AppManager:    app.NewAppManagerFromEnv(),
-				PathSeparator: ps.PathSeparator,
+	ps.WithTransformer(
+		&transform.AggregatedTransformer{
+			Transformers: []transform.Transformer{
+				importmap.NewImportMapTransformerFromEnv().WithModulePrefix(fs.Prefix),
+				&app.AppTransformer{
+					AppManager:    app.NewAppManagerFromEnv(),
+					PathSeparator: ps.PathSeparator,
+				},
 			},
 		},
-	}
+	)
 
-	ps.WithTransformer(transformer)
+	mux := http.NewServeMux()
 
 	// Authn Middleware
 	authnMW := mAuthn.NewAuthnMiddleware(
-		authn.NewAuthnConfigFromEnv(),
+		authn.NewAuthnConfigFromEnv().Register(mux),
 	)
 
 	// Logger Middleware
 	loggerMW := &mLogger.LoggerMiddleware{
 		Impl: log.Default(),
 	}
-
-	mux := http.NewServeMux()
 
 	mux.Handle("GET "+fs.Prefix, loggerMW.Log(fs.ServeHTTP()))
 	mux.Handle("GET "+ps.ProbePrefix, loggerMW.Log(http.HandlerFunc(ps.Probe)))

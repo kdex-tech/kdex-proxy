@@ -27,7 +27,7 @@ data:
           "directAccessGrantsEnabled": true,
           "serviceAccountsEnabled": true,
           "authorizationServicesEnabled": true,
-          "redirectUris": ["*"],
+          "redirectUris": ["http://proxy.docker.localhost/~/o/oauth/callback"],
           "webOrigins": ["*"]
         }
       ],

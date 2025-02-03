@@ -6,6 +6,10 @@ import (
 
 type NoOpAuthValidator struct{}
 
-func (v *NoOpAuthValidator) Validate(r *http.Request) *AuthChallenge {
-	return nil
+func (v *NoOpAuthValidator) Register(mux *http.ServeMux) {
+	// noop
+}
+
+func (v *NoOpAuthValidator) Validate(w http.ResponseWriter, r *http.Request) (*AuthChallenge, any) {
+	return nil, nil
 }
