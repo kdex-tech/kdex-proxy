@@ -15,22 +15,6 @@ import (
 	"kdex.dev/proxy/internal/util"
 )
 
-type OAuthValidator struct {
-	AuthorizationHeader string
-	ClientID            string
-	ClientSecret        string
-	Oauth2Config        *oauth2.Config
-	Prefix              string
-	Provider            *oidc.Provider
-	Realm               string
-	RedirectURI         string
-	Scopes              []string
-	SignInOnChallenge   bool
-	SessionStore        session.SessionStore
-	StateStore          state.StateStore
-	Verifier            *oidc.IDTokenVerifier
-}
-
 type Config struct {
 	AuthorizationHeader string
 	AuthServerURL       string
@@ -41,6 +25,32 @@ type Config struct {
 	RedirectURI         string
 	Scopes              []string
 	SignInOnChallenge   bool
+}
+
+type OAuthValidator struct {
+	AuthorizationHeader string
+	ClientID            string
+	ClientSecret        string
+	Oauth2Config        *oauth2.Config
+	Prefix              string
+	Provider            *oidc.Provider
+	Realm               string
+	RedirectURI         string
+	Scopes              []string
+	SessionStore        session.SessionStore
+	SignInOnChallenge   bool
+	StateStore          state.StateStore
+	Verifier            *oidc.IDTokenVerifier
+}
+
+type OIDCClaims struct {
+	Email    string `json:"email"`
+	Username string `json:"preferred_username"`
+}
+
+type UserData struct {
+	Claims  map[string]interface{}
+	Session *session.SessionData
 }
 
 func NewOAuthValidator(ctx context.Context, config *Config) *OAuthValidator {
@@ -158,11 +168,6 @@ func (v *OAuthValidator) Validate(w http.ResponseWriter, r *http.Request) func(h
 	}
 }
 
-type UserData struct {
-	Claims  map[string]interface{}
-	Session *session.SessionData
-}
-
 func (v *OAuthValidator) callbackHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := v.verifyState(r); err != nil {
@@ -240,12 +245,7 @@ func (v *OAuthValidator) challengeAction(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-type oidcClaims struct {
-	Email    string `json:"email"`
-	Username string `json:"preferred_username"`
-}
-
-func (v *OAuthValidator) validateAndGetClaimsIDToken(ctx context.Context, oauth2Token *oauth2.Token) (*oidcClaims, error) {
+func (v *OAuthValidator) validateAndGetClaimsIDToken(ctx context.Context, oauth2Token *oauth2.Token) (*OIDCClaims, error) {
 	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
 	if !ok {
 		return nil, fmt.Errorf("id_token is required")
@@ -254,7 +254,8 @@ func (v *OAuthValidator) validateAndGetClaimsIDToken(ctx context.Context, oauth2
 	if err != nil {
 		return nil, fmt.Errorf("failed to verify id_token: %w", err)
 	}
-	claims := oidcClaims{}
+
+	claims := OIDCClaims{}
 	if err := idToken.Claims(&claims); err != nil {
 		return nil, fmt.Errorf("failed to get user info: %w", err)
 	}
