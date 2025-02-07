@@ -1,6 +1,7 @@
 package authn
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
@@ -15,6 +16,7 @@ const (
 	DefaultAuthenticateHeader     = "WWW-Authenticate"
 	DefaultAuthorizationHeader    = "Authorization"
 	DefaultAuthenticateStatusCode = 401
+	DefaultPrefix                 = "/~/o/"
 	DefaultRealm                  = "KDEX Proxy"
 
 	Validator_NoOp            = "noop"
@@ -22,13 +24,12 @@ const (
 	Validator_OAuth           = "oauth"
 )
 
-type AuthChallenge struct {
-	Scheme     string
-	Attributes map[string]string
-}
+type ContextKey string
+
+const ContextUserKey ContextKey = "user"
 
 type AuthValidator interface {
-	Validate(w http.ResponseWriter, r *http.Request) (*AuthChallenge, any)
+	Validate(w http.ResponseWriter, r *http.Request) func(h http.Handler)
 	Register(mux *http.ServeMux)
 }
 
@@ -86,17 +87,19 @@ func NewAuthnConfigFromEnv() *AuthnConfig {
 			log.Fatalf("STATIC_BASIC_AUTH_USERNAME and STATIC_BASIC_AUTH_PASSWORD must be set when using %s validator", Validator_StaticBasicAuth)
 		}
 		auth_validator = &StaticBasicAuthValidator{
-			AuthorizationHeader: authorization_header,
-			Realm:               realm,
-			Username:            username,
-			Password:            password,
+			AuthorizationHeader:    authorization_header,
+			AuthenticateHeader:     authenticate_header,
+			AuthenticateStatusCode: authenticate_status_code,
+			Realm:                  realm,
+			Username:               username,
+			Password:               password,
 		}
 	case Validator_OAuth:
-		auth_server_url := os.Getenv("OAUTH_AUTH_SERVER_URL")
+		auth_server_url := os.Getenv("OAUTH_SERVER_URL")
 		if auth_server_url == "" {
-			log.Fatalf("OAUTH_AUTH_SERVER_URL must be set when using %s validator", Validator_OAuth)
+			log.Fatalf("OAUTH_SERVER_URL must be set when using %s validator", Validator_OAuth)
 		}
-		realm := os.Getenv("OAUTH_AUTH_REALM")
+		realm := os.Getenv("OAUTH_REALM")
 		if realm == "" {
 			realm = DefaultRealm
 		}
@@ -116,15 +119,20 @@ func NewAuthnConfigFromEnv() *AuthnConfig {
 		if scopes == "" {
 			scopes = "read write"
 		}
-		auth_validator = &OAuthValidator{
+		prefix := os.Getenv("OAUTH_PREFIX")
+		if prefix == "" {
+			prefix = DefaultPrefix
+		}
+		auth_validator = NewOAuthValidator(context.Background(), &Config{
 			AuthorizationHeader: authorization_header,
 			AuthServerURL:       auth_server_url,
-			Realm:               realm,
 			ClientID:            client_id,
 			ClientSecret:        client_secret,
+			Prefix:              prefix,
+			Realm:               realm,
 			RedirectURI:         redirect_uri,
 			Scopes:              strings.Split(scopes, " "),
-		}
+		})
 	default: // Validator_NoOp
 		auth_validator = &NoOpAuthValidator{}
 	}

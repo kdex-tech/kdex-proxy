@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
+	"net/url"
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
@@ -14,13 +14,8 @@ import (
 	"kdex.dev/proxy/internal/util"
 )
 
-const (
-	DefaultPrefix = "/~/o/"
-)
-
 type OAuthValidator struct {
 	AuthorizationHeader string
-	AuthServerURL       string
 	ClientID            string
 	ClientSecret        string
 	Oauth2Config        *oauth2.Config
@@ -45,7 +40,8 @@ type Config struct {
 }
 
 func NewOAuthValidator(ctx context.Context, config *Config) *OAuthValidator {
-	providerURL := fmt.Sprintf("%s/realms/%s", config.AuthServerURL, config.Realm)
+	providerURL := fmt.Sprintf("%s/realms/%s", config.AuthServerURL, url.PathEscape(config.Realm))
+	log.Printf("Provider URL: %s", providerURL)
 	provider, err := oidc.NewProvider(ctx, providerURL)
 
 	if err != nil {
@@ -69,7 +65,6 @@ func NewOAuthValidator(ctx context.Context, config *Config) *OAuthValidator {
 
 	return &OAuthValidator{
 		AuthorizationHeader: config.AuthorizationHeader,
-		AuthServerURL:       config.AuthServerURL,
 		ClientID:            config.ClientID,
 		ClientSecret:        config.ClientSecret,
 		Oauth2Config:        &oauth2Config,
@@ -84,38 +79,28 @@ func NewOAuthValidator(ctx context.Context, config *Config) *OAuthValidator {
 }
 
 func (v *OAuthValidator) Register(mux *http.ServeMux) {
-	mux.HandleFunc("GET "+v.Prefix+"/oauth/callback", v.callbackHandler())
-	mux.HandleFunc("GET "+v.Prefix+"/oauth/signin", v.signInHandler())
+	mux.HandleFunc("GET "+v.Prefix+"oauth/callback", v.callbackHandler())
+	mux.HandleFunc("GET "+v.Prefix+"oauth/signin", v.signInHandler())
 }
 
-func (v *OAuthValidator) Validate(w http.ResponseWriter, r *http.Request) (*AuthChallenge, any) {
+func (v *OAuthValidator) Validate(w http.ResponseWriter, r *http.Request) func(h http.Handler) {
 	sessionCookie, err := r.Cookie("session_id")
 	if err != nil {
-		return &AuthChallenge{
-			Scheme: AuthScheme_Bearer,
-			Attributes: map[string]string{
-				"realm":  v.Realm,
-				"scopes": strings.Join(v.Scopes, " "),
-				"error":  err.Error(),
-			},
-		}, nil
+		return func(h http.Handler) {
+			v.signInHandler()(w, r)
+		}
 	}
 
 	sessionData, err := v.SessionStore.Get(r.Context(), sessionCookie.Value)
 	if err != nil {
-		http.SetCookie(w, &http.Cookie{
-			Name:  "session_id",
-			Value: "",
-			Path:  "/",
-		})
-		return &AuthChallenge{
-			Scheme: AuthScheme_Bearer,
-			Attributes: map[string]string{
-				"realm":  v.Realm,
-				"scopes": strings.Join(v.Scopes, " "),
-				"error":  err.Error(),
-			},
-		}, nil
+		return func(h http.Handler) {
+			http.SetCookie(w, &http.Cookie{
+				Name:  "session_id",
+				Value: "",
+				Path:  "/",
+			})
+			v.signInHandler()(w, r)
+		}
 	}
 
 	token, err := v.Provider.Verifier(&oidc.Config{
@@ -123,39 +108,37 @@ func (v *OAuthValidator) Validate(w http.ResponseWriter, r *http.Request) (*Auth
 	}).Verify(r.Context(), sessionData.AccessToken)
 
 	if err != nil {
-		v.SessionStore.Delete(r.Context(), sessionCookie.Value)
-		http.SetCookie(w, &http.Cookie{
-			Name:  "session_id",
-			Value: "",
-			Path:  "/",
-		})
-		return &AuthChallenge{
-			Scheme: AuthScheme_Bearer,
-			Attributes: map[string]string{
-				"realm": v.Realm,
-			},
-		}, nil
+		return func(h http.Handler) {
+			v.SessionStore.Delete(r.Context(), sessionCookie.Value)
+			http.SetCookie(w, &http.Cookie{
+				Name:  "session_id",
+				Value: "",
+				Path:  "/",
+			})
+			v.signInHandler()(w, r)
+		}
 	}
 
 	var claims map[string]interface{}
 	if err := token.Claims(&claims); err != nil {
-		return &AuthChallenge{
-			Scheme: AuthScheme_Bearer,
-			Attributes: map[string]string{
-				"realm": v.Realm,
-			},
-		}, nil
+		return func(h http.Handler) {
+			v.signInHandler()(w, r)
+		}
 	}
 
-	return nil, UserData{
-		Claims:      claims,
-		SessionData: sessionData,
+	return func(h http.Handler) {
+		r = r.WithContext(context.WithValue(r.Context(), ContextUserKey, UserData{
+			Claims:  claims,
+			Session: sessionData,
+		}))
+
+		h.ServeHTTP(w, r)
 	}
 }
 
 type UserData struct {
-	Claims      map[string]interface{}
-	SessionData *session.SessionData
+	Claims  map[string]interface{}
+	Session *session.SessionData
 }
 
 func (v *OAuthValidator) callbackHandler() http.HandlerFunc {
@@ -177,12 +160,14 @@ func (v *OAuthValidator) callbackHandler() http.HandlerFunc {
 
 		oauth2Token, err := v.Oauth2Config.Exchange(r.Context(), authorizationCode, opts...)
 		if err != nil {
+			log.Printf("Error exchanging authorization code: %v", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		userInfo, err := v.validateAndGetClaimsIDToken(r.Context(), oauth2Token)
 		if err != nil {
+			log.Printf("Error validating and getting claims ID token: %v", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -201,6 +186,7 @@ func (v *OAuthValidator) callbackHandler() http.HandlerFunc {
 		}
 
 		if err := v.SessionStore.Set(r.Context(), sessionID, sessionData); err != nil {
+			log.Printf("Error setting session: %v", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -261,12 +247,13 @@ func (v *OAuthValidator) verifyState(r *http.Request) error {
 
 func (v *OAuthValidator) signInHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		redirectURL := fmt.Sprintf("%s://%s%s", util.GetScheme(r), r.Host, v.Prefix+"oauth/callback")
+		log.Printf("Redirect URL: %s", redirectURL)
 		authURL := v.Oauth2Config.AuthCodeURL(
 			"test_state",
-			oauth2.SetAuthURLParam("redirect_uri", r.URL.String()),
-			oauth2.SetAuthURLParam("response_type", "code"),
-			oauth2.SetAuthURLParam("scope", strings.Join(v.Scopes, " ")),
+			oauth2.SetAuthURLParam("redirect_uri", redirectURL),
 		)
+		log.Printf("Auth URL: %s", authURL)
 		http.Redirect(w, r, authURL, http.StatusTemporaryRedirect)
 	}
 }

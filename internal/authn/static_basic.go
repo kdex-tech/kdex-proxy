@@ -2,32 +2,45 @@ package authn
 
 import (
 	"encoding/base64"
+	"fmt"
+	"log"
 	"net/http"
 	"strings"
 )
 
 type StaticBasicAuthValidator struct {
-	AuthorizationHeader string
-	Realm               string
-	Username            string
-	Password            string
+	AuthorizationHeader    string
+	AuthenticateHeader     string
+	AuthenticateStatusCode int
+	Realm                  string
+	Username               string
+	Password               string
 }
 
 func (v *StaticBasicAuthValidator) Register(mux *http.ServeMux) {
 	// noop
 }
 
-func (v *StaticBasicAuthValidator) Validate(w http.ResponseWriter, r *http.Request) (*AuthChallenge, any) {
+func (v *StaticBasicAuthValidator) Validate(w http.ResponseWriter, r *http.Request) func(h http.Handler) {
 	username, password, ok := v.basicAuth(r)
+
 	if !ok || username != v.Username || password != v.Password {
-		return &AuthChallenge{
-			Scheme: AuthScheme_Basic,
-			Attributes: map[string]string{
-				"realm": v.Realm,
-			},
-		}, nil
+		return func(h http.Handler) {
+			w.Header().Add(
+				v.AuthenticateHeader,
+				fmt.Sprintf(`%s realm="%s"`, AuthScheme_Basic, v.Realm),
+			)
+			log.Printf(
+				"Sending %d Unauthorized, %s: %v",
+				v.AuthenticateStatusCode,
+				v.AuthenticateHeader,
+				w.Header().Get(v.AuthenticateHeader),
+			)
+			http.Error(w, "Unauthorized", v.AuthenticateStatusCode)
+		}
 	}
-	return nil, nil
+
+	return nil
 }
 
 func (v *StaticBasicAuthValidator) basicAuth(r *http.Request) (username, password string, ok bool) {

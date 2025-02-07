@@ -70,7 +70,7 @@ func TestStaticBasicAuthValidator_Validate(t *testing.T) {
 				Username:            tt.fields.Username,
 				Password:            tt.fields.Password,
 			}
-			got, _ := v.Validate(httptest.NewRecorder(), tt.args.r)
+			got := v.Validate(httptest.NewRecorder(), tt.args.r)
 			assert.Equal(t, tt.wantErr, got != nil)
 		})
 	}
@@ -111,7 +111,14 @@ func TestAuthnMiddleware_Authn(t *testing.T) {
 			name: "protected path without auth",
 			fields: fields{
 				ProtectedPaths: []string{"/protected"},
-				AuthValidator:  &iauthn.StaticBasicAuthValidator{Username: "testuser", Password: "testpassword"},
+				AuthValidator: &iauthn.StaticBasicAuthValidator{
+					AuthenticateHeader:     "WWW-Authenticate",
+					AuthenticateStatusCode: http.StatusUnauthorized,
+					AuthorizationHeader:    "Authorization",
+					Username:               "testuser",
+					Password:               "testpassword",
+					Realm:                  "testrealm",
+				},
 			},
 			args: args{
 				h: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -126,7 +133,14 @@ func TestAuthnMiddleware_Authn(t *testing.T) {
 			name: "protected path with invalid auth",
 			fields: fields{
 				ProtectedPaths: []string{"/protected"},
-				AuthValidator:  &iauthn.StaticBasicAuthValidator{Username: "testuser", Password: "testpassword"},
+				AuthValidator: &iauthn.StaticBasicAuthValidator{
+					AuthenticateHeader:     "WWW-Authenticate",
+					AuthenticateStatusCode: http.StatusUnauthorized,
+					AuthorizationHeader:    "Authorization",
+					Username:               "testuser",
+					Password:               "testpassword",
+					Realm:                  "testrealm",
+				},
 			},
 			args: args{
 				h: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -144,10 +158,12 @@ func TestAuthnMiddleware_Authn(t *testing.T) {
 			fields: fields{
 				ProtectedPaths: []string{"/protected"},
 				AuthValidator: &iauthn.StaticBasicAuthValidator{
-					Username:            "testuser",
-					Password:            "testpassword",
-					AuthorizationHeader: "Authorization",
-					Realm:               "testrealm",
+					AuthenticateHeader:     "WWW-Authenticate",
+					AuthenticateStatusCode: http.StatusUnauthorized,
+					AuthorizationHeader:    "Authorization",
+					Username:               "testuser",
+					Password:               "testpassword",
+					Realm:                  "testrealm",
 				},
 			},
 			args: args{
@@ -165,7 +181,14 @@ func TestAuthnMiddleware_Authn(t *testing.T) {
 			name: "not a protected path	",
 			fields: fields{
 				ProtectedPaths: []string{"/protected"},
-				AuthValidator:  &iauthn.StaticBasicAuthValidator{Username: "testuser", Password: "testpassword"},
+				AuthValidator: &iauthn.StaticBasicAuthValidator{
+					AuthenticateHeader:     "WWW-Authenticate",
+					AuthenticateStatusCode: http.StatusUnauthorized,
+					AuthorizationHeader:    "Authorization",
+					Username:               "testuser",
+					Password:               "testpassword",
+					Realm:                  "testrealm",
+				},
 			},
 			args: args{
 				h: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -222,7 +245,7 @@ func TestAuthnMiddleware_IsProtected(t *testing.T) {
 		name   string
 		fields fields
 		args   args
-		want   *iauthn.AuthChallenge
+		want   bool
 	}{
 		{
 			name: "no protected paths",
@@ -234,7 +257,7 @@ func TestAuthnMiddleware_IsProtected(t *testing.T) {
 					URL: &url.URL{Path: "/"},
 				},
 			},
-			want: nil,
+			want: false,
 		},
 		{
 			name: "protected path without auth and no validators",
@@ -247,31 +270,40 @@ func TestAuthnMiddleware_IsProtected(t *testing.T) {
 					URL: &url.URL{Path: "/protected"},
 				},
 			},
-			want: nil,
+			want: false,
 		},
 		{
 			name: "protected path without auth and with validators",
 			fields: fields{
 				ProtectedPaths: []string{"/protected"},
-				AuthValidator:  &iauthn.StaticBasicAuthValidator{Username: "testuser", Password: "testpassword", Realm: "testrealm"},
+				AuthValidator: &iauthn.StaticBasicAuthValidator{
+					AuthenticateHeader:     "WWW-Authenticate",
+					AuthenticateStatusCode: http.StatusUnauthorized,
+					AuthorizationHeader:    "Authorization",
+					Username:               "testuser",
+					Password:               "testpassword",
+					Realm:                  "testrealm",
+				},
 			},
 			args: args{
 				r: &http.Request{
 					URL: &url.URL{Path: "/protected"},
 				},
 			},
-			want: &iauthn.AuthChallenge{
-				Scheme: "Basic",
-				Attributes: map[string]string{
-					"realm": "testrealm",
-				},
-			},
+			want: true,
 		},
 		{
 			name: "protected path with invalid auth",
 			fields: fields{
 				ProtectedPaths: []string{"/protected"},
-				AuthValidator:  &iauthn.StaticBasicAuthValidator{Username: "testuser", Password: "testpassword", AuthorizationHeader: "Authorization", Realm: "testrealm"},
+				AuthValidator: &iauthn.StaticBasicAuthValidator{
+					AuthenticateHeader:     "WWW-Authenticate",
+					AuthenticateStatusCode: http.StatusUnauthorized,
+					AuthorizationHeader:    "Authorization",
+					Username:               "testuser",
+					Password:               "testpassword",
+					Realm:                  "testrealm",
+				},
 			},
 			args: args{
 				r: &http.Request{
@@ -279,18 +311,20 @@ func TestAuthnMiddleware_IsProtected(t *testing.T) {
 					Header: http.Header{"Authorization": []string{"Basic bad"}},
 				},
 			},
-			want: &iauthn.AuthChallenge{
-				Scheme: "Basic",
-				Attributes: map[string]string{
-					"realm": "testrealm",
-				},
-			},
+			want: true,
 		},
 		{
 			name: "protected path with valid auth",
 			fields: fields{
 				ProtectedPaths: []string{"/protected"},
-				AuthValidator:  &iauthn.StaticBasicAuthValidator{AuthorizationHeader: "Authorization", Username: "testuser", Password: "testpassword", Realm: "testrealm"},
+				AuthValidator: &iauthn.StaticBasicAuthValidator{
+					AuthenticateHeader:     "WWW-Authenticate",
+					AuthenticateStatusCode: http.StatusUnauthorized,
+					AuthorizationHeader:    "Authorization",
+					Username:               "testuser",
+					Password:               "testpassword",
+					Realm:                  "testrealm",
+				},
 			},
 			args: args{
 				r: &http.Request{
@@ -298,7 +332,7 @@ func TestAuthnMiddleware_IsProtected(t *testing.T) {
 					Header: http.Header{"Authorization": []string{"Basic dGVzdHVzZXI6dGVzdHBhc3N3b3Jk"}},
 				},
 			},
-			want: nil,
+			want: false,
 		},
 	}
 	for _, tt := range tests {
@@ -308,8 +342,13 @@ func TestAuthnMiddleware_IsProtected(t *testing.T) {
 				ProtectedPaths:         tt.fields.ProtectedPaths,
 				AuthValidator:          tt.fields.AuthValidator,
 			}
-			got, _ := a.IsProtected(httptest.NewRecorder(), tt.args.r)
-			assert.Equal(t, tt.want, got)
+			got := a.IsProtected(httptest.NewRecorder(), tt.args.r)
+			if got == nil && tt.want {
+				t.Errorf("AuthnMiddleware.IsProtected() = nil, want %v", tt.want)
+			}
+			if got != nil && !tt.want {
+				t.Errorf("AuthnMiddleware.IsProtected() != nil, want %v", tt.want)
+			}
 		})
 	}
 }

@@ -10,6 +10,6 @@ func (v *NoOpAuthValidator) Register(mux *http.ServeMux) {
 	// noop
 }
 
-func (v *NoOpAuthValidator) Validate(w http.ResponseWriter, r *http.Request) (*AuthChallenge, any) {
-	return nil, nil
+func (v *NoOpAuthValidator) Validate(w http.ResponseWriter, r *http.Request) func(h http.Handler) {
+	return nil
 }

@@ -1,9 +1,6 @@
 package authn
 
 import (
-	"context"
-	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
@@ -32,44 +29,26 @@ func (a *AuthnMiddleware) Authn(h http.Handler) http.HandlerFunc {
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		ah := a.AuthenticateHeader
-		challenge, data := a.IsProtected(w, r)
+		challenge := a.IsProtected(w, r)
 
 		if challenge != nil {
-			attributesString := ""
-			delimiter := " "
-			for k, v := range challenge.Attributes {
-				attributesString += fmt.Sprintf(`%s%s="%s"`, delimiter, k, v)
-				delimiter = ", "
-			}
-			w.Header().Add(ah, fmt.Sprintf("%s%s", challenge.Scheme, attributesString))
-
-			log.Printf("Sending %d Unauthorized, %s: %v", a.AuthenticateStatusCode, ah, w.Header().Get(ah))
-			http.Error(w, "Unauthorized", a.AuthenticateStatusCode)
+			challenge(h)
 			return
-		}
-
-		if data != nil {
-			r = r.WithContext(context.WithValue(r.Context(), ContextUserDataKey, data))
 		}
 
 		h.ServeHTTP(w, r)
 	}
 }
 
-func (a *AuthnMiddleware) IsProtected(w http.ResponseWriter, r *http.Request) (*iauthn.AuthChallenge, any) {
+func (a *AuthnMiddleware) IsProtected(w http.ResponseWriter, r *http.Request) func(h http.Handler) {
 	path := r.URL.Path
 	for _, p := range a.ProtectedPaths {
 		if strings.HasPrefix(path, p) {
-			challenge, datum := a.AuthValidator.Validate(w, r)
+			challenge := a.AuthValidator.Validate(w, r)
 			if challenge != nil {
-				return challenge, datum
+				return challenge
 			}
 		}
 	}
-	return nil, nil
+	return nil
 }
-
-type ContextKey string
-
-const ContextUserDataKey ContextKey = "user_data"
