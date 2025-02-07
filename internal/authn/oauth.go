@@ -25,6 +25,7 @@ type OAuthValidator struct {
 	Realm               string
 	RedirectURI         string
 	Scopes              []string
+	SignInOnChallenge   bool
 	SessionStore        session.SessionStore
 	StateStore          state.StateStore
 	Verifier            *oidc.IDTokenVerifier
@@ -39,6 +40,7 @@ type Config struct {
 	Realm               string
 	RedirectURI         string
 	Scopes              []string
+	SignInOnChallenge   bool
 }
 
 func NewOAuthValidator(ctx context.Context, config *Config) *OAuthValidator {
@@ -86,6 +88,7 @@ func NewOAuthValidator(ctx context.Context, config *Config) *OAuthValidator {
 		RedirectURI:         config.RedirectURI,
 		Scopes:              config.Scopes,
 		SessionStore:        sessionStore,
+		SignInOnChallenge:   config.SignInOnChallenge,
 		StateStore:          stateStore,
 		Verifier:            verifier,
 	}
@@ -100,7 +103,7 @@ func (v *OAuthValidator) Validate(w http.ResponseWriter, r *http.Request) func(h
 	sessionCookie, err := r.Cookie("session_id")
 	if err != nil {
 		return func(h http.Handler) {
-			v.signInHandler()(w, r)
+			v.challengeAction(w, r)
 		}
 	}
 
@@ -112,7 +115,7 @@ func (v *OAuthValidator) Validate(w http.ResponseWriter, r *http.Request) func(h
 				Value: "",
 				Path:  "/",
 			})
-			v.signInHandler()(w, r)
+			v.challengeAction(w, r)
 		}
 	}
 
@@ -128,14 +131,20 @@ func (v *OAuthValidator) Validate(w http.ResponseWriter, r *http.Request) func(h
 				Value: "",
 				Path:  "/",
 			})
-			v.signInHandler()(w, r)
+			v.challengeAction(w, r)
 		}
 	}
 
 	var claims map[string]interface{}
 	if err := token.Claims(&claims); err != nil {
 		return func(h http.Handler) {
-			v.signInHandler()(w, r)
+			v.SessionStore.Delete(r.Context(), sessionCookie.Value)
+			http.SetCookie(w, &http.Cookie{
+				Name:  "session_id",
+				Value: "",
+				Path:  "/",
+			})
+			v.challengeAction(w, r)
 		}
 	}
 
@@ -220,6 +229,14 @@ func (v *OAuthValidator) callbackHandler() http.HandlerFunc {
 		}
 
 		http.Redirect(w, r, redirectURI, http.StatusTemporaryRedirect)
+	}
+}
+
+func (v *OAuthValidator) challengeAction(w http.ResponseWriter, r *http.Request) {
+	if v.SignInOnChallenge {
+		v.signInHandler()(w, r)
+	} else {
+		http.Error(w, "not found", http.StatusNotFound)
 	}
 }
 
