@@ -20,6 +20,7 @@ type Config struct {
 	AuthServerURL       string
 	ClientID            string
 	ClientSecret        string
+	DumpClaims          bool
 	Prefix              string
 	Realm               string
 	RedirectURI         string
@@ -239,6 +240,14 @@ func (v *OAuthValidator) validateAndGetClaimsIDToken(ctx context.Context, oauth2
 	idToken, err := v.Verifier.Verify(ctx, rawIDToken)
 	if err != nil {
 		return nil, fmt.Errorf("failed to verify id_token: %w", err)
+	}
+
+	if v.Config.DumpClaims {
+		dumpClaims := map[string]interface{}{}
+		if err := idToken.Claims(&dumpClaims); err != nil {
+			return nil, fmt.Errorf("failed to get user info: %w", err)
+		}
+		log.Printf("Dump claims: %+v", dumpClaims)
 	}
 
 	claims := OIDCClaims{}

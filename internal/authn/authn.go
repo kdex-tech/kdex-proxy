@@ -123,11 +123,20 @@ func NewAuthnConfigFromEnv() *AuthnConfig {
 		if prefix == "" {
 			prefix = DefaultPrefix
 		}
+		dump_claims := os.Getenv("OAUTH_DUMP_CLAIMS")
+		if dump_claims == "" {
+			dump_claims = "false"
+		}
+		dump_claims_bool, err := strconv.ParseBool(dump_claims)
+		if err != nil {
+			log.Fatalf("OAUTH_DUMP_CLAIMS must be a boolean when using %s validator", Validator_OAuth)
+		}
 		auth_validator = NewOAuthValidator(context.Background(), &Config{
 			AuthorizationHeader: authorization_header,
 			AuthServerURL:       auth_server_url,
 			ClientID:            client_id,
 			ClientSecret:        client_secret,
+			DumpClaims:          dump_claims_bool,
 			Prefix:              prefix,
 			Realm:               realm,
 			RedirectURI:         redirect_uri,
