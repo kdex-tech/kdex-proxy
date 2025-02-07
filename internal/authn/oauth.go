@@ -10,7 +10,8 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"golang.org/x/oauth2"
-	"kdex.dev/proxy/internal/session"
+	"kdex.dev/proxy/internal/store/session"
+	"kdex.dev/proxy/internal/store/state"
 	"kdex.dev/proxy/internal/util"
 )
 
@@ -25,6 +26,7 @@ type OAuthValidator struct {
 	RedirectURI         string
 	Scopes              []string
 	SessionStore        session.SessionStore
+	StateStore          state.StateStore
 	Verifier            *oidc.IDTokenVerifier
 }
 
@@ -63,6 +65,16 @@ func NewOAuthValidator(ctx context.Context, config *Config) *OAuthValidator {
 		Scopes:       config.Scopes,
 	}
 
+	stateStore, err := state.NewStateStore(ctx, "memory")
+	if err != nil {
+		log.Fatalf("Failed to create state store: %v", err)
+	}
+
+	sessionStore, err := session.NewSessionStore(ctx, "memory")
+	if err != nil {
+		log.Fatalf("Failed to create session store: %v", err)
+	}
+
 	return &OAuthValidator{
 		AuthorizationHeader: config.AuthorizationHeader,
 		ClientID:            config.ClientID,
@@ -73,7 +85,8 @@ func NewOAuthValidator(ctx context.Context, config *Config) *OAuthValidator {
 		Realm:               config.Realm,
 		RedirectURI:         config.RedirectURI,
 		Scopes:              config.Scopes,
-		SessionStore:        session.NewMemorySessionStore(),
+		SessionStore:        sessionStore,
+		StateStore:          stateStore,
 		Verifier:            verifier,
 	}
 }
@@ -144,6 +157,7 @@ type UserData struct {
 func (v *OAuthValidator) callbackHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := v.verifyState(r); err != nil {
+			log.Printf("Error verifying state: %v", err)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -232,14 +246,9 @@ func (v *OAuthValidator) validateAndGetClaimsIDToken(ctx context.Context, oauth2
 
 func (v *OAuthValidator) verifyState(r *http.Request) error {
 	state := r.URL.Query().Get("state")
-	if state == "" {
-		return fmt.Errorf("state is required")
-	}
 
-	// TODO add a more secure check of the state param
-	// One option would be to use a signed token with a secret key
-	if state != "test_state" {
-		return fmt.Errorf("invalid state")
+	if _, err := v.StateStore.Get(r.Context(), state); err != nil {
+		return fmt.Errorf("invalid state: %v", err)
 	}
 
 	return nil
@@ -249,8 +258,14 @@ func (v *OAuthValidator) signInHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		redirectURL := fmt.Sprintf("%s://%s%s", util.GetScheme(r), r.Host, v.Prefix+"oauth/callback")
 		log.Printf("Redirect URL: %s", redirectURL)
+		state := util.RandStringBytes(32)
+		if err := v.StateStore.Set(r.Context(), state); err != nil {
+			log.Printf("Error setting state: %v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		authURL := v.Oauth2Config.AuthCodeURL(
-			"test_state",
+			state,
 			oauth2.SetAuthURLParam("redirect_uri", redirectURL),
 		)
 		log.Printf("Auth URL: %s", authURL)
