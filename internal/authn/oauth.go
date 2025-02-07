@@ -28,19 +28,12 @@ type Config struct {
 }
 
 type OAuthValidator struct {
-	AuthorizationHeader string
-	ClientID            string
-	ClientSecret        string
-	Oauth2Config        *oauth2.Config
-	Prefix              string
-	Provider            *oidc.Provider
-	Realm               string
-	RedirectURI         string
-	Scopes              []string
-	SessionStore        session.SessionStore
-	SignInOnChallenge   bool
-	StateStore          state.StateStore
-	Verifier            *oidc.IDTokenVerifier
+	Config       *Config
+	Oauth2Config *oauth2.Config
+	Provider     *oidc.Provider
+	SessionStore session.SessionStore
+	StateStore   state.StateStore
+	Verifier     *oidc.IDTokenVerifier
 }
 
 type OIDCClaims struct {
@@ -88,25 +81,18 @@ func NewOAuthValidator(ctx context.Context, config *Config) *OAuthValidator {
 	}
 
 	return &OAuthValidator{
-		AuthorizationHeader: config.AuthorizationHeader,
-		ClientID:            config.ClientID,
-		ClientSecret:        config.ClientSecret,
-		Oauth2Config:        &oauth2Config,
-		Prefix:              config.Prefix,
-		Provider:            provider,
-		Realm:               config.Realm,
-		RedirectURI:         config.RedirectURI,
-		Scopes:              config.Scopes,
-		SessionStore:        sessionStore,
-		SignInOnChallenge:   config.SignInOnChallenge,
-		StateStore:          stateStore,
-		Verifier:            verifier,
+		Config:       config,
+		Oauth2Config: &oauth2Config,
+		Provider:     provider,
+		SessionStore: sessionStore,
+		StateStore:   stateStore,
+		Verifier:     verifier,
 	}
 }
 
 func (v *OAuthValidator) Register(mux *http.ServeMux) {
-	mux.HandleFunc("GET "+v.Prefix+"oauth/callback", v.callbackHandler())
-	mux.HandleFunc("GET "+v.Prefix+"oauth/signin", v.signInHandler())
+	mux.HandleFunc("GET "+v.Config.Prefix+"oauth/callback", v.callbackHandler())
+	mux.HandleFunc("GET "+v.Config.Prefix+"oauth/signin", v.signInHandler())
 }
 
 func (v *OAuthValidator) Validate(w http.ResponseWriter, r *http.Request) func(h http.Handler) {
@@ -238,7 +224,7 @@ func (v *OAuthValidator) callbackHandler() http.HandlerFunc {
 }
 
 func (v *OAuthValidator) challengeAction(w http.ResponseWriter, r *http.Request) {
-	if v.SignInOnChallenge {
+	if v.Config.SignInOnChallenge {
 		v.signInHandler()(w, r)
 	} else {
 		http.Error(w, "not found", http.StatusNotFound)
@@ -274,7 +260,7 @@ func (v *OAuthValidator) verifyState(r *http.Request) error {
 
 func (v *OAuthValidator) signInHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		redirectURL := fmt.Sprintf("%s://%s%s", util.GetScheme(r), r.Host, v.Prefix+"oauth/callback")
+		redirectURL := fmt.Sprintf("%s://%s%s", util.GetScheme(r), r.Host, v.Config.Prefix+"oauth/callback")
 		log.Printf("Redirect URL: %s", redirectURL)
 		state := util.RandStringBytes(32)
 		if err := v.StateStore.Set(r.Context(), state); err != nil {
