@@ -14,7 +14,9 @@
 package util
 
 import (
+	"math"
 	"net/http"
+	"time"
 
 	"golang.org/x/exp/rand"
 )
@@ -36,4 +38,9 @@ func RandStringBytes(length int) string {
 		b[i] = letters[rand.Intn(len(letters))]
 	}
 	return string(b)
+}
+
+func TimeFromFloat64Seconds(seconds float64) time.Time {
+	round, frac := math.Modf(seconds)
+	return time.Unix(int64(round), int64(frac*1e9)).Truncate(time.Second)
 }
