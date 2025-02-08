@@ -9,8 +9,12 @@ data:
           pods insecure
           fallthrough in-addr.arpa ip6.arpa
         }
-        rewrite name keycloak.docker.localhost keycloak.default.svc.cluster.local
-        rewrite name proxy.docker.localhost kdex-proxy.default.svc.cluster.local
+        rewrite stop {
+          name keycloak.docker.localhost keycloak.default.svc.cluster.local
+        }
+        rewrite stop {
+          name proxy.docker.localhost kdex-proxy.default.svc.cluster.local
+        }
         hosts /etc/coredns/NodeHosts {
           ttl 60
           reload 15s
