@@ -14,21 +14,42 @@ data:
   realm.json: |
     {
       "realm": "KDEX Proxy",
+      "defaultSignatureAlgorithm": "RS256",
       "enabled": true,
       "registrationAllowed": false,
       "clients": [
         {
           "clientId": "kdex-proxy",
+          "name": "KDEX Proxy",
+          "description": "KDEX Proxy",
+          "rootUrl": "http://proxy.docker.localhost",
+          "baseUrl": "http://proxy.docker.localhost",
+          "surrogateAuthRequired": false,
           "enabled": true,
-          "protocol": "openid-connect",
-          "publicClient": false,
+          "clientAuthenticatorType": "client-secret",
+          "secret": "FZd8qsIive63taCdU3y3fARCCMU1SCUS",
+          "redirectUris": [
+            "http://proxy.docker.localhost/~/o/oauth/callback"
+          ],
+          "webOrigins": ["*"]
           "standardFlowEnabled": true,
           "implicitFlowEnabled": false,
           "directAccessGrantsEnabled": true,
           "serviceAccountsEnabled": true,
           "authorizationServicesEnabled": true,
-          "redirectUris": ["http://proxy.docker.localhost/~/o/oauth/callback"],
-          "webOrigins": ["*"]
+          "publicClient": false,
+          "protocol": "openid-connect",
+          "attributes": {
+            "realm_client": "false",
+            "oidc.ciba.grant.enabled": "false",
+            "client.secret.creation.time": "1739029422",
+            "backchannel.logout.url": "http://proxy.docker.localhost/~/o/oauth/back_channel_logout",
+            "backchannel.logout.session.required": "true",
+            "post.logout.redirect.uris": "http://proxy.docker.localhost/*##http://proxy.docker.localhost",
+            "oauth2.device.authorization.grant.enabled": "false",
+            "display.on.consent.screen": "false",
+            "backchannel.logout.revoke.offline.tokens": "true"
+          },
         }
       ],
       "roles": {

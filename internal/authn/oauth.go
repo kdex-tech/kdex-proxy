@@ -24,6 +24,7 @@ type Config struct {
 	Realm               string
 	RedirectURI         string
 	Scopes              []string
+	SessionStore        *session.SessionStore
 	SignInOnChallenge   bool
 }
 
@@ -31,7 +32,6 @@ type OAuthValidator struct {
 	Config       *Config
 	Oauth2Config *oauth2.Config
 	Provider     *oidc.Provider
-	SessionStore session.SessionStore
 	StateStore   state.StateStore
 	Verifier     *oidc.IDTokenVerifier
 }
@@ -65,16 +65,10 @@ func NewOAuthValidator(ctx context.Context, config *Config) *OAuthValidator {
 		log.Fatalf("Failed to create state store: %v", err)
 	}
 
-	sessionStore, err := session.NewSessionStore(ctx, "memory")
-	if err != nil {
-		log.Fatalf("Failed to create session store: %v", err)
-	}
-
 	return &OAuthValidator{
 		Config:       config,
 		Oauth2Config: &oauth2Config,
 		Provider:     provider,
-		SessionStore: sessionStore,
 		StateStore:   stateStore,
 		Verifier:     verifier,
 	}
@@ -95,7 +89,7 @@ func (v *OAuthValidator) Validate(w http.ResponseWriter, r *http.Request) func(h
 		}
 	}
 
-	sessionData, err := v.SessionStore.Get(r.Context(), sessionCookie.Value)
+	sessionData, err := (*v.Config.SessionStore).Get(r.Context(), sessionCookie.Value)
 	if err != nil {
 		return func(h http.Handler) {
 			http.SetCookie(w, &http.Cookie{
@@ -113,7 +107,7 @@ func (v *OAuthValidator) Validate(w http.ResponseWriter, r *http.Request) func(h
 
 	if err != nil {
 		return func(h http.Handler) {
-			v.SessionStore.Delete(r.Context(), sessionCookie.Value)
+			(*v.Config.SessionStore).Delete(r.Context(), sessionCookie.Value)
 			http.SetCookie(w, &http.Cookie{
 				Name:  "session_id",
 				Value: "",
@@ -172,7 +166,7 @@ func (v *OAuthValidator) callbackHandler() http.HandlerFunc {
 			RefreshToken: oauth2Token.RefreshToken,
 		}
 
-		if err := v.SessionStore.Set(r.Context(), sessionID, sessionData); err != nil {
+		if err := (*v.Config.SessionStore).Set(r.Context(), sessionID, sessionData); err != nil {
 			log.Printf("Error setting session: %v", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -187,12 +181,7 @@ func (v *OAuthValidator) callbackHandler() http.HandlerFunc {
 			Value:    sessionID,
 		})
 
-		redirectURI := r.URL.Query().Get("redirect_uri")
-		if redirectURI == "" {
-			redirectURI = "/"
-		}
-
-		http.Redirect(w, r, redirectURI, http.StatusTemporaryRedirect)
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 	}
 }
 
@@ -281,7 +270,7 @@ func (v *OAuthValidator) backChannelLogOutHandler() http.HandlerFunc {
 			log.Printf("Dump logout token claims: %+v", claims)
 		}
 
-		v.SessionStore.Delete(r.Context(), claims["sid"].(string))
+		(*v.Config.SessionStore).Delete(r.Context(), claims["sid"].(string))
 	}
 }
 

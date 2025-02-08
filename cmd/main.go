@@ -31,6 +31,7 @@ import (
 	mAuthn "kdex.dev/proxy/internal/middleware/authn"
 	mLogger "kdex.dev/proxy/internal/middleware/log"
 	"kdex.dev/proxy/internal/proxy"
+	"kdex.dev/proxy/internal/store/session"
 	"kdex.dev/proxy/internal/transform"
 )
 
@@ -58,6 +59,11 @@ func main() {
 		log.Fatal(err)
 	}
 
+	sessionStore, err := session.NewSessionStore(context.Background(), "memory")
+	if err != nil {
+		log.Fatalf("Failed to create session store: %v", err)
+	}
+
 	ps.WithTransformer(
 		&transform.AggregatedTransformer{
 			Transformers: []transform.Transformer{
@@ -65,6 +71,7 @@ func main() {
 				&app.AppTransformer{
 					AppManager:    app.NewAppManagerFromEnv(),
 					PathSeparator: ps.PathSeparator,
+					SessionStore:  &sessionStore,
 				},
 			},
 		},
@@ -74,7 +81,9 @@ func main() {
 
 	// Authn Middleware
 	authnMW := mAuthn.NewAuthnMiddleware(
-		authn.NewAuthnConfigFromEnv().Register(mux),
+		authn.NewAuthnConfigFromEnv(
+			&sessionStore,
+		).Register(mux),
 	)
 
 	// Logger Middleware

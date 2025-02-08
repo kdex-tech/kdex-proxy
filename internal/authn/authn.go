@@ -7,6 +7,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"kdex.dev/proxy/internal/store/session"
 )
 
 const (
@@ -41,7 +43,7 @@ type AuthnConfig struct {
 	ProtectedPaths         []string
 }
 
-func NewAuthnConfigFromEnv() *AuthnConfig {
+func NewAuthnConfigFromEnv(sessionStore *session.SessionStore) *AuthnConfig {
 	authenticate_header := os.Getenv("AUTHENTICATE_HEADER")
 	if authenticate_header == "" {
 		authenticate_header = DefaultAuthenticateHeader
@@ -141,6 +143,7 @@ func NewAuthnConfigFromEnv() *AuthnConfig {
 			Realm:               realm,
 			RedirectURI:         redirect_uri,
 			Scopes:              strings.Split(scopes, " "),
+			SessionStore:        sessionStore,
 		})
 	default: // Validator_NoOp
 		auth_validator = &NoOpAuthValidator{}

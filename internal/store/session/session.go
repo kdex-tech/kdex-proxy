@@ -14,9 +14,10 @@ type SessionData struct {
 }
 
 type SessionStore interface {
-	Set(ctx context.Context, sessionID string, data SessionData) error
-	Get(ctx context.Context, sessionID string) (*SessionData, error)
 	Delete(ctx context.Context, sessionID string) error
+	Get(ctx context.Context, sessionID string) (*SessionData, error)
+	IsLoggedIn(ctx context.Context, sessionID string) (bool, error)
+	Set(ctx context.Context, sessionID string, data SessionData) error
 }
 
 func NewSessionStore(ctx context.Context, storeType string) (SessionStore, error) {

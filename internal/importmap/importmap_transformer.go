@@ -15,7 +15,7 @@ import (
 const (
 	DefaultModuleDir              = "/modules"
 	DefaultModuleBodyPath         = "/etc/kdex/module_body"
-	DefaultModuleBody             = ""
+	DefaultModuleBody             = "import '@kdex/ui';"
 	DefaultModuleDependenciesPath = "/etc/kdex/module_dependencies"
 	DefaultModulesPrefix          = "/~/m/"
 )

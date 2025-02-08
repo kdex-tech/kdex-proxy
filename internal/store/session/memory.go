@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
+
+	"kdex.dev/proxy/internal/util"
 )
 
 func NewMemorySessionStore() SessionStore {
@@ -15,6 +18,21 @@ func NewMemorySessionStore() SessionStore {
 type memorySessionStore struct {
 	sessions map[string]SessionData
 	mu       sync.RWMutex
+}
+
+func (s *memorySessionStore) IsLoggedIn(ctx context.Context, sessionID string) (bool, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	sessionData, ok := s.sessions[sessionID]
+	if ok {
+		exp := util.TimeFromFloat64Seconds(sessionData.Data["exp"].(float64))
+		if exp.Before(time.Now()) {
+			delete(s.sessions, sessionID)
+			return false, nil
+		}
+		return true, nil
+	}
+	return false, nil
 }
 
 func (s *memorySessionStore) Set(ctx context.Context, sessionID string, data SessionData) error {

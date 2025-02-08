@@ -8,6 +8,7 @@ import (
 
 	"golang.org/x/net/html"
 	"kdex.dev/proxy/internal/dom"
+	"kdex.dev/proxy/internal/store/session"
 	"kdex.dev/proxy/internal/transform"
 	"kdex.dev/proxy/internal/util"
 )
@@ -20,31 +21,22 @@ type AppTransformer struct {
 	transform.Transformer
 	AppManager    *AppManager
 	PathSeparator string
+	SessionStore  *session.SessionStore
 }
 
 func (t *AppTransformer) Transform(r *http.Response, doc *html.Node) error {
+	t.applyMetadata(r, doc)
+
 	targetPath := strings.TrimSuffix(r.Request.URL.Path, "/")
-	appAlias := r.Request.Header.Get("X-Kdex-Proxy-App-Alias")
-	appPath := r.Request.Header.Get("X-Kdex-Proxy-App-Path")
-
 	log.Printf("Looking for apps for %s", targetPath)
-
 	apps := t.AppManager.GetAppsForTargetPath(targetPath)
 
 	if len(apps) == 0 {
 		return nil
 	}
 
-	headNode := dom.FindElementByName("head", doc, nil)
-
-	if headNode != nil {
-		metaNode := &html.Node{
-			Type: html.ElementNode,
-			Data: "meta",
-			Attr: []html.Attribute{{Key: "name", Val: "path-separator"}, {Key: "content", Val: t.PathSeparator}},
-		}
-		headNode.AppendChild(metaNode)
-	}
+	appAlias := r.Request.Header.Get("X-Kdex-Proxy-App-Alias")
+	appPath := r.Request.Header.Get("X-Kdex-Proxy-App-Path")
 
 	bodyNode := dom.FindElementByName("body", doc, nil)
 
@@ -130,4 +122,46 @@ func (t *AppTransformer) ShouldTransform(r *http.Response) bool {
 	}
 
 	return true
+}
+
+func (t *AppTransformer) applyMetadata(r *http.Response, doc *html.Node) {
+	headNode := dom.FindElementByName("head", doc, nil)
+
+	isLoggedIn, err := t.getSessionStatus(r)
+	if err != nil {
+		log.Printf("Error getting session status: %v", err)
+	}
+
+	if headNode != nil {
+		metaNode := &html.Node{
+			Type: html.ElementNode,
+			Data: "meta",
+			Attr: []html.Attribute{
+				{Key: "name", Val: "kdex-ui"},
+				{Key: "data-path-separator", Val: t.PathSeparator},
+				{Key: "data-login-path", Val: "/~/o/oauth/login"},
+				{Key: "data-login-label", Val: "Login"},
+				{Key: "data-login-css-query", Val: `nav a[href="/signin/"]`},
+				{Key: "data-logout-path", Val: "/~/o/oauth/logout"},
+				{Key: "data-logout-label", Val: "Logout"},
+				{Key: "data-logout-css-query", Val: `nav a[href="/signin/"]`},
+				{Key: "data-logged-in", Val: fmt.Sprintf("%t", isLoggedIn)},
+			},
+		}
+		headNode.AppendChild(metaNode)
+	}
+}
+
+func (t *AppTransformer) getSessionStatus(r *http.Response) (bool, error) {
+	sessionCookie, err := r.Request.Cookie("session_id")
+	if err != nil {
+		return false, err
+	}
+
+	isLoggedIn, err := (*t.SessionStore).IsLoggedIn(r.Request.Context(), sessionCookie.Value)
+	if err != nil {
+		return false, err
+	}
+
+	return isLoggedIn, nil
 }

@@ -13,7 +13,7 @@ data:
   OAUTH_REALM: "KDEX Proxy"
   OAUTH_SERVER_URL: "http://keycloak.docker.localhost"
   OAUTH_CLIENT_ID: "kdex-proxy"
-  OAUTH_CLIENT_SECRET: "0fxGz4vzlF3tINhDdcoFmGipsl9QLfnZ"
+  OAUTH_CLIENT_SECRET: "FZd8qsIive63taCdU3y3fARCCMU1SCUS"
   OAUTH_DUMP_CLAIMS: "true"
   OAUTH_REDIRECT_URI: "http://proxy.docker.localhost/~/o/oauth/callback"
   OAUTH_SCOPES: "openid profile email"
