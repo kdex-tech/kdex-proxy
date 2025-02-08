@@ -225,13 +225,24 @@ func (v *OAuthValidator) logInHandler() http.HandlerFunc {
 
 func (v *OAuthValidator) logOutHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		redirectURL := r.Header.Get("Referer")
+		if redirectURL == "" {
+			redirectURL = fmt.Sprintf("%s://%s", util.GetScheme(r), r.Host)
+		}
+		log.Printf("Logout redirect URL: %s", redirectURL)
 		logoutURL := fmt.Sprintf(
-			"%s/realms/%s/protocol/openid-connect/logout?redirect_uri=%s",
+			"%s/realms/%s/protocol/openid-connect/logout?post_logout_redirect_uri=%s&client_id=%s",
 			v.Config.AuthServerURL,
 			url.PathEscape(v.Config.Realm),
-			url.QueryEscape(v.Config.RedirectURI),
+			url.QueryEscape(redirectURL),
+			v.Config.ClientID,
 		)
 		log.Printf("Logout URL: %s", logoutURL)
+		http.SetCookie(w, &http.Cookie{
+			Name:  "session_id",
+			Value: "",
+			Path:  "/",
+		})
 		http.Redirect(w, r, logoutURL, http.StatusTemporaryRedirect)
 	}
 }
