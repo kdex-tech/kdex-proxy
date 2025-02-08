@@ -38,7 +38,6 @@ type OAuthValidator struct {
 
 func NewOAuthValidator(ctx context.Context, config *Config) *OAuthValidator {
 	providerURL := fmt.Sprintf("%s/realms/%s", config.AuthServerURL, url.PathEscape(config.Realm))
-	log.Printf("Provider URL: %s", providerURL)
 	provider, err := oidc.NewProvider(ctx, providerURL)
 
 	if err != nil {
@@ -196,7 +195,6 @@ func (v *OAuthValidator) challengeAction(w http.ResponseWriter, r *http.Request)
 func (v *OAuthValidator) logInHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		redirectURL := fmt.Sprintf("%s://%s%s", util.GetScheme(r), r.Host, v.Config.Prefix+"oauth/callback")
-		log.Printf("Redirect URL: %s", redirectURL)
 		state := util.RandStringBytes(32)
 		if err := v.StateStore.Set(r.Context(), state); err != nil {
 			log.Printf("Error setting state: %v", err)
@@ -207,18 +205,13 @@ func (v *OAuthValidator) logInHandler() http.HandlerFunc {
 			state,
 			oauth2.SetAuthURLParam("redirect_uri", redirectURL),
 		)
-		log.Printf("Auth URL: %s", authURL)
 		http.Redirect(w, r, authURL, http.StatusTemporaryRedirect)
 	}
 }
 
 func (v *OAuthValidator) logOutHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		redirectURL := r.Header.Get("Referer")
-		if redirectURL == "" {
-			redirectURL = fmt.Sprintf("%s://%s", util.GetScheme(r), r.Host)
-		}
-		log.Printf("Logout redirect URL: %s", redirectURL)
+		redirectURL := fmt.Sprintf("%s://%s", util.GetScheme(r), r.Host)
 		logoutURL := fmt.Sprintf(
 			"%s/realms/%s/protocol/openid-connect/logout?post_logout_redirect_uri=%s&client_id=%s",
 			v.Config.AuthServerURL,
@@ -226,7 +219,6 @@ func (v *OAuthValidator) logOutHandler() http.HandlerFunc {
 			url.QueryEscape(redirectURL),
 			v.Config.ClientID,
 		)
-		log.Printf("Logout URL: %s", logoutURL)
 		http.SetCookie(w, &http.Cookie{
 			Name:  "session_id",
 			Value: "",
