@@ -7,15 +7,10 @@ import (
 )
 
 type SessionData struct {
-	AccessToken string    `json:"access_token"`
-	UserInfo    UserInfo  `json:"user_info"`
-	CreatedAt   time.Time `json:"created_at"`
-}
-
-type UserInfo struct {
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	// Add other user fields you need
+	AccessToken  string                 `json:"access_token"`
+	CreatedAt    time.Time              `json:"created_at"`
+	RefreshToken string                 `json:"refresh_token"`
+	Data         map[string]interface{} `json:"data"`
 }
 
 type SessionStore interface {
