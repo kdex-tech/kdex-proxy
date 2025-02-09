@@ -24,9 +24,7 @@ func (m *MetaTransformer) Transform(r *http.Response, doc *html.Node) error {
 		log.Printf("Error getting session status: %v", err)
 	}
 
-	headNode := dom.FindElementByName("head", doc, nil)
-
-	if headNode != nil {
+	if headNode := dom.FindElementByName("head", doc, nil); headNode != nil {
 		metaNode := &html.Node{
 			Type: html.ElementNode,
 			Data: "meta",
