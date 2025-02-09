@@ -53,8 +53,7 @@ type FileserverConfig struct {
 }
 
 type ImportmapConfig struct {
-	ModuleBody   string `json:"module_body"`
-	ModulePrefix string `json:"module_prefix"`
+	PreloadModules []string `json:"preload_modules,omitempty"`
 }
 
 type OAuthConfig struct {
@@ -112,8 +111,9 @@ var defaultConfig = Config{
 		Prefix: "/~/m/",
 	},
 	Importmap: ImportmapConfig{
-		ModuleBody:   "import '@kdex/ui';",
-		ModulePrefix: "/~/m/",
+		PreloadModules: []string{
+			"@kdex/ui",
+		},
 	},
 	ListenAddress: "",
 	ListenPort:    "8080",

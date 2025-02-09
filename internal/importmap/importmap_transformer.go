@@ -3,6 +3,7 @@ package importmap
 import (
 	"log"
 	"net/http"
+	"slices"
 	"strings"
 
 	"golang.org/x/net/html"
@@ -13,17 +14,21 @@ import (
 
 type ImportMapTransformer struct {
 	transform.Transformer
-	ModuleDir     string
-	ModuleImports map[string]string
-	ModuleBody    string
-	ModulePrefix  string
+	ModuleDir      string
+	ModuleImports  map[string]string
+	ModulePrefix   string
+	PreloadModules []string
 }
 
-func NewImportMapTransformer(c *config.ImportmapConfig, moduleDir string) *ImportMapTransformer {
+func NewImportMapTransformer(c *config.ImportmapConfig, moduleDir string, modulePrefix string) *ImportMapTransformer {
 	transformer := &ImportMapTransformer{
-		ModuleDir:    moduleDir,
-		ModuleBody:   c.ModuleBody,
-		ModulePrefix: c.ModulePrefix,
+		ModuleDir:      moduleDir,
+		ModulePrefix:   modulePrefix,
+		PreloadModules: c.PreloadModules,
+	}
+
+	if !slices.Contains(transformer.PreloadModules, "@kdex/ui") {
+		transformer.PreloadModules = append(transformer.PreloadModules, "@kdex/ui")
 	}
 
 	if err := transformer.ScanForImports(); err != nil {
@@ -67,7 +72,7 @@ func (t *ImportMapTransformer) Transform(r *http.Response, doc *html.Node) error
 	}
 
 	importMapInstance.WithMutator(t.Mutator())
-	importMapInstance.WithModuleBody(t.ModuleBody)
+	importMapInstance.WithPreloadModules(t.PreloadModules)
 	importMapInstance.Mutate()
 
 	return nil

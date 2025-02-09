@@ -67,7 +67,7 @@ func main() {
 
 	transformer := &transform.AggregatedTransformer{
 		Transformers: []transform.Transformer{
-			importmap.NewImportMapTransformer(&c.Importmap, c.ModuleDir),
+			importmap.NewImportMapTransformer(&c.Importmap, c.ModuleDir, c.Fileserver.Prefix),
 			&app.AppTransformer{
 				Apps:          &c.Apps,
 				PathSeparator: c.Proxy.PathSeparator,

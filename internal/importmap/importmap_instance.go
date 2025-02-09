@@ -2,17 +2,18 @@ package importmap
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"golang.org/x/net/html"
 	"kdex.dev/proxy/internal/dom"
 )
 
 type ImportMapInstance struct {
-	docNode    *html.Node
-	mapNode    *html.Node
-	importMap  ImportMap
-	mutator    ImportMapMutator
-	moduleBody string
+	docNode        *html.Node
+	mapNode        *html.Node
+	importMap      ImportMap
+	mutator        ImportMapMutator
+	preloadModules []string
 }
 
 func Parse(doc *html.Node) (*ImportMapInstance, error) {
@@ -41,8 +42,8 @@ func (importMapInstance *ImportMapInstance) WithMutator(mutator func(importMap *
 	return importMapInstance
 }
 
-func (importMapInstance *ImportMapInstance) WithModuleBody(moduleBody string) *ImportMapInstance {
-	importMapInstance.moduleBody = moduleBody
+func (importMapInstance *ImportMapInstance) WithPreloadModules(preloadModules []string) *ImportMapInstance {
+	importMapInstance.preloadModules = preloadModules
 	return importMapInstance
 }
 
@@ -100,7 +101,7 @@ func (importMapInstance *ImportMapInstance) Mutate() {
 	importMapInstance.mapNode.AppendChild(newTextNode)
 
 	// Append a new import script node to the bottom of the body
-	if importMapInstance.moduleBody != "" {
+	if len(importMapInstance.preloadModules) > 0 {
 		bodyNode := dom.FindElementByName("body", importMapInstance.docNode, nil)
 		if bodyNode != nil {
 			scriptNode := &html.Node{
@@ -111,9 +112,16 @@ func (importMapInstance *ImportMapInstance) Mutate() {
 				},
 			}
 
+			p := ""
+			var preloadModules string
+			for _, module := range importMapInstance.preloadModules {
+				preloadModules += fmt.Sprintf("%simport '%s';", p, module)
+				p = "\n"
+			}
+
 			scriptNode.AppendChild(&html.Node{
 				Type: html.TextNode,
-				Data: importMapInstance.moduleBody,
+				Data: preloadModules,
 			})
 
 			bodyNode.AppendChild(scriptNode)

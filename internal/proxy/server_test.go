@@ -106,7 +106,9 @@ func TestServer_ReverseProxy(t *testing.T) {
 				ModuleImports: map[string]string{
 					"@kdex-ui": "@kdex-ui/index.js",
 				},
-				ModuleBody:   "import '@kdex-ui';",
+				PreloadModules: []string{
+					"@kdex-ui",
+				},
 				ModulePrefix: "/~/m/",
 			},
 			&app.AppTransformer{
