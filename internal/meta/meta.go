@@ -19,16 +19,6 @@ type MetaTransformer struct {
 }
 
 func (m *MetaTransformer) Transform(r *http.Response, doc *html.Node) error {
-	m.applyMetadata(r, doc)
-
-	return nil
-}
-
-func (m *MetaTransformer) ShouldTransform(r *http.Response) bool {
-	return transform.HtmlTransformCheck(r)
-}
-
-func (m *MetaTransformer) applyMetadata(r *http.Response, doc *html.Node) {
 	headNode := dom.FindElementByName("head", doc, nil)
 
 	isLoggedIn, err := m.getSessionStatus(r)
@@ -54,6 +44,12 @@ func (m *MetaTransformer) applyMetadata(r *http.Response, doc *html.Node) {
 		}
 		headNode.AppendChild(metaNode)
 	}
+
+	return nil
+}
+
+func (m *MetaTransformer) ShouldTransform(r *http.Response) bool {
+	return transform.HtmlTransformCheck(r)
 }
 
 func (m *MetaTransformer) getSessionStatus(r *http.Response) (bool, error) {
