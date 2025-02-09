@@ -13,21 +13,17 @@ import (
 
 type ImportMapTransformer struct {
 	transform.Transformer
-	ModuleDir      string
-	ModuleImports  map[string]string
-	ModulePrefix   string
-	PreloadModules []string
+	Config        *config.Config
+	ModuleImports map[string]string
 }
 
-func NewImportMapTransformer(c *config.ImportmapConfig, moduleDir string, modulePrefix string) *ImportMapTransformer {
+func NewImportMapTransformer(c *config.Config) *ImportMapTransformer {
 	transformer := &ImportMapTransformer{
-		ModuleDir:      moduleDir,
-		ModulePrefix:   modulePrefix,
-		PreloadModules: c.PreloadModules,
+		Config: c,
 	}
 
-	if !slices.Contains(transformer.PreloadModules, "@kdex/ui") {
-		transformer.PreloadModules = append(transformer.PreloadModules, "@kdex/ui")
+	if !slices.Contains(transformer.Config.Importmap.PreloadModules, "@kdex/ui") {
+		transformer.Config.Importmap.PreloadModules = append(transformer.Config.Importmap.PreloadModules, "@kdex/ui")
 	}
 
 	if err := transformer.ScanForImports(); err != nil {
@@ -38,7 +34,7 @@ func NewImportMapTransformer(c *config.ImportmapConfig, moduleDir string, module
 }
 
 func (t *ImportMapTransformer) ScanForImports() error {
-	s := scanner.NewScanner(t.ModuleDir)
+	s := scanner.NewScanner(t.Config.ModuleDir)
 
 	if err := s.ScanRootDir(); err != nil {
 		return err
@@ -62,7 +58,7 @@ func (t *ImportMapTransformer) Transform(r *http.Response, doc *html.Node) error
 	}
 
 	importMapInstance.WithMutator(t.Mutator())
-	importMapInstance.WithPreloadModules(t.PreloadModules)
+	importMapInstance.WithPreloadModules(t.Config.Importmap.PreloadModules)
 	importMapInstance.Mutate()
 
 	return nil
@@ -71,7 +67,7 @@ func (t *ImportMapTransformer) Transform(r *http.Response, doc *html.Node) error
 func (t *ImportMapTransformer) Mutator() ImportMapMutator {
 	return func(im *ImportMap) {
 		for key, value := range t.ModuleImports {
-			im.Imports[key] = t.ModulePrefix + value
+			im.Imports[key] = t.Config.Fileserver.Prefix + value
 		}
 	}
 }

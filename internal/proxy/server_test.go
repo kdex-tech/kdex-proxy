@@ -117,17 +117,17 @@ func TestServer_ReverseProxy(t *testing.T) {
 	}
 	defaultConfig.Authn.Login.Query = `nav a[href="/signin/"]`
 	defaultConfig.Authn.Logout.Query = `nav a[href="/signin/"]`
+	defaultConfig.Importmap.PreloadModules = []string{
+		"@kdex-ui",
+	}
 
 	transformer := &transform.AggregatedTransformer{
 		Transformers: []transform.Transformer{
 			&importmap.ImportMapTransformer{
+				Config: defaultConfig,
 				ModuleImports: map[string]string{
 					"@kdex-ui": "@kdex-ui/index.js",
 				},
-				PreloadModules: []string{
-					"@kdex-ui",
-				},
-				ModulePrefix: "/~/m/",
 			},
 			&app.AppTransformer{
 				Config: defaultConfig,

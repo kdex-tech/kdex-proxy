@@ -68,11 +68,7 @@ func main() {
 
 	transformer := &transform.AggregatedTransformer{
 		Transformers: []transform.Transformer{
-			importmap.NewImportMapTransformer(
-				&c.Importmap,
-				c.ModuleDir,
-				c.Fileserver.Prefix,
-			),
+			importmap.NewImportMapTransformer(c),
 			&meta.MetaTransformer{
 				Config:       c,
 				SessionStore: &sessionStore,
