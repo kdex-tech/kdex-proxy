@@ -9,7 +9,6 @@ import (
 	"golang.org/x/net/html"
 	"kdex.dev/proxy/internal/config"
 	"kdex.dev/proxy/internal/dom"
-	"kdex.dev/proxy/internal/store/session"
 	"kdex.dev/proxy/internal/transform"
 	"kdex.dev/proxy/internal/util"
 )
@@ -20,20 +19,13 @@ const (
 
 type AppTransformer struct {
 	transform.Transformer
-	Apps              *config.Apps
-	Login             *config.LoginConfig
-	Logout            *config.LogoutConfig
-	PathSeparator     string
-	SessionCookieName string
-	SessionStore      *session.SessionStore
+	Config *config.Config
 }
 
 func (t *AppTransformer) Transform(r *http.Response, doc *html.Node) error {
-	t.applyMetadata(r, doc)
-
 	targetPath := strings.TrimSuffix(r.Request.URL.Path, "/")
 	log.Printf("Looking for apps for %s", targetPath)
-	apps := t.Apps.GetAppsForTargetPath(targetPath)
+	apps := t.Config.GetAppsForTargetPath(targetPath)
 
 	if len(apps) == 0 {
 		return nil
@@ -116,56 +108,5 @@ func (t *AppTransformer) Transform(r *http.Response, doc *html.Node) error {
 }
 
 func (t *AppTransformer) ShouldTransform(r *http.Response) bool {
-	// Check if response is HTML and not streaming
-	contentType := r.Header.Get("Content-Type")
-	isHTML := strings.Contains(contentType, "text/html")
-	isStreaming := r.Header.Get("Transfer-Encoding") == "chunked"
-
-	if !isHTML || isStreaming {
-		return false
-	}
-
-	return true
-}
-
-func (t *AppTransformer) applyMetadata(r *http.Response, doc *html.Node) {
-	headNode := dom.FindElementByName("head", doc, nil)
-
-	isLoggedIn, err := t.getSessionStatus(r)
-	if err != nil {
-		log.Printf("Error getting session status: %v", err)
-	}
-
-	if headNode != nil {
-		metaNode := &html.Node{
-			Type: html.ElementNode,
-			Data: "meta",
-			Attr: []html.Attribute{
-				{Key: "name", Val: "kdex-ui"},
-				{Key: "data-path-separator", Val: t.PathSeparator},
-				{Key: "data-login-path", Val: t.Login.Path},
-				{Key: "data-login-label", Val: t.Login.Label},
-				{Key: "data-login-css-query", Val: t.Login.CSSQuery},
-				{Key: "data-logout-path", Val: t.Logout.Path},
-				{Key: "data-logout-label", Val: t.Logout.Label},
-				{Key: "data-logout-css-query", Val: t.Logout.CSSQuery},
-				{Key: "data-logged-in", Val: fmt.Sprintf("%t", isLoggedIn)},
-			},
-		}
-		headNode.AppendChild(metaNode)
-	}
-}
-
-func (t *AppTransformer) getSessionStatus(r *http.Response) (bool, error) {
-	sessionCookie, err := r.Request.Cookie(t.SessionCookieName)
-	if err != nil {
-		return false, err
-	}
-
-	isLoggedIn, err := (*t.SessionStore).IsLoggedIn(r.Request.Context(), sessionCookie.Value)
-	if err != nil {
-		return false, err
-	}
-
-	return isLoggedIn, nil
+	return transform.HtmlTransformCheck(r)
 }

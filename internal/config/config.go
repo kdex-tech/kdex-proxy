@@ -10,18 +10,17 @@ import (
 )
 
 type Config struct {
-	Apps          Apps             `json:"apps,omitempty"`
+	Apps          []App            `json:"apps,omitempty"`
 	Authn         AuthnConfig      `json:"authn"`
 	Fileserver    FileserverConfig `json:"fileserver"`
 	Importmap     ImportmapConfig  `json:"importmap"`
 	ListenAddress string           `json:"listen_address"`
 	ListenPort    string           `json:"listen_port"`
 	ModuleDir     string           `json:"module_dir"`
+	Navigation    NavigationConfig `json:"navigation"`
 	Proxy         ProxyConfig      `json:"proxy"`
 	Session       SessionConfig    `json:"session"`
 }
-
-type Apps []App
 
 type App struct {
 	Alias          string   `json:"alias"`
@@ -41,7 +40,6 @@ type AuthnConfig struct {
 	Login                  LoginConfig     `json:"login"`
 	Logout                 LogoutConfig    `json:"logout"`
 	OAuth                  OAuthConfig     `json:"oauth"`
-	ProtectedPaths         []string        `json:"protected_paths"`
 	Realm                  string          `json:"realm"`
 }
 
@@ -59,15 +57,28 @@ type ImportmapConfig struct {
 }
 
 type LoginConfig struct {
-	Path     string `json:"path"`
-	Label    string `json:"label"`
-	CSSQuery string `json:"css_query"`
+	Path  string `json:"path"`
+	Label string `json:"label"`
+	Query string `json:"query"`
 }
 
 type LogoutConfig struct {
+	Path  string `json:"path"`
+	Label string `json:"label"`
+	Query string `json:"query"`
+}
+
+type NavigationConfig struct {
+	NavItemsQuery   string            `json:"nav_items_query"`
+	NavItemFields   map[string]string `json:"nav_item_fields"`
+	NavItemTemplate string            `json:"nav_item_template"`
+	ProtectedPaths  []string          `json:"protected_paths"`
+	TemplatePaths   []TemplatePath    `json:"template_paths"`
+}
+
+type TemplatePath struct {
 	Path     string `json:"path"`
-	Label    string `json:"label"`
-	CSSQuery string `json:"css_query"`
+	Template string `json:"template"`
 }
 
 type OAuthConfig struct {
@@ -127,8 +138,7 @@ var defaultConfig = Config{
 				"write",
 			},
 		},
-		ProtectedPaths: []string{},
-		Realm:          "KDEX Proxy",
+		Realm: "KDEX Proxy",
 	},
 	Fileserver: FileserverConfig{
 		Prefix: "/~/m/",
@@ -141,6 +151,13 @@ var defaultConfig = Config{
 	ListenAddress: "",
 	ListenPort:    "8080",
 	ModuleDir:     "/modules",
+	Navigation: NavigationConfig{
+		NavItemsQuery:   `nav`,
+		NavItemFields:   map[string]string{},
+		NavItemTemplate: ``,
+		ProtectedPaths:  []string{},
+		TemplatePaths:   []TemplatePath{},
+	},
 	Proxy: ProxyConfig{
 		AlwaysAppendSlash:   false,
 		PathSeparator:       "/_/",
@@ -214,9 +231,9 @@ func (a *App) Validate() error {
 	return nil
 }
 
-func (a *Apps) GetAppsForTargetPath(targetPath string) []App {
+func (c *Config) GetAppsForTargetPath(targetPath string) []App {
 	var filteredApps []App
-	for _, app := range *a {
+	for _, app := range c.Apps {
 		for _, appTarget := range app.Targets {
 			if appTarget.Path == targetPath {
 				filteredApps = append(filteredApps, app)

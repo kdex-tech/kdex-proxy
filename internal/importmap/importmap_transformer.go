@@ -4,7 +4,6 @@ import (
 	"log"
 	"net/http"
 	"slices"
-	"strings"
 
 	"golang.org/x/net/html"
 	"kdex.dev/proxy/internal/config"
@@ -53,16 +52,7 @@ func (t *ImportMapTransformer) ScanForImports() error {
 }
 
 func (t *ImportMapTransformer) ShouldTransform(r *http.Response) bool {
-	// Check if response is HTML and not streaming
-	contentType := r.Header.Get("Content-Type")
-	isHTML := strings.Contains(contentType, "text/html")
-	isStreaming := r.Header.Get("Transfer-Encoding") == "chunked"
-
-	if !isHTML || isStreaming {
-		return false
-	}
-
-	return true
+	return transform.HtmlTransformCheck(r)
 }
 
 func (t *ImportMapTransformer) Transform(r *http.Response, doc *html.Node) error {

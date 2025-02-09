@@ -29,6 +29,7 @@ import (
 	"kdex.dev/proxy/internal/config"
 	"kdex.dev/proxy/internal/fileserver"
 	"kdex.dev/proxy/internal/importmap"
+	"kdex.dev/proxy/internal/meta"
 	mAuthn "kdex.dev/proxy/internal/middleware/authn"
 	mLogger "kdex.dev/proxy/internal/middleware/log"
 	"kdex.dev/proxy/internal/proxy"
@@ -67,14 +68,17 @@ func main() {
 
 	transformer := &transform.AggregatedTransformer{
 		Transformers: []transform.Transformer{
-			importmap.NewImportMapTransformer(&c.Importmap, c.ModuleDir, c.Fileserver.Prefix),
+			importmap.NewImportMapTransformer(
+				&c.Importmap,
+				c.ModuleDir,
+				c.Fileserver.Prefix,
+			),
+			&meta.MetaTransformer{
+				Config:       c,
+				SessionStore: &sessionStore,
+			},
 			&app.AppTransformer{
-				Apps:              &c.Apps,
-				Login:             &c.Authn.Login,
-				Logout:            &c.Authn.Logout,
-				PathSeparator:     c.Proxy.PathSeparator,
-				SessionStore:      &sessionStore,
-				SessionCookieName: c.Session.CookieName,
+				Config: c,
 			},
 		},
 	}
@@ -97,7 +101,7 @@ func main() {
 	authnMiddleware := &mAuthn.AuthnMiddleware{
 		AuthenticateHeader:     c.Authn.AuthenticateHeader,
 		AuthenticateStatusCode: c.Authn.AuthenticateStatusCode,
-		ProtectedPaths:         c.Authn.ProtectedPaths,
+		ProtectedPaths:         c.Navigation.ProtectedPaths,
 		AuthValidator:          *authValidator,
 	}
 

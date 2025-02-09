@@ -19,6 +19,18 @@ data:
               "container_id": "main"
             }
           ]
+        },
+        {
+          "alias": "k2",
+          "address": "sample-app.docker.localhost",
+          "element": "kdex-example",
+          "path": "app.js",
+          "targets": [
+            {
+              "path": "/admin",
+              "container_id": "main"
+            }
+          ]
         }
       ],
       "authn": {
@@ -29,17 +41,14 @@ data:
         "login": {
           "path": "/~/o/oauth/login",
           "label": "Login",
-          "css_query": `nav a[href="/signin/"]`
+          "query": `nav a[href="/signin/"]`
         },
         "logout": {
           "path": "/~/o/oauth/logout",
           "label": "Logout",
-          "css_query": `nav a[href="/signin/"]`
+          "query": `nav a[href="/signin/"]`
         },
         "realm": "KDEX Proxy",
-        "protected_paths": [
-          "/private"
-        ],
         "oauth": {
           "auth_server_url": "http://keycloak.docker.localhost",
           "client_id": "kdex-proxy",
@@ -52,6 +61,32 @@ data:
             "email"
           ]
         }
+      },
+      "navigation": {
+        "nav_items_query": `//nav//li[not(contains(@class,'Banner-item--title')) and contains(@class,'Banner-item')]`,
+        "nav_item_fields": {
+          "href": `a/@href`,
+          "label": `a/text()`
+        },
+        "nav_item_template": `
+          <li class="Banner-item">
+            <a class="Banner-link u-clickable" href="{{ .href }}">{{ .label }}</a>
+          </li>
+        `,
+        "protected_paths": [
+          "/admin",
+          "/private"
+        ],
+        "template_paths": [
+          {
+            "path": "/admin1",
+            "template": "/template1"
+          },
+          {
+            "path": "/admin2",
+            "template": "/template1"
+          }
+        ]
       },
       "proxy": {
         "always_append_slash": true,

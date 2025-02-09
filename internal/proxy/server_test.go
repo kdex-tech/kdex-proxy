@@ -15,7 +15,6 @@
 package proxy
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -28,7 +27,7 @@ import (
 	"kdex.dev/proxy/internal/app"
 	"kdex.dev/proxy/internal/config"
 	"kdex.dev/proxy/internal/importmap"
-	"kdex.dev/proxy/internal/store/session"
+	"kdex.dev/proxy/internal/meta"
 	"kdex.dev/proxy/internal/transform"
 )
 
@@ -101,6 +100,23 @@ func TestServer_ReverseProxy(t *testing.T) {
 	defer targetServer.Close()
 
 	upstreamAddress := strings.TrimPrefix(targetServer.URL, "http://")
+	defaultConfig := config.DefaultConfig()
+	defaultConfig.Apps = []config.App{
+		{
+			Alias:   "app1",
+			Address: "localhost:61345",
+			Element: "app-one",
+			Path:    "/app1.js",
+			Targets: []config.Target{
+				{
+					Path:      "/test/app1",
+					Container: "main",
+				},
+			},
+		},
+	}
+	defaultConfig.Authn.Login.Query = `nav a[href="/signin/"]`
+	defaultConfig.Authn.Logout.Query = `nav a[href="/signin/"]`
 
 	transformer := &transform.AggregatedTransformer{
 		Transformers: []transform.Transformer{
@@ -114,39 +130,11 @@ func TestServer_ReverseProxy(t *testing.T) {
 				ModulePrefix: "/~/m/",
 			},
 			&app.AppTransformer{
-				Apps: &config.Apps{
-					{
-						Alias:   "app1",
-						Address: "localhost:61345",
-						Element: "app-one",
-						Path:    "/app1.js",
-						Targets: []config.Target{
-							{
-								Path:      "/test/app1",
-								Container: "main",
-							},
-						},
-					},
-				},
-				Login: &config.LoginConfig{
-					Path:     "/~/o/oauth/login",
-					Label:    "Login",
-					CSSQuery: "nav a[href=&#34;/signin/&#34;]",
-				},
-				Logout: &config.LogoutConfig{
-					Path:     "/~/o/oauth/logout",
-					Label:    "Logout",
-					CSSQuery: "nav a[href=&#34;/signin/&#34;]",
-				},
-				PathSeparator:     "/_/",
-				SessionCookieName: "session_id",
-				SessionStore: func() *session.SessionStore {
-					store, _ := session.NewSessionStore(context.Background(), &config.SessionConfig{
-						CookieName: "session_id",
-						Store:      "memory",
-					})
-					return &store
-				}(),
+				Config: defaultConfig,
+			},
+			&meta.MetaTransformer{
+				Config:       defaultConfig,
+				SessionStore: nil,
 			},
 		},
 	}

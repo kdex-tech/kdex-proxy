@@ -9,7 +9,7 @@ import (
 
 func TestApps_GetAppsForPage(t *testing.T) {
 	type fields struct {
-		apps *config.Apps
+		config *config.Config
 	}
 	type args struct {
 		targetPath string
@@ -23,7 +23,7 @@ func TestApps_GetAppsForPage(t *testing.T) {
 		{
 			name: "no apps found",
 			fields: fields{
-				apps: &config.Apps{},
+				config: &config.Config{},
 			},
 			args: args{targetPath: "/posts"},
 			want: nil,
@@ -31,8 +31,10 @@ func TestApps_GetAppsForPage(t *testing.T) {
 		{
 			name: "one app found among one app",
 			fields: fields{
-				apps: &config.Apps{
-					{Address: "sample-app", Targets: []config.Target{{Path: "/posts", Container: "main"}}},
+				config: &config.Config{
+					Apps: []config.App{
+						{Address: "sample-app", Targets: []config.Target{{Path: "/posts", Container: "main"}}},
+					},
 				},
 			},
 			args: args{targetPath: "/posts"},
@@ -43,9 +45,11 @@ func TestApps_GetAppsForPage(t *testing.T) {
 		{
 			name: "one app found among two apps",
 			fields: fields{
-				apps: &config.Apps{
-					{Address: "sample-app", Targets: []config.Target{{Path: "/posts", Container: "main"}}},
-					{Address: "sample-app-2", Targets: []config.Target{{Path: "/other", Container: "main"}}},
+				config: &config.Config{
+					Apps: []config.App{
+						{Address: "sample-app", Targets: []config.Target{{Path: "/posts", Container: "main"}}},
+						{Address: "sample-app-2", Targets: []config.Target{{Path: "/other", Container: "main"}}},
+					},
 				},
 			},
 			args: args{targetPath: "/posts"},
@@ -56,7 +60,7 @@ func TestApps_GetAppsForPage(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := tt.fields.apps.GetAppsForTargetPath(tt.args.targetPath)
+			got := tt.fields.config.GetAppsForTargetPath(tt.args.targetPath)
 			assert.Equal(t, tt.want, got)
 		})
 	}
