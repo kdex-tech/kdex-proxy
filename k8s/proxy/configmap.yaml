@@ -5,39 +5,50 @@ metadata:
   labels:
     app: kdex-proxy
 data:
-  ALWAYS_APPEND_SLASH: "true"
-  AUTHENTICATE_HEADER: "WWW-Authenticate"
-  AUTHORIZATION_HEADER: "Authorization"
-  AUTHENTICATE_STATUS_CODE: "401"
-  AUTH_VALIDATOR: "oauth"
-  OAUTH_REALM: "KDEX Proxy"
-  OAUTH_SERVER_URL: "http://keycloak.docker.localhost"
-  OAUTH_CLIENT_ID: "kdex-proxy"
-  OAUTH_CLIENT_SECRET: "FZd8qsIive63taCdU3y3fARCCMU1SCUS"
-  OAUTH_DUMP_CLAIMS: "true"
-  OAUTH_REDIRECT_URI: "http://proxy.docker.localhost/~/o/oauth/callback"
-  OAUTH_SCOPES: "openid profile email"
-  PROTECTED_PATHS: "/private"
-  UPSTREAM_ADDRESS: "sample-site"
-  UPSTREAM_HEALTHZ_PATH: "/"
-
-  # Configure the apps that will be embedded in the proxy
-  apps: |
-    [
-      {
-        "alias": "ke",
-        "address": "sample-app.docker.localhost",
-        "element": "kdex-example",
-        "path": "app.js",
-        "targets": [
-          {
-            "path": "/posts",
-            "containerId": "main"
-          }
+  config.json: |
+    {
+      "apps": [
+        {
+          "alias": "ke",
+          "address": "sample-app.docker.localhost",
+          "element": "kdex-example",
+          "path": "app.js",
+          "targets": [
+            {
+              "path": "/posts",
+              "container_id": "main"
+            }
+          ]
+        }
+      ],
+      "authn": {
+        "authenticate_header": "WWW-Authenticate",
+        "authorization_header": "Authorization",
+        "authenticate_status_code": 401,
+        "auth_validator": "oauth",
+        "realm": "KDEX Proxy",
+        "protected_paths": [
+          "/private"
         ],
-        "requiredScopes": []
+        "oauth": {
+          "auth_server_url": "http://keycloak.docker.localhost",
+          "client_id": "kdex-proxy",
+          "client_secret": "FZd8qsIive63taCdU3y3fARCCMU1SCUS",
+          "dump_claims": true,
+          "redirect_uri": "http://proxy.docker.localhost/~/o/oauth/callback",
+          "scopes": [
+            "openid",
+            "profile",
+            "email"
+          ]
+        }
+      },
+      "proxy": {
+        "always_append_slash": true,
+        "upstream_address": "sample-site",
+        "upstream_healthz_path": "/"
       }
-    ]
+    }
 
   # The package.json file for the proxy
   package.json: |

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"golang.org/x/net/html"
+	"kdex.dev/proxy/internal/config"
 	"kdex.dev/proxy/internal/dom"
 	"kdex.dev/proxy/internal/store/session"
 	"kdex.dev/proxy/internal/transform"
@@ -19,7 +20,7 @@ const (
 
 type AppTransformer struct {
 	transform.Transformer
-	AppManager    *AppManager
+	Apps          *config.Apps
 	PathSeparator string
 	SessionStore  *session.SessionStore
 }
@@ -29,7 +30,7 @@ func (t *AppTransformer) Transform(r *http.Response, doc *html.Node) error {
 
 	targetPath := strings.TrimSuffix(r.Request.URL.Path, "/")
 	log.Printf("Looking for apps for %s", targetPath)
-	apps := t.AppManager.GetAppsForTargetPath(targetPath)
+	apps := t.Apps.GetAppsForTargetPath(targetPath)
 
 	if len(apps) == 0 {
 		return nil

@@ -31,7 +31,7 @@ data:
           "redirectUris": [
             "http://proxy.docker.localhost/~/o/oauth/callback"
           ],
-          "webOrigins": ["*"]
+          "webOrigins": ["*"],
           "standardFlowEnabled": true,
           "implicitFlowEnabled": false,
           "directAccessGrantsEnabled": true,
@@ -49,7 +49,7 @@ data:
             "oauth2.device.authorization.grant.enabled": "false",
             "display.on.consent.screen": "false",
             "backchannel.logout.revoke.offline.tokens": "true"
-          },
+          }
         }
       ],
       "roles": {
@@ -65,3 +65,4 @@ data:
         ]
       }
     }
+

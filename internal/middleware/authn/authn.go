@@ -14,15 +14,6 @@ type AuthnMiddleware struct {
 	AuthValidator          iauthn.AuthValidator
 }
 
-func NewAuthnMiddleware(config *iauthn.AuthnConfig) *AuthnMiddleware {
-	return &AuthnMiddleware{
-		AuthenticateHeader:     config.AuthenticateHeader,
-		AuthenticateStatusCode: config.AuthenticateStatusCode,
-		ProtectedPaths:         config.ProtectedPaths,
-		AuthValidator:          config.AuthValidators[0],
-	}
-}
-
 func (a *AuthnMiddleware) Authn(h http.Handler) http.HandlerFunc {
 	if len(a.ProtectedPaths) == 0 {
 		return h.ServeHTTP

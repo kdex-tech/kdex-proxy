@@ -25,6 +25,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"kdex.dev/proxy/internal/app"
+	"kdex.dev/proxy/internal/config"
 	"kdex.dev/proxy/internal/importmap"
 	"kdex.dev/proxy/internal/transform"
 )
@@ -99,16 +100,6 @@ func TestServer_ReverseProxy(t *testing.T) {
 
 	upstreamAddress := strings.TrimPrefix(targetServer.URL, "http://")
 
-	// Configure server for proxy
-	s := Server{
-		ListenAddress:       "localhost",
-		ListenPort:          "8080",
-		PathSeparator:       "/_/",
-		UpstreamAddress:     upstreamAddress,
-		UpstreamScheme:      "http",
-		UpstreamHealthzPath: "/healthz",
-	}
-
 	transformer := &transform.AggregatedTransformer{
 		Transformers: []transform.Transformer{
 			&importmap.ImportMapTransformer{
@@ -119,28 +110,33 @@ func TestServer_ReverseProxy(t *testing.T) {
 				ModulePrefix: "/~/m/",
 			},
 			&app.AppTransformer{
-				AppManager: &app.AppManager{
-					Apps: app.Apps{
-						app.App{
-							Alias:   "app1",
-							Address: "localhost:61345",
-							Element: "app-one",
-							Path:    "/app1.js",
-							Targets: []app.Target{
-								{
-									Path:      "/test/app1",
-									Container: "main",
-								},
+				Apps: &config.Apps{
+					{
+						Alias:   "app1",
+						Address: "localhost:61345",
+						Element: "app-one",
+						Path:    "/app1.js",
+						Targets: []config.Target{
+							{
+								Path:      "/test/app1",
+								Container: "main",
 							},
 						},
 					},
 				},
-				PathSeparator: s.PathSeparator,
+				PathSeparator: "/_/",
 			},
 		},
 	}
 
-	s.WithTransformer(transformer)
+	// Configure server for proxy
+	s := Server{
+		PathSeparator:       "/_/",
+		UpstreamAddress:     upstreamAddress,
+		UpstreamScheme:      "http",
+		UpstreamHealthzPath: "/healthz",
+		transformer:         transformer,
+	}
 
 	// Create test proxy server
 	proxyServer := httptest.NewServer(http.HandlerFunc(s.ReverseProxy()))
@@ -206,7 +202,7 @@ func TestServer_ReverseProxy(t *testing.T) {
 			method:          "GET",
 			path:            "/test/html_without_importmap",
 			expectedStatus:  http.StatusOK,
-			expectedBody:    `<html><head><script type="importmap">{"imports":{"@kdex-ui":"/~/m/@kdex-ui/index.js"}}</script></head><body><h1>Hello, World!</h1><script type="module">import '@kdex-ui';</script></body></html>`,
+			expectedBody:    `<html><head><script type="importmap">{"imports":{"@kdex-ui":"/~/m/@kdex-ui/index.js"}}</script><meta name="kdex-ui" data-path-separator="/_/" data-login-path="/~/o/oauth/login" data-login-label="Login" data-login-css-query="nav a[href=&#34;/signin/&#34;]" data-logout-path="/~/o/oauth/logout" data-logout-label="Logout" data-logout-css-query="nav a[href=&#34;/signin/&#34;]" data-logged-in="false"/></head><body><h1>Hello, World!</h1><script type="module">import '@kdex-ui';</script></body></html>`,
 			upstreamAddress: upstreamAddress,
 		},
 		{
@@ -214,7 +210,7 @@ func TestServer_ReverseProxy(t *testing.T) {
 			method:          "GET",
 			path:            "/test/html_with_importmap",
 			expectedStatus:  http.StatusOK,
-			expectedBody:    `<html><head><script type="importmap">{"imports":{"@foo/bar":"/foo/bar.js","@kdex-ui":"/~/m/@kdex-ui/index.js"}}</script></head><body>test<script type="module">import '@kdex-ui';</script></body></html>`,
+			expectedBody:    `<html><head><script type="importmap">{"imports":{"@foo/bar":"/foo/bar.js","@kdex-ui":"/~/m/@kdex-ui/index.js"}}</script><meta name="kdex-ui" data-path-separator="/_/" data-login-path="/~/o/oauth/login" data-login-label="Login" data-login-css-query="nav a[href=&#34;/signin/&#34;]" data-logout-path="/~/o/oauth/logout" data-logout-label="Logout" data-logout-css-query="nav a[href=&#34;/signin/&#34;]" data-logged-in="false"/></head><body>test<script type="module">import '@kdex-ui';</script></body></html>`,
 			upstreamAddress: upstreamAddress,
 		},
 		{
@@ -238,7 +234,7 @@ func TestServer_ReverseProxy(t *testing.T) {
 			method:          "GET",
 			path:            "/test/app1/_/app1/bar",
 			expectedStatus:  http.StatusOK,
-			expectedBody:    `<html><head><script type="importmap">{"imports":{"@kdex-ui":"/~/m/@kdex-ui/index.js"}}</script><meta name="path-separator" content="/_/"/></head><body><kdex-ui-app-container><app-one id="app1" route-path="/bar"></app-one></kdex-ui-app-container><script type="module">import '@kdex-ui';</script><script type="module" src="http://localhost:61345/app1.js"></script></body></html>`,
+			expectedBody:    `<html><head><script type="importmap">{"imports":{"@kdex-ui":"/~/m/@kdex-ui/index.js"}}</script><meta name="kdex-ui" data-path-separator="/_/" data-login-path="/~/o/oauth/login" data-login-label="Login" data-login-css-query="nav a[href=&#34;/signin/&#34;]" data-logout-path="/~/o/oauth/logout" data-logout-label="Logout" data-logout-css-query="nav a[href=&#34;/signin/&#34;]" data-logged-in="false"/></head><body><kdex-ui-app-container><app-one id="app1" route-path="/bar"></app-one></kdex-ui-app-container><script type="module">import '@kdex-ui';</script><script type="module" src="http://localhost:61345/app1.js"></script></body></html>`,
 			upstreamAddress: upstreamAddress,
 		},
 		{
@@ -246,7 +242,7 @@ func TestServer_ReverseProxy(t *testing.T) {
 			method:          "GET",
 			path:            "/test/app1/_/app1",
 			expectedStatus:  http.StatusOK,
-			expectedBody:    `<html><head><script type="importmap">{"imports":{"@kdex-ui":"/~/m/@kdex-ui/index.js"}}</script><meta name="path-separator" content="/_/"/></head><body><kdex-ui-app-container><app-one id="app1"></app-one></kdex-ui-app-container><script type="module">import '@kdex-ui';</script><script type="module" src="http://localhost:61345/app1.js"></script></body></html>`,
+			expectedBody:    `<html><head><script type="importmap">{"imports":{"@kdex-ui":"/~/m/@kdex-ui/index.js"}}</script><meta name="kdex-ui" data-path-separator="/_/" data-login-path="/~/o/oauth/login" data-login-label="Login" data-login-css-query="nav a[href=&#34;/signin/&#34;]" data-logout-path="/~/o/oauth/logout" data-logout-label="Logout" data-logout-css-query="nav a[href=&#34;/signin/&#34;]" data-logged-in="false"/></head><body><kdex-ui-app-container><app-one id="app1"></app-one></kdex-ui-app-container><script type="module">import '@kdex-ui';</script><script type="module" src="http://localhost:61345/app1.js"></script></body></html>`,
 			upstreamAddress: upstreamAddress,
 		},
 		{
@@ -254,7 +250,7 @@ func TestServer_ReverseProxy(t *testing.T) {
 			method:          "GET",
 			path:            "/test/app1/_/app2/bar",
 			expectedStatus:  http.StatusOK,
-			expectedBody:    `<html><head><script type="importmap">{"imports":{"@kdex-ui":"/~/m/@kdex-ui/index.js"}}</script><meta name="path-separator" content="/_/"/></head><body><kdex-ui-app-container><app-one id="app1"></app-one></kdex-ui-app-container><script type="module">import '@kdex-ui';</script><script type="module" src="http://localhost:61345/app1.js"></script></body></html>`,
+			expectedBody:    `<html><head><script type="importmap">{"imports":{"@kdex-ui":"/~/m/@kdex-ui/index.js"}}</script><meta name="kdex-ui" data-path-separator="/_/" data-login-path="/~/o/oauth/login" data-login-label="Login" data-login-css-query="nav a[href=&#34;/signin/&#34;]" data-logout-path="/~/o/oauth/logout" data-logout-label="Logout" data-logout-css-query="nav a[href=&#34;/signin/&#34;]" data-logged-in="false"/></head><body><kdex-ui-app-container><app-one id="app1"></app-one></kdex-ui-app-container><script type="module">import '@kdex-ui';</script><script type="module" src="http://localhost:61345/app1.js"></script></body></html>`,
 			upstreamAddress: upstreamAddress,
 		},
 	}
@@ -326,8 +322,6 @@ func TestServer_Probe(t *testing.T) {
 	upstreamAddress := strings.TrimPrefix(targetServer.URL, "http://")
 
 	s := &Server{
-		ListenAddress:  "localhost",
-		ListenPort:     "8080",
 		UpstreamScheme: "http",
 	}
 

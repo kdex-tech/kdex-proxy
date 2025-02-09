@@ -23,102 +23,37 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	"golang.org/x/net/html"
+	"kdex.dev/proxy/internal/config"
 	"kdex.dev/proxy/internal/transform"
 	"kdex.dev/proxy/internal/util"
-)
-
-const (
-	DefaultAlwaysAppendSlash   = false
-	DefaultListenAddress       = ""
-	DefaultListenPort          = "8080"
-	DefaultPathSeparator       = "/_/"
-	DefaultProbePrefix         = "/~/p/{$}"
-	DefaultUpstreamScheme      = "http"
-	DefaultUpstreamHealthzPath = "/"
 )
 
 type Server struct {
 	proxy               *httputil.ReverseProxy
 	transformer         transform.Transformer
 	AlwaysAppendSlash   bool
-	ListenAddress       string
-	ListenPort          string
 	PathSeparator       string
-	ProbePrefix         string
+	ProbePath           string
 	UpstreamAddress     string
 	UpstreamScheme      string
 	UpstreamHealthzPath string
 }
 
-func NewServerFromEnv() *Server {
-	always_append_slash := os.Getenv("ALWAYS_APPEND_SLASH")
-	if always_append_slash == "" {
-		always_append_slash = strconv.FormatBool(DefaultAlwaysAppendSlash)
-		log.Printf("Defaulting always_append_slash to %s", always_append_slash)
-	}
-
-	listen_port := os.Getenv("LISTEN_PORT")
-	if listen_port == "" {
-		listen_port = DefaultListenPort
-		log.Printf("Defaulting listen_port to %s", listen_port)
-	}
-
-	listen_address := os.Getenv("LISTEN_ADDRESS")
-	if listen_address == "" {
-		listen_address = DefaultListenAddress
-		log.Printf("Defaulting listen_address to any address on all interfaces")
-	}
-
-	path_separator := os.Getenv("PATH_SEPARATOR")
-	if path_separator == "" {
-		path_separator = DefaultPathSeparator
-		log.Printf("Defaulting path_separator to %s", path_separator)
-	}
-
-	probe_prefix := os.Getenv("PROBE_PREFIX")
-	if probe_prefix == "" {
-		probe_prefix = DefaultProbePrefix
-		log.Printf("Defaulting probe_prefix to %s", probe_prefix)
-	}
-
-	upstream_address := os.Getenv("UPSTREAM_ADDRESS")
-	if upstream_address == "" {
-		log.Fatal("UPSTREAM_ADDRESS environment variable not set")
-	}
-
-	upstream_scheme := os.Getenv("UPSTREAM_SCHEME")
-	if upstream_scheme == "" {
-		upstream_scheme = DefaultUpstreamScheme
-		log.Printf("Defaulting upstream_scheme to %s", upstream_scheme)
-	}
-
-	upstream_healthz_path := os.Getenv("UPSTREAM_HEALTHZ_PATH")
-	if upstream_healthz_path == "" {
-		upstream_healthz_path = DefaultUpstreamHealthzPath
-		log.Printf("Defaulting upstream_healthz_path to %s", upstream_healthz_path)
-	}
-
+func NewServer(proxyConfig *config.ProxyConfig, transformer transform.Transformer) *Server {
 	return &Server{
-		AlwaysAppendSlash:   always_append_slash == "true",
-		ListenAddress:       listen_address,
-		ListenPort:          listen_port,
-		PathSeparator:       path_separator,
-		ProbePrefix:         probe_prefix,
-		UpstreamAddress:     upstream_address,
-		UpstreamScheme:      upstream_scheme,
-		UpstreamHealthzPath: upstream_healthz_path,
+		AlwaysAppendSlash:   proxyConfig.AlwaysAppendSlash,
+		PathSeparator:       proxyConfig.PathSeparator,
+		ProbePath:           proxyConfig.ProbePath,
+		UpstreamAddress:     proxyConfig.UpstreamAddress,
+		UpstreamScheme:      proxyConfig.UpstreamScheme,
+		UpstreamHealthzPath: proxyConfig.UpstreamHealthzPath,
+		transformer:         transformer,
 	}
-}
-
-func (s *Server) WithTransformer(transformer transform.Transformer) *Server {
-	s.transformer = transformer
-	return s
 }
 
 func (s *Server) Probe(w http.ResponseWriter, r *http.Request) {

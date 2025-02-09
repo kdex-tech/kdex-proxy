@@ -1,83 +1,29 @@
 package importmap
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
-	"os"
 	"strings"
 
 	"golang.org/x/net/html"
+	"kdex.dev/proxy/internal/config"
 	"kdex.dev/proxy/internal/scanner"
 	"kdex.dev/proxy/internal/transform"
 )
 
-const (
-	DefaultModuleDir              = "/modules"
-	DefaultModuleBodyPath         = "/etc/kdex/module_body"
-	DefaultModuleBody             = "import '@kdex/ui';"
-	DefaultModuleDependenciesPath = "/etc/kdex/module_dependencies"
-	DefaultModulesPrefix          = "/~/m/"
-)
-
 type ImportMapTransformer struct {
 	transform.Transformer
-	ModuleDir          string
-	ModuleDependencies map[string]string
-	ModuleImports      map[string]string
-	ModuleBody         string
-	ModulePrefix       string
+	ModuleDir     string
+	ModuleImports map[string]string
+	ModuleBody    string
+	ModulePrefix  string
 }
 
-func NewImportMapTransformerFromEnv() *ImportMapTransformer {
-	moduleDir := os.Getenv("MODULE_DIR")
-	if moduleDir == "" {
-		moduleDir = DefaultModuleDir
-		log.Printf("Defaulting module_dir to %s", moduleDir)
-	}
-
-	moduleDependenciesPath := os.Getenv("MODULE_DEPENDENCIES_PATH")
-	if moduleDependenciesPath == "" {
-		moduleDependenciesPath = DefaultModuleDependenciesPath
-		log.Printf("Defaulting module_dependencies_path to %s", moduleDependenciesPath)
-	}
-
-	var dependencies map[string]string
-	if _, err := os.Stat(moduleDependenciesPath); err == nil {
-		moduleDependenciesBytes, err := os.ReadFile(moduleDependenciesPath)
-		if err == nil {
-			err := json.Unmarshal(moduleDependenciesBytes, &dependencies)
-			if err != nil {
-				log.Fatal(err)
-			}
-		}
-	}
-
-	moduleBodyPath := os.Getenv("MODULE_BODY_PATH")
-	if moduleBodyPath == "" {
-		moduleBodyPath = DefaultModuleBodyPath
-		log.Printf("Defaulting module_body_path to %s", moduleBodyPath)
-	}
-
-	var moduleBody string
-	if info, err := os.Stat(moduleBodyPath); err != nil || info.IsDir() {
-		moduleBody = DefaultModuleBody
-		log.Printf("Defaulting module_body to %s", moduleBody)
-	} else {
-		moduleBodyBytes, err := os.ReadFile(moduleBodyPath)
-
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		moduleBody = string(moduleBodyBytes)
-	}
-
+func NewImportMapTransformer(c *config.ImportmapConfig, moduleDir string) *ImportMapTransformer {
 	transformer := &ImportMapTransformer{
-		ModuleDir:          moduleDir,
-		ModuleDependencies: dependencies,
-		ModuleBody:         moduleBody,
-		ModulePrefix:       DefaultModulesPrefix,
+		ModuleDir:    moduleDir,
+		ModuleBody:   c.ModuleBody,
+		ModulePrefix: c.ModulePrefix,
 	}
 
 	if err := transformer.ScanForImports(); err != nil {
@@ -90,14 +36,8 @@ func NewImportMapTransformerFromEnv() *ImportMapTransformer {
 func (t *ImportMapTransformer) ScanForImports() error {
 	s := scanner.NewScanner(t.ModuleDir)
 
-	if t.ModuleDependencies != nil {
-		if err := s.ScanDependencies(t.ModuleDependencies); err != nil {
-			return err
-		}
-	} else {
-		if err := s.ScanRootDir(); err != nil {
-			return err
-		}
+	if err := s.ScanRootDir(); err != nil {
+		return err
 	}
 
 	s.ValidateImports()
@@ -105,11 +45,6 @@ func (t *ImportMapTransformer) ScanForImports() error {
 	t.ModuleImports = s.GetImports()
 
 	return nil
-}
-
-func (t *ImportMapTransformer) WithModulePrefix(modulePrefix string) *ImportMapTransformer {
-	t.ModulePrefix = modulePrefix
-	return t
 }
 
 func (t *ImportMapTransformer) ShouldTransform(r *http.Response) bool {

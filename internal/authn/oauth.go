@@ -9,75 +9,64 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"golang.org/x/oauth2"
+	"kdex.dev/proxy/internal/config"
 	"kdex.dev/proxy/internal/store/session"
 	"kdex.dev/proxy/internal/store/state"
 	"kdex.dev/proxy/internal/util"
 )
 
-type Config struct {
-	AuthorizationHeader string
-	AuthServerURL       string
-	ClientID            string
-	ClientSecret        string
-	DumpClaims          bool
-	Prefix              string
-	Realm               string
-	RedirectURI         string
-	Scopes              []string
-	SessionStore        *session.SessionStore
-	SignInOnChallenge   bool
-}
-
 type OAuthValidator struct {
-	Config       *Config
+	Config       *config.AuthnConfig
 	Oauth2Config *oauth2.Config
 	Provider     *oidc.Provider
-	StateStore   state.StateStore
+	SessionStore *session.SessionStore
+	StateStore   *state.StateStore
 	Verifier     *oidc.IDTokenVerifier
 }
 
-func NewOAuthValidator(ctx context.Context, config *Config) *OAuthValidator {
-	providerURL := fmt.Sprintf("%s/realms/%s", config.AuthServerURL, url.PathEscape(config.Realm))
+func NewOAuthValidator(
+	ctx context.Context,
+	config *config.AuthnConfig,
+	sessionStore *session.SessionStore,
+	stateStore *state.StateStore,
+) *OAuthValidator {
+	providerURL := fmt.Sprintf("%s/realms/%s", config.OAuth.AuthServerURL, url.PathEscape(config.Realm))
 	provider, err := oidc.NewProvider(ctx, providerURL)
 
 	if err != nil {
 		log.Fatalf("Failed to create provider: %v", err)
 	}
 
-	config.Scopes = append(config.Scopes, oidc.ScopeOpenID)
-	config.Scopes = append(config.Scopes, "roles")
+	scopes := []string{oidc.ScopeOpenID}
+	scopes = append(scopes, "roles")
 
 	verifier := provider.Verifier(&oidc.Config{
-		ClientID: config.ClientID,
+		ClientID: config.OAuth.ClientID,
 	})
 
 	oauth2Config := oauth2.Config{
-		ClientID:     config.ClientID,
-		ClientSecret: config.ClientSecret,
-		RedirectURL:  config.RedirectURI,
+		ClientID:     config.OAuth.ClientID,
+		ClientSecret: config.OAuth.ClientSecret,
+		RedirectURL:  config.OAuth.RedirectURI,
 		Endpoint:     provider.Endpoint(),
-		Scopes:       config.Scopes,
-	}
-
-	stateStore, err := state.NewStateStore(ctx, "memory")
-	if err != nil {
-		log.Fatalf("Failed to create state store: %v", err)
+		Scopes:       scopes,
 	}
 
 	return &OAuthValidator{
 		Config:       config,
 		Oauth2Config: &oauth2Config,
 		Provider:     provider,
+		SessionStore: sessionStore,
 		StateStore:   stateStore,
 		Verifier:     verifier,
 	}
 }
 
 func (v *OAuthValidator) Register(mux *http.ServeMux) {
-	mux.HandleFunc("GET "+v.Config.Prefix+"oauth/callback", v.callbackHandler())
-	mux.HandleFunc("GET "+v.Config.Prefix+"oauth/login", v.logInHandler())
-	mux.HandleFunc("GET "+v.Config.Prefix+"oauth/logout", v.logOutHandler())
-	mux.HandleFunc("POST "+v.Config.Prefix+"oauth/back_channel_logout", v.backChannelLogOutHandler())
+	mux.HandleFunc("GET "+v.Config.OAuth.Prefix+"oauth/callback", v.callbackHandler())
+	mux.HandleFunc("GET "+v.Config.OAuth.Prefix+"oauth/login", v.logInHandler())
+	mux.HandleFunc("GET "+v.Config.OAuth.Prefix+"oauth/logout", v.logOutHandler())
+	mux.HandleFunc("POST "+v.Config.OAuth.Prefix+"oauth/back_channel_logout", v.backChannelLogOutHandler())
 }
 
 func (v *OAuthValidator) Validate(w http.ResponseWriter, r *http.Request) func(h http.Handler) {
@@ -88,7 +77,7 @@ func (v *OAuthValidator) Validate(w http.ResponseWriter, r *http.Request) func(h
 		}
 	}
 
-	sessionData, err := (*v.Config.SessionStore).Get(r.Context(), sessionCookie.Value)
+	sessionData, err := (*v.SessionStore).Get(r.Context(), sessionCookie.Value)
 	if err != nil {
 		return func(h http.Handler) {
 			http.SetCookie(w, &http.Cookie{
@@ -106,7 +95,7 @@ func (v *OAuthValidator) Validate(w http.ResponseWriter, r *http.Request) func(h
 
 	if err != nil {
 		return func(h http.Handler) {
-			(*v.Config.SessionStore).Delete(r.Context(), sessionCookie.Value)
+			(*v.SessionStore).Delete(r.Context(), sessionCookie.Value)
 			http.SetCookie(w, &http.Cookie{
 				Name:  "session_id",
 				Value: "",
@@ -165,7 +154,7 @@ func (v *OAuthValidator) callbackHandler() http.HandlerFunc {
 			RefreshToken: oauth2Token.RefreshToken,
 		}
 
-		if err := (*v.Config.SessionStore).Set(r.Context(), sessionID, sessionData); err != nil {
+		if err := (*v.SessionStore).Set(r.Context(), sessionID, sessionData); err != nil {
 			log.Printf("Error setting session: %v", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -185,7 +174,7 @@ func (v *OAuthValidator) callbackHandler() http.HandlerFunc {
 }
 
 func (v *OAuthValidator) challengeAction(w http.ResponseWriter, r *http.Request) {
-	if v.Config.SignInOnChallenge {
+	if v.Config.OAuth.SignInOnChallenge {
 		v.logInHandler()(w, r)
 	} else {
 		http.Error(w, "not found", http.StatusNotFound)
@@ -194,9 +183,9 @@ func (v *OAuthValidator) challengeAction(w http.ResponseWriter, r *http.Request)
 
 func (v *OAuthValidator) logInHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		redirectURL := fmt.Sprintf("%s://%s%s", util.GetScheme(r), r.Host, v.Config.Prefix+"oauth/callback")
+		redirectURL := fmt.Sprintf("%s://%s%s", util.GetScheme(r), r.Host, v.Config.OAuth.Prefix+"oauth/callback")
 		state := util.RandStringBytes(32)
-		if err := v.StateStore.Set(r.Context(), state); err != nil {
+		if err := (*v.StateStore).Set(r.Context(), state); err != nil {
 			log.Printf("Error setting state: %v", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -214,10 +203,10 @@ func (v *OAuthValidator) logOutHandler() http.HandlerFunc {
 		redirectURL := fmt.Sprintf("%s://%s", util.GetScheme(r), r.Host)
 		logoutURL := fmt.Sprintf(
 			"%s/realms/%s/protocol/openid-connect/logout?post_logout_redirect_uri=%s&client_id=%s",
-			v.Config.AuthServerURL,
+			v.Config.OAuth.AuthServerURL,
 			url.PathEscape(v.Config.Realm),
 			url.QueryEscape(redirectURL),
-			v.Config.ClientID,
+			v.Config.OAuth.ClientID,
 		)
 		http.SetCookie(w, &http.Cookie{
 			Name:  "session_id",
@@ -258,11 +247,11 @@ func (v *OAuthValidator) backChannelLogOutHandler() http.HandlerFunc {
 			return
 		}
 
-		if v.Config.DumpClaims {
+		if v.Config.OAuth.DumpClaims {
 			log.Printf("Dump logout token claims: %+v", claims)
 		}
 
-		(*v.Config.SessionStore).Delete(r.Context(), claims["sid"].(string))
+		(*v.SessionStore).Delete(r.Context(), claims["sid"].(string))
 	}
 }
 
@@ -282,7 +271,7 @@ func (v *OAuthValidator) validateAndGetClaimsIDToken(ctx context.Context, oauth2
 		return nil, fmt.Errorf("failed to get user info: %w", err)
 	}
 
-	if v.Config.DumpClaims {
+	if v.Config.OAuth.DumpClaims {
 		log.Printf("Dump ID token claims: %+v", claims)
 	}
 
@@ -292,7 +281,7 @@ func (v *OAuthValidator) validateAndGetClaimsIDToken(ctx context.Context, oauth2
 func (v *OAuthValidator) verifyState(r *http.Request) error {
 	state := r.URL.Query().Get("state")
 
-	if _, err := v.StateStore.Get(r.Context(), state); err != nil {
+	if _, err := (*v.StateStore).Get(r.Context(), state); err != nil {
 		return fmt.Errorf("invalid state: %v", err)
 	}
 

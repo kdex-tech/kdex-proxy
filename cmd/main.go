@@ -26,6 +26,7 @@ import (
 
 	"kdex.dev/proxy/internal/app"
 	"kdex.dev/proxy/internal/authn"
+	"kdex.dev/proxy/internal/config"
 	"kdex.dev/proxy/internal/fileserver"
 	"kdex.dev/proxy/internal/importmap"
 	mAuthn "kdex.dev/proxy/internal/middleware/authn"
@@ -36,8 +37,19 @@ import (
 )
 
 func main() {
-	ps := proxy.NewServerFromEnv()
-	httpServer := &http.Server{Addr: ps.ListenAddress + ":" + ps.ListenPort}
+	c := config.NewConfigFromEnv()
+
+	httpServer := &http.Server{
+		Addr: c.ListenAddress + ":" + c.ListenPort,
+	}
+	fileServer := fileserver.FileServer{
+		Dir:    c.ModuleDir,
+		Prefix: c.Fileserver.Prefix,
+	}
+	sessionStore, err := session.NewSessionStore(context.Background(), c.Session.Store)
+	if err != nil {
+		log.Fatalf("Failed to create session store: %v", err)
+	}
 
 	go func() {
 		sigChan := make(chan os.Signal, 1)
@@ -53,57 +65,55 @@ func main() {
 		log.Println("Server graceful shutdown complete.")
 	}()
 
-	fs, err := fileserver.NewFileServerFromEnv()
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	sessionStore, err := session.NewSessionStore(context.Background(), "memory")
-	if err != nil {
-		log.Fatalf("Failed to create session store: %v", err)
-	}
-
-	ps.WithTransformer(
-		&transform.AggregatedTransformer{
-			Transformers: []transform.Transformer{
-				importmap.NewImportMapTransformerFromEnv().WithModulePrefix(fs.Prefix),
-				&app.AppTransformer{
-					AppManager:    app.NewAppManagerFromEnv(),
-					PathSeparator: ps.PathSeparator,
-					SessionStore:  &sessionStore,
-				},
+	transformer := &transform.AggregatedTransformer{
+		Transformers: []transform.Transformer{
+			importmap.NewImportMapTransformer(&c.Importmap, c.ModuleDir),
+			&app.AppTransformer{
+				Apps:          &c.Apps,
+				PathSeparator: c.Proxy.PathSeparator,
+				SessionStore:  &sessionStore,
 			},
 		},
+	}
+
+	proxyServer := proxy.NewServer(
+		&c.Proxy,
+		transformer,
 	)
 
 	mux := http.NewServeMux()
 
-	// Authn Middleware
-	authnMW := mAuthn.NewAuthnMiddleware(
-		authn.NewAuthnConfigFromEnv(
-			&sessionStore,
-		).Register(mux),
+	authValidator := authn.AuthValidatorFactory(
+		&c.Authn,
+		&sessionStore,
 	)
 
-	// Logger Middleware
-	loggerMW := &mLogger.LoggerMiddleware{
+	(*authValidator).Register(mux)
+
+	authnMiddleware := &mAuthn.AuthnMiddleware{
+		AuthenticateHeader:     c.Authn.AuthenticateHeader,
+		AuthenticateStatusCode: c.Authn.AuthenticateStatusCode,
+		ProtectedPaths:         c.Authn.ProtectedPaths,
+		AuthValidator:          *authValidator,
+	}
+
+	loggerMiddleware := &mLogger.LoggerMiddleware{
 		Impl: log.Default(),
 	}
 
-	mux.Handle("GET "+fs.Prefix, loggerMW.Log(fs.ServeHTTP()))
-	mux.Handle("GET "+ps.ProbePrefix, loggerMW.Log(http.HandlerFunc(ps.Probe)))
+	mux.Handle("GET "+fileServer.Prefix, loggerMiddleware.Log(fileServer.ServeHTTP()))
+	mux.Handle("GET "+proxyServer.ProbePath, loggerMiddleware.Log(http.HandlerFunc(proxyServer.Probe)))
 	mux.Handle("/",
-		loggerMW.Log(
-			authnMW.Authn(
-				http.HandlerFunc(ps.ReverseProxy()),
+		loggerMiddleware.Log(
+			authnMiddleware.Authn(
+				http.HandlerFunc(proxyServer.ReverseProxy()),
 			),
 		),
 	)
 
 	httpServer.Handler = mux
 
-	log.Printf("Server listening on %s:%s", ps.ListenAddress, ps.ListenPort)
+	log.Printf("Server listening on %s:%s", c.ListenAddress, c.ListenPort)
 
 	if err := httpServer.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 		log.Fatalf("Server error: %v", err)

@@ -67,22 +67,13 @@ spec:
         - mountPath: /modules
           name: kdex-proxy-pvc
           subPath: modules
-        - mountPath: /sessions
-          name: kdex-proxy-pvc
-          subPath: sessions
-        - mountPath: /etc/kdex/apps
+        - mountPath: /etc/kdex-proxy/config.json
           name: kdex-proxy-config
-          subPath: apps
-        - mountPath: /etc/kdex/module_body
-          name: kdex-proxy-config
-          subPath: module_body
+          subPath: config.json
       - name: proxy
         image: registry:5000/kdex-tech/proxy:latest
         ports:
         - containerPort: 8080
-        envFrom:
-        - configMapRef:
-            name: kdex-proxy-config
         resources:
           limits:
             cpu: 500m
@@ -103,15 +94,9 @@ spec:
         - mountPath: /modules
           name: kdex-proxy-pvc
           subPath: modules
-        - mountPath: /sessions
-          name: kdex-proxy-pvc
-          subPath: sessions
-        - mountPath: /etc/kdex/apps
+        - mountPath: /etc/kdex-proxy/config.json
           name: kdex-proxy-config
-          subPath: apps
-        - mountPath: /etc/kdex/module_body
-          name: kdex-proxy-config
-          subPath: module_body
+          subPath: config.json
       volumes:
       - name: kdex-proxy-pvc
         persistentVolumeClaim:

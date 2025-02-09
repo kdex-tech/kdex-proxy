@@ -1,62 +1,15 @@
 package app
 
 import (
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"kdex.dev/proxy/internal/config"
 )
 
-func TestNewAppManagerFromEnv(t *testing.T) {
-	tests := []struct {
-		name string
-		want *AppManager
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := NewAppManagerFromEnv(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewAppManagerFromEnv() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestAppManager_GetApps(t *testing.T) {
+func TestApps_GetAppsForPage(t *testing.T) {
 	type fields struct {
-		apps Apps
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		want   Apps
-	}{
-		{
-			name: "test",
-			fields: fields{
-				apps: Apps{
-					{Address: "sample-app"},
-				},
-			},
-			want: Apps{
-				{Address: "sample-app"},
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			m := &AppManager{
-				Apps: tt.fields.apps,
-			}
-			if got := m.GetApps(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("AppManager.GetApps() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestAppManager_GetAppsForPage(t *testing.T) {
-	type fields struct {
-		apps Apps
+		apps *config.Apps
 	}
 	type args struct {
 		targetPath string
@@ -65,12 +18,12 @@ func TestAppManager_GetAppsForPage(t *testing.T) {
 		name   string
 		fields fields
 		args   args
-		want   Apps
+		want   []config.App
 	}{
 		{
 			name: "no apps found",
 			fields: fields{
-				apps: Apps{},
+				apps: &config.Apps{},
 			},
 			args: args{targetPath: "/posts"},
 			want: nil,
@@ -78,44 +31,40 @@ func TestAppManager_GetAppsForPage(t *testing.T) {
 		{
 			name: "one app found among one app",
 			fields: fields{
-				apps: Apps{
-					{Address: "sample-app", Targets: []Target{{Path: "/posts", Container: "main"}}},
+				apps: &config.Apps{
+					{Address: "sample-app", Targets: []config.Target{{Path: "/posts", Container: "main"}}},
 				},
 			},
 			args: args{targetPath: "/posts"},
-			want: Apps{
-				{Address: "sample-app", Targets: []Target{{Path: "/posts", Container: "main"}}},
+			want: []config.App{
+				{Address: "sample-app", Targets: []config.Target{{Path: "/posts", Container: "main"}}},
 			},
 		},
 		{
 			name: "one app found among two apps",
 			fields: fields{
-				apps: Apps{
-					{Address: "sample-app", Targets: []Target{{Path: "/posts", Container: "main"}}},
-					{Address: "sample-app-2", Targets: []Target{{Path: "/other", Container: "main"}}},
+				apps: &config.Apps{
+					{Address: "sample-app", Targets: []config.Target{{Path: "/posts", Container: "main"}}},
+					{Address: "sample-app-2", Targets: []config.Target{{Path: "/other", Container: "main"}}},
 				},
 			},
 			args: args{targetPath: "/posts"},
-			want: Apps{
-				{Address: "sample-app", Targets: []Target{{Path: "/posts", Container: "main"}}},
+			want: []config.App{
+				{Address: "sample-app", Targets: []config.Target{{Path: "/posts", Container: "main"}}},
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := &AppManager{
-				Apps: tt.fields.apps,
-			}
-			if got := m.GetAppsForTargetPath(tt.args.targetPath); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("AppManager.GetAppsForTargetPath() = %v, want %v", got, tt.want)
-			}
+			got := tt.fields.apps.GetAppsForTargetPath(tt.args.targetPath)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
 
 func TestValidateApp(t *testing.T) {
 	type args struct {
-		app App
+		app *config.App
 	}
 	tests := []struct {
 		name    string
@@ -125,56 +74,56 @@ func TestValidateApp(t *testing.T) {
 		{
 			name: "missing address",
 			args: args{
-				app: App{},
+				app: &config.App{},
 			},
 			wantErr: true,
 		},
 		{
 			name: "missing element",
 			args: args{
-				app: App{Address: "sample-app"},
+				app: &config.App{Address: "sample-app"},
 			},
 			wantErr: true,
 		},
 		{
 			name: "missing path",
 			args: args{
-				app: App{Address: "sample-app", Element: "sample-element"},
+				app: &config.App{Address: "sample-app", Element: "sample-element"},
 			},
 			wantErr: true,
 		},
 		{
 			name: "missing targets",
 			args: args{
-				app: App{Address: "sample-app", Element: "sample-element", Path: "sample-path"},
+				app: &config.App{Address: "sample-app", Element: "sample-element", Path: "sample-path"},
 			},
 			wantErr: true,
 		},
 		{
 			name: "missing targets",
 			args: args{
-				app: App{Address: "sample-app", Element: "sample-element", Path: "sample-path", Targets: []Target{}},
+				app: &config.App{Address: "sample-app", Element: "sample-element", Path: "sample-path", Targets: []config.Target{}},
 			},
 			wantErr: true,
 		},
 		{
 			name: "missing targets page",
 			args: args{
-				app: App{Address: "sample-app", Element: "sample-element", Path: "sample-path", Targets: []Target{{Container: "sample-container"}}},
+				app: &config.App{Address: "sample-app", Element: "sample-element", Path: "sample-path", Targets: []config.Target{{Container: "sample-container"}}},
 			},
 			wantErr: true,
 		},
 		{
 			name: "valid app",
 			args: args{
-				app: App{Address: "sample-app", Element: "sample-element", Path: "sample-path", Targets: []Target{{Path: "sample-page", Container: "sample-container"}}},
+				app: &config.App{Address: "sample-app", Element: "sample-element", Path: "sample-path", Targets: []config.Target{{Path: "sample-page", Container: "sample-container"}}},
 			},
 			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := ValidateApp(tt.args.app); (err != nil) != tt.wantErr {
+			if err := tt.args.app.Validate(); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateApp() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
