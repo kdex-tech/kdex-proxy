@@ -19,12 +19,12 @@ type MetaTransformer struct {
 }
 
 func (m *MetaTransformer) Transform(r *http.Response, doc *html.Node) error {
-	headNode := dom.FindElementByName("head", doc, nil)
-
 	isLoggedIn, err := m.getSessionStatus(r)
 	if err != nil {
 		log.Printf("Error getting session status: %v", err)
 	}
+
+	headNode := dom.FindElementByName("head", doc, nil)
 
 	if headNode != nil {
 		metaNode := &html.Node{
