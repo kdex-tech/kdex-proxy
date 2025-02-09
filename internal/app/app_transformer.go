@@ -20,9 +20,12 @@ const (
 
 type AppTransformer struct {
 	transform.Transformer
-	Apps          *config.Apps
-	PathSeparator string
-	SessionStore  *session.SessionStore
+	Apps              *config.Apps
+	Login             *config.LoginConfig
+	Logout            *config.LogoutConfig
+	PathSeparator     string
+	SessionCookieName string
+	SessionStore      *session.SessionStore
 }
 
 func (t *AppTransformer) Transform(r *http.Response, doc *html.Node) error {
@@ -140,12 +143,12 @@ func (t *AppTransformer) applyMetadata(r *http.Response, doc *html.Node) {
 			Attr: []html.Attribute{
 				{Key: "name", Val: "kdex-ui"},
 				{Key: "data-path-separator", Val: t.PathSeparator},
-				{Key: "data-login-path", Val: "/~/o/oauth/login"},
-				{Key: "data-login-label", Val: "Login"},
-				{Key: "data-login-css-query", Val: `nav a[href="/signin/"]`},
-				{Key: "data-logout-path", Val: "/~/o/oauth/logout"},
-				{Key: "data-logout-label", Val: "Logout"},
-				{Key: "data-logout-css-query", Val: `nav a[href="/signin/"]`},
+				{Key: "data-login-path", Val: t.Login.Path},
+				{Key: "data-login-label", Val: t.Login.Label},
+				{Key: "data-login-css-query", Val: t.Login.CSSQuery},
+				{Key: "data-logout-path", Val: t.Logout.Path},
+				{Key: "data-logout-label", Val: t.Logout.Label},
+				{Key: "data-logout-css-query", Val: t.Logout.CSSQuery},
 				{Key: "data-logged-in", Val: fmt.Sprintf("%t", isLoggedIn)},
 			},
 		}
@@ -154,7 +157,7 @@ func (t *AppTransformer) applyMetadata(r *http.Response, doc *html.Node) {
 }
 
 func (t *AppTransformer) getSessionStatus(r *http.Response) (bool, error) {
-	sessionCookie, err := r.Request.Cookie("session_id")
+	sessionCookie, err := r.Request.Cookie(t.SessionCookieName)
 	if err != nil {
 		return false, err
 	}

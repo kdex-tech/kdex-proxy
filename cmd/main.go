@@ -46,7 +46,7 @@ func main() {
 		Dir:    c.ModuleDir,
 		Prefix: c.Fileserver.Prefix,
 	}
-	sessionStore, err := session.NewSessionStore(context.Background(), c.Session.Store)
+	sessionStore, err := session.NewSessionStore(context.Background(), &c.Session)
 	if err != nil {
 		log.Fatalf("Failed to create session store: %v", err)
 	}
@@ -69,9 +69,12 @@ func main() {
 		Transformers: []transform.Transformer{
 			importmap.NewImportMapTransformer(&c.Importmap, c.ModuleDir, c.Fileserver.Prefix),
 			&app.AppTransformer{
-				Apps:          &c.Apps,
-				PathSeparator: c.Proxy.PathSeparator,
-				SessionStore:  &sessionStore,
+				Apps:              &c.Apps,
+				Login:             &c.Authn.Login,
+				Logout:            &c.Authn.Logout,
+				PathSeparator:     c.Proxy.PathSeparator,
+				SessionStore:      &sessionStore,
+				SessionCookieName: c.Session.CookieName,
 			},
 		},
 	}
@@ -86,6 +89,7 @@ func main() {
 	authValidator := authn.AuthValidatorFactory(
 		&c.Authn,
 		&sessionStore,
+		c.Session.CookieName,
 	)
 
 	(*authValidator).Register(mux)

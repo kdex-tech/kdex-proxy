@@ -26,6 +26,16 @@ data:
         "authorization_header": "Authorization",
         "authenticate_status_code": 401,
         "auth_validator": "oauth",
+        "login": {
+          "path": "/~/o/oauth/login",
+          "label": "Login",
+          "css_query": `nav a[href="/signin/"]`
+        },
+        "logout": {
+          "path": "/~/o/oauth/logout",
+          "label": "Logout",
+          "css_query": `nav a[href="/signin/"]`
+        },
         "realm": "KDEX Proxy",
         "protected_paths": [
           "/private"

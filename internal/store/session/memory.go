@@ -6,16 +6,19 @@ import (
 	"sync"
 	"time"
 
+	"kdex.dev/proxy/internal/config"
 	"kdex.dev/proxy/internal/util"
 )
 
-func NewMemorySessionStore() SessionStore {
+func NewMemorySessionStore(config *config.SessionConfig) SessionStore {
 	return &memorySessionStore{
+		config:   config,
 		sessions: make(map[string]SessionData),
 	}
 }
 
 type memorySessionStore struct {
+	config   *config.SessionConfig
 	sessions map[string]SessionData
 	mu       sync.RWMutex
 }

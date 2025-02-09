@@ -15,6 +15,7 @@
 package proxy
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -27,6 +28,7 @@ import (
 	"kdex.dev/proxy/internal/app"
 	"kdex.dev/proxy/internal/config"
 	"kdex.dev/proxy/internal/importmap"
+	"kdex.dev/proxy/internal/store/session"
 	"kdex.dev/proxy/internal/transform"
 )
 
@@ -126,7 +128,25 @@ func TestServer_ReverseProxy(t *testing.T) {
 						},
 					},
 				},
-				PathSeparator: "/_/",
+				Login: &config.LoginConfig{
+					Path:     "/~/o/oauth/login",
+					Label:    "Login",
+					CSSQuery: "nav a[href=&#34;/signin/&#34;]",
+				},
+				Logout: &config.LogoutConfig{
+					Path:     "/~/o/oauth/logout",
+					Label:    "Logout",
+					CSSQuery: "nav a[href=&#34;/signin/&#34;]",
+				},
+				PathSeparator:     "/_/",
+				SessionCookieName: "session_id",
+				SessionStore: func() *session.SessionStore {
+					store, _ := session.NewSessionStore(context.Background(), &config.SessionConfig{
+						CookieName: "session_id",
+						Store:      "memory",
+					})
+					return &store
+				}(),
 			},
 		},
 	}

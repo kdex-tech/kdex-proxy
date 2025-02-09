@@ -16,17 +16,19 @@ import (
 )
 
 type OAuthValidator struct {
-	Config       *config.AuthnConfig
-	Oauth2Config *oauth2.Config
-	Provider     *oidc.Provider
-	SessionStore *session.SessionStore
-	StateStore   *state.StateStore
-	Verifier     *oidc.IDTokenVerifier
+	Config            *config.AuthnConfig
+	Oauth2Config      *oauth2.Config
+	Provider          *oidc.Provider
+	SessionCookieName string
+	SessionStore      *session.SessionStore
+	StateStore        *state.StateStore
+	Verifier          *oidc.IDTokenVerifier
 }
 
 func NewOAuthValidator(
 	ctx context.Context,
 	config *config.AuthnConfig,
+	sessionCookieName string,
 	sessionStore *session.SessionStore,
 	stateStore *state.StateStore,
 ) *OAuthValidator {
@@ -53,12 +55,13 @@ func NewOAuthValidator(
 	}
 
 	return &OAuthValidator{
-		Config:       config,
-		Oauth2Config: &oauth2Config,
-		Provider:     provider,
-		SessionStore: sessionStore,
-		StateStore:   stateStore,
-		Verifier:     verifier,
+		Config:            config,
+		Oauth2Config:      &oauth2Config,
+		Provider:          provider,
+		SessionCookieName: sessionCookieName,
+		SessionStore:      sessionStore,
+		StateStore:        stateStore,
+		Verifier:          verifier,
 	}
 }
 
@@ -70,7 +73,7 @@ func (v *OAuthValidator) Register(mux *http.ServeMux) {
 }
 
 func (v *OAuthValidator) Validate(w http.ResponseWriter, r *http.Request) func(h http.Handler) {
-	sessionCookie, err := r.Cookie("session_id")
+	sessionCookie, err := r.Cookie(v.SessionCookieName)
 	if err != nil {
 		return func(h http.Handler) {
 			v.challengeAction(w, r)
@@ -81,7 +84,7 @@ func (v *OAuthValidator) Validate(w http.ResponseWriter, r *http.Request) func(h
 	if err != nil {
 		return func(h http.Handler) {
 			http.SetCookie(w, &http.Cookie{
-				Name:  "session_id",
+				Name:  v.SessionCookieName,
 				Value: "",
 				Path:  "/",
 			})
@@ -97,7 +100,7 @@ func (v *OAuthValidator) Validate(w http.ResponseWriter, r *http.Request) func(h
 		return func(h http.Handler) {
 			(*v.SessionStore).Delete(r.Context(), sessionCookie.Value)
 			http.SetCookie(w, &http.Cookie{
-				Name:  "session_id",
+				Name:  v.SessionCookieName,
 				Value: "",
 				Path:  "/",
 			})
@@ -162,7 +165,7 @@ func (v *OAuthValidator) callbackHandler() http.HandlerFunc {
 
 		http.SetCookie(w, &http.Cookie{
 			HttpOnly: true,
-			Name:     "session_id",
+			Name:     v.SessionCookieName,
 			Path:     "/",
 			SameSite: http.SameSiteStrictMode,
 			Secure:   util.GetScheme(r) == "https",
@@ -209,7 +212,7 @@ func (v *OAuthValidator) logOutHandler() http.HandlerFunc {
 			v.Config.OAuth.ClientID,
 		)
 		http.SetCookie(w, &http.Cookie{
-			Name:  "session_id",
+			Name:  v.SessionCookieName,
 			Value: "",
 			Path:  "/",
 		})

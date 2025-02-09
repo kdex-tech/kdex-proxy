@@ -38,6 +38,8 @@ type AuthnConfig struct {
 	AuthenticateStatusCode int             `json:"authenticate_status_code"`
 	AuthValidator          string          `json:"auth_validator"`
 	BasicAuth              BasicAuthConfig `json:"basic_auth"`
+	Login                  LoginConfig     `json:"login"`
+	Logout                 LogoutConfig    `json:"logout"`
 	OAuth                  OAuthConfig     `json:"oauth"`
 	ProtectedPaths         []string        `json:"protected_paths"`
 	Realm                  string          `json:"realm"`
@@ -54,6 +56,18 @@ type FileserverConfig struct {
 
 type ImportmapConfig struct {
 	PreloadModules []string `json:"preload_modules,omitempty"`
+}
+
+type LoginConfig struct {
+	Path     string `json:"path"`
+	Label    string `json:"label"`
+	CSSQuery string `json:"css_query"`
+}
+
+type LogoutConfig struct {
+	Path     string `json:"path"`
+	Label    string `json:"label"`
+	CSSQuery string `json:"css_query"`
 }
 
 type OAuthConfig struct {
@@ -77,7 +91,8 @@ type ProxyConfig struct {
 }
 
 type SessionConfig struct {
-	Store string `json:"store"`
+	CookieName string `json:"cookie_name"`
+	Store      string `json:"store"`
 }
 
 type Target struct {
@@ -94,6 +109,14 @@ var defaultConfig = Config{
 		BasicAuth: BasicAuthConfig{
 			Username: "admin",
 			Password: "admin",
+		},
+		Login: LoginConfig{
+			Path:  "/~/o/oauth/login",
+			Label: "Login",
+		},
+		Logout: LogoutConfig{
+			Path:  "/~/o/oauth/logout",
+			Label: "Logout",
 		},
 		OAuth: OAuthConfig{
 			ClientID:    "kdex-proxy",
@@ -126,7 +149,8 @@ var defaultConfig = Config{
 		UpstreamHealthzPath: "/",
 	},
 	Session: SessionConfig{
-		Store: "memory",
+		CookieName: "session_id",
+		Store:      "memory",
 	},
 }
 

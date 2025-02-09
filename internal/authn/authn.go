@@ -28,7 +28,11 @@ type AuthValidator interface {
 	Register(mux *http.ServeMux)
 }
 
-func AuthValidatorFactory(config *config.AuthnConfig, sessionStore *session.SessionStore) *AuthValidator {
+func AuthValidatorFactory(
+	config *config.AuthnConfig,
+	sessionStore *session.SessionStore,
+	sessionCookieName string,
+) *AuthValidator {
 	var auth_validator AuthValidator
 	switch config.AuthValidator {
 	case Validator_StaticBasicAuth:
@@ -45,7 +49,13 @@ func AuthValidatorFactory(config *config.AuthnConfig, sessionStore *session.Sess
 		if err != nil {
 			log.Fatalf("Failed to create state store: %v", err)
 		}
-		auth_validator = NewOAuthValidator(context.Background(), config, sessionStore, &stateStore)
+		auth_validator = NewOAuthValidator(
+			context.Background(),
+			config,
+			sessionCookieName,
+			sessionStore,
+			&stateStore,
+		)
 	default: // Validator_NoOp
 		auth_validator = &NoOpAuthValidator{}
 	}

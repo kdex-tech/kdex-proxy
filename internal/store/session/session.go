@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"time"
+
+	"kdex.dev/proxy/internal/config"
 )
 
 type SessionData struct {
@@ -20,10 +22,10 @@ type SessionStore interface {
 	Set(ctx context.Context, sessionID string, data SessionData) error
 }
 
-func NewSessionStore(ctx context.Context, storeType string) (SessionStore, error) {
-	switch storeType {
+func NewSessionStore(ctx context.Context, config *config.SessionConfig) (SessionStore, error) {
+	switch config.Store {
 	case "memory":
-		return NewMemorySessionStore(), nil
+		return NewMemorySessionStore(config), nil
 	}
-	return nil, fmt.Errorf("invalid store type: %s", storeType)
+	return nil, fmt.Errorf("invalid store type: %s", config.Store)
 }
