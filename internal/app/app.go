@@ -22,6 +22,12 @@ type AppTransformer struct {
 	Config *config.Config
 }
 
+func NewAppTransformer(config *config.Config) *AppTransformer {
+	return &AppTransformer{
+		Config: config,
+	}
+}
+
 func (t *AppTransformer) Transform(r *http.Response, doc *html.Node) error {
 	targetPath := strings.TrimSuffix(r.Request.URL.Path, "/")
 	log.Printf("Looking for apps for %s", targetPath)

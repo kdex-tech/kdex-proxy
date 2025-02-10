@@ -5,95 +5,61 @@ metadata:
   labels:
     app: kdex-proxy
 data:
-  config.json: |
-    {
-      "apps": [
-        {
-          "alias": "ke",
-          "address": "sample-app.docker.localhost",
-          "element": "kdex-example",
-          "path": "app.js",
-          "targets": [
-            {
-              "path": "/posts",
-              "container_id": "main"
-            }
-          ]
-        },
-        {
-          "alias": "k2",
-          "address": "sample-app.docker.localhost",
-          "element": "kdex-example",
-          "path": "app.js",
-          "targets": [
-            {
-              "path": "/admin",
-              "container_id": "main"
-            }
-          ]
-        }
-      ],
-      "authn": {
-        "authenticate_header": "WWW-Authenticate",
-        "authorization_header": "Authorization",
-        "authenticate_status_code": 401,
-        "auth_validator": "oauth",
-        "login": {
-          "path": "/~/o/oauth/login",
-          "label": "Login",
-          "query": `nav a[href="/signin/"]`
-        },
-        "logout": {
-          "path": "/~/o/oauth/logout",
-          "label": "Logout",
-          "query": `nav a[href="/signin/"]`
-        },
-        "realm": "KDEX Proxy",
-        "oauth": {
-          "auth_server_url": "http://keycloak.docker.localhost",
-          "client_id": "kdex-proxy",
-          "client_secret": "FZd8qsIive63taCdU3y3fARCCMU1SCUS",
-          "dump_claims": true,
-          "redirect_uri": "http://proxy.docker.localhost/~/o/oauth/callback",
-          "scopes": [
-            "openid",
-            "profile",
-            "email"
-          ]
-        }
-      },
-      "navigation": {
-        "nav_items_query": `//nav//li[not(contains(@class,'Banner-item--title')) and contains(@class,'Banner-item')]`,
-        "nav_item_fields": {
-          "href": `a/@href`,
-          "label": `a/text()`
-        },
-        "nav_item_template": `
-          <li class="Banner-item">
-            <a class="Banner-link u-clickable" href="{{ .href }}">{{ .label }}</a>
-          </li>
-        `,
-        "protected_paths": [
-          "/admin",
-          "/private"
-        ],
-        "template_paths": [
-          {
-            "path": "/admin1",
-            "template": "/template1"
-          },
-          {
-            "path": "/admin2",
-            "template": "/template1"
-          }
-        ]
-      },
-      "proxy": {
-        "always_append_slash": true,
-        "upstream_address": "sample-site",
-        "upstream_healthz_path": "/"
-      }
-    }
+  proxy.config: |
+    apps:
+    - alias: ke
+      address: sample-app.docker.localhost
+      element: kdex-example
+      path: app.js
+      targets:
+      - path: /posts
+        container_id: main
+    - alias: k2
+      address: sample-app.docker.localhost
+      element: kdex-example
+      path: app.js
+      targets:
+      - path: /admin
+        container_id: main
+    authn:
+      auth_validator: oauth
+      login:
+        path: /~/o/oauth/login
+        label: Login
+        query: nav a[href="/signin/"]
+      logout:
+        path: /~/o/oauth/logout
+        label: Logout
+        query: nav a[href="/signin/"]
+      oauth:
+        auth_server_url: http://keycloak.docker.localhost
+        client_id: kdex-proxy
+        client_secret: FZd8qsIive63taCdU3y3fARCCMU1SCUS
+        redirect_uri: http://proxy.docker.localhost/~/o/oauth/callback
+    navigation:
+      nav_items_query: //nav//li[not(contains(@class,'Banner-item--title')) and contains(@class,'Banner-item')]
+      nav_item_fields:
+        href: a/@href
+        label: a/text()
+      nav_item_template: |
+        <li class="Banner-item">
+          <a class="Banner-link u-clickable" href="{{ .href }}">{{ .label }}</a>
+        </li>
+      protected_paths:
+      - /admin
+      - /private
+      template_paths:
+      - href: /foo
+        label: Foo
+        template: /template1
+        weight: 0.5
+      - href: /admin
+        label: Admin
+        template: /template1
+        weight: 10.5
+    proxy:
+      always_append_slash: true
+      upstream_address: sample-site
 
   # The package.json file for the proxy
   package.json: |

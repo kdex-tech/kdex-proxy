@@ -1,114 +1,119 @@
 package config
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 
+	"gopkg.in/yaml.v3"
 	"kdex.dev/proxy/internal/util"
 )
 
 type Config struct {
-	Apps          []App            `json:"apps,omitempty"`
-	Authn         AuthnConfig      `json:"authn"`
-	Fileserver    FileserverConfig `json:"fileserver"`
-	Importmap     ImportmapConfig  `json:"importmap"`
-	ListenAddress string           `json:"listen_address"`
-	ListenPort    string           `json:"listen_port"`
-	ModuleDir     string           `json:"module_dir"`
-	Navigation    NavigationConfig `json:"navigation"`
-	Proxy         ProxyConfig      `json:"proxy"`
-	Session       SessionConfig    `json:"session"`
+	Apps          []App            `json:"apps,omitempty" yaml:"apps,omitempty"`
+	Authn         AuthnConfig      `json:"authn,omitempty" yaml:"authn,omitempty"`
+	Fileserver    FileserverConfig `json:"fileserver,omitempty" yaml:"fileserver,omitempty"`
+	Importmap     ImportmapConfig  `json:"importmap,omitempty" yaml:"importmap,omitempty"`
+	ListenAddress string           `json:"listen_address,omitempty" yaml:"listen_address,omitempty"`
+	ListenPort    string           `json:"listen_port,omitempty" yaml:"listen_port,omitempty"`
+	ModuleDir     string           `json:"module_dir,omitempty" yaml:"module_dir,omitempty"`
+	Navigation    NavigationConfig `json:"navigation,omitempty" yaml:"navigation,omitempty"`
+	Proxy         ProxyConfig      `json:"proxy" yaml:"proxy"`
+	Session       SessionConfig    `json:"session,omitempty" yaml:"session,omitempty"`
+	json          bool
 }
 
 type App struct {
-	Alias          string   `json:"alias"`
-	Address        string   `json:"address"`
-	Element        string   `json:"element"`
-	Path           string   `json:"path"`
-	Targets        []Target `json:"targets"`
-	RequiredScopes []string `json:"required_scopes,omitempty"`
+	Alias          string   `json:"alias,omitempty" yaml:"alias,omitempty"`
+	Address        string   `json:"address" yaml:"address"`
+	Element        string   `json:"element" yaml:"element"`
+	Path           string   `json:"path" yaml:"path"`
+	Targets        []Target `json:"targets" yaml:"targets"`
+	RequiredScopes []string `json:"required_scopes,omitempty" yaml:"required_scopes,omitempty"`
 }
 
 type AuthnConfig struct {
-	AuthenticateHeader     string          `json:"authenticate_header"`
-	AuthorizationHeader    string          `json:"authorization_header"`
-	AuthenticateStatusCode int             `json:"authenticate_status_code"`
-	AuthValidator          string          `json:"auth_validator"`
-	BasicAuth              BasicAuthConfig `json:"basic_auth"`
-	Login                  LoginConfig     `json:"login"`
-	Logout                 LogoutConfig    `json:"logout"`
-	OAuth                  OAuthConfig     `json:"oauth"`
-	Realm                  string          `json:"realm"`
+	AuthenticateHeader     string          `json:"authenticate_header,omitempty" yaml:"authenticate_header,omitempty"`
+	AuthorizationHeader    string          `json:"authorization_header,omitempty" yaml:"authorization_header,omitempty"`
+	AuthenticateStatusCode int             `json:"authenticate_status_code,omitempty" yaml:"authenticate_status_code,omitempty"`
+	AuthValidator          string          `json:"auth_validator,omitempty" yaml:"auth_validator,omitempty"`
+	BasicAuth              BasicAuthConfig `json:"basic_auth,omitempty" yaml:"basic_auth,omitempty"`
+	Login                  LoginConfig     `json:"login,omitempty" yaml:"login,omitempty"`
+	Logout                 LogoutConfig    `json:"logout,omitempty" yaml:"logout,omitempty"`
+	OAuth                  OAuthConfig     `json:"oauth,omitempty" yaml:"oauth,omitempty"`
+	Realm                  string          `json:"realm,omitempty" yaml:"realm,omitempty"`
 }
 
 type BasicAuthConfig struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+	Username string `json:"username,omitempty" yaml:"username,omitempty"`
+	Password string `json:"password,omitempty" yaml:"password,omitempty"`
 }
 
 type FileserverConfig struct {
-	Prefix string `json:"prefix"`
+	Prefix string `json:"prefix,omitempty" yaml:"prefix,omitempty"`
 }
 
 type ImportmapConfig struct {
-	PreloadModules []string `json:"preload_modules,omitempty"`
+	PreloadModules []string `json:"preload_modules,omitempty" yaml:"preload_modules,omitempty"`
 }
 
 type LoginConfig struct {
-	Path  string `json:"path"`
-	Label string `json:"label"`
-	Query string `json:"query"`
+	Path  string `json:"path" yaml:"path"`
+	Label string `json:"label" yaml:"label"`
+	Query string `json:"query" yaml:"query"`
 }
 
 type LogoutConfig struct {
-	Path  string `json:"path"`
-	Label string `json:"label"`
-	Query string `json:"query"`
+	Path  string `json:"path" yaml:"path"`
+	Label string `json:"label" yaml:"label"`
+	Query string `json:"query" yaml:"query"`
 }
 
 type NavigationConfig struct {
-	NavItemsQuery   string            `json:"nav_items_query"`
-	NavItemFields   map[string]string `json:"nav_item_fields"`
-	NavItemTemplate string            `json:"nav_item_template"`
-	ProtectedPaths  []string          `json:"protected_paths"`
-	TemplatePaths   []TemplatePath    `json:"template_paths"`
+	NavItemsQuery   string            `json:"nav_items_query" yaml:"nav_items_query"`
+	NavItemFields   map[string]string `json:"nav_item_fields" yaml:"nav_item_fields"`
+	NavItemTemplate string            `json:"nav_item_template" yaml:"nav_item_template"`
+	ProtectedPaths  []string          `json:"protected_paths" yaml:"protected_paths"`
+	TemplatePaths   []TemplatePath    `json:"template_paths" yaml:"template_paths"`
 }
 
 type TemplatePath struct {
-	Path     string `json:"path"`
-	Template string `json:"template"`
+	Href     string  `json:"href" yaml:"href"`
+	Label    string  `json:"label" yaml:"label"`
+	Template string  `json:"template" yaml:"template"`
+	Weight   float64 `json:"weight" yaml:"weight"`
 }
 
 type OAuthConfig struct {
-	AuthServerURL     string   `json:"auth_server_url"`
-	ClientID          string   `json:"client_id"`
-	ClientSecret      string   `json:"client_secret"`
-	DumpClaims        bool     `json:"dump_claims"`
-	Prefix            string   `json:"prefix"`
-	RedirectURI       string   `json:"redirect_uri"`
-	Scopes            []string `json:"scopes"`
-	SignInOnChallenge bool     `json:"sign_in_on_challenge,omitempty"`
+	AuthServerURL     string   `json:"auth_server_url" yaml:"auth_server_url"`
+	ClientID          string   `json:"client_id" yaml:"client_id"`
+	ClientSecret      string   `json:"client_secret" yaml:"client_secret"`
+	DumpClaims        bool     `json:"dump_claims,omitempty" yaml:"dump_claims,omitempty"`
+	Prefix            string   `json:"prefix,omitempty" yaml:"prefix,omitempty"`
+	RedirectURI       string   `json:"redirect_uri" yaml:"redirect_uri"`
+	Scopes            []string `json:"scopes,omitempty" yaml:"scopes,omitempty"`
+	SignInOnChallenge bool     `json:"sign_in_on_challenge,omitempty" yaml:"sign_in_on_challenge,omitempty"`
 }
 
 type ProxyConfig struct {
-	AlwaysAppendSlash   bool   `json:"always_append_slash"`
-	PathSeparator       string `json:"path_separator"`
-	ProbePath           string `json:"probe_path"`
-	UpstreamAddress     string `json:"upstream_address"`
-	UpstreamScheme      string `json:"upstream_scheme"`
-	UpstreamHealthzPath string `json:"upstream_healthz_path"`
+	AlwaysAppendSlash   bool   `json:"always_append_slash,omitempty" yaml:"always_append_slash,omitempty"`
+	PathSeparator       string `json:"path_separator,omitempty" yaml:"path_separator,omitempty"`
+	ProbePath           string `json:"probe_path,omitempty" yaml:"probe_path,omitempty"`
+	UpstreamAddress     string `json:"upstream_address" yaml:"upstream_address"`
+	UpstreamScheme      string `json:"upstream_scheme,omitempty" yaml:"upstream_scheme,omitempty"`
+	UpstreamHealthzPath string `json:"upstream_healthz_path,omitempty" yaml:"upstream_healthz_path,omitempty"`
 }
 
 type SessionConfig struct {
-	CookieName string `json:"cookie_name"`
-	Store      string `json:"store"`
+	CookieName string `json:"cookie_name,omitempty" yaml:"cookie_name,omitempty"`
+	Store      string `json:"store,omitempty" yaml:"store,omitempty"`
 }
 
 type Target struct {
-	Path      string `json:"path"`
-	Container string `json:"container_id,omitempty"`
+	Path      string `json:"path" yaml:"path"`
+	Container string `json:"container_id,omitempty" yaml:"container_id,omitempty"`
 }
 
 var defaultConfig = Config{
@@ -171,14 +176,14 @@ var defaultConfig = Config{
 	},
 }
 
-func DefaultConfig() *Config {
-	return &defaultConfig
+func DefaultConfig() Config {
+	return defaultConfig
 }
 
 func NewConfigFromEnv() *Config {
 	configFile := os.Getenv("CONFIG_FILE")
 	if configFile == "" {
-		configFile = "/etc/kdex-proxy/config.json"
+		configFile = "/etc/kdex-proxy/proxy.config"
 	}
 
 	configBytes, err := os.ReadFile(configFile)
@@ -188,10 +193,24 @@ func NewConfigFromEnv() *Config {
 	}
 
 	config := defaultConfig
-	err = json.Unmarshal(configBytes, &config)
-	if err != nil {
-		log.Printf("Error unmarshalling config: %v", err)
-		return &defaultConfig
+
+	x := bytes.TrimLeft(configBytes, " \t\r\n")
+	isJsonObject := len(x) > 0 && x[0] == '{'
+
+	if isJsonObject {
+		config.json = true
+		err = json.Unmarshal(configBytes, &config)
+		if err != nil {
+			log.Printf("Error unmarshalling config: %v", err)
+			return &defaultConfig
+		}
+	} else {
+		config.json = false
+		err = yaml.Unmarshal(configBytes, &config)
+		if err != nil {
+			log.Printf("Error unmarshalling config: %v", err)
+			return &defaultConfig
+		}
 	}
 
 	for _, app := range config.Apps {
@@ -244,6 +263,11 @@ func (c *Config) GetAppsForTargetPath(targetPath string) []App {
 }
 
 func (c *Config) prettyPrint() {
-	s, _ := json.MarshalIndent(c, "", "  ")
-	log.Printf("Using config: %s", string(s))
+	var s []byte
+	if c.json {
+		s, _ = json.MarshalIndent(c, "", "  ")
+	} else {
+		s, _ = yaml.Marshal(c)
+	}
+	log.Printf("Using config:\n%s", string(s))
 }

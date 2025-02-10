@@ -32,6 +32,7 @@ import (
 	"kdex.dev/proxy/internal/meta"
 	mAuthn "kdex.dev/proxy/internal/middleware/authn"
 	mLogger "kdex.dev/proxy/internal/middleware/log"
+	"kdex.dev/proxy/internal/navigation"
 	"kdex.dev/proxy/internal/proxy"
 	"kdex.dev/proxy/internal/store/session"
 	"kdex.dev/proxy/internal/transform"
@@ -69,13 +70,9 @@ func main() {
 	transformer := &transform.AggregatedTransformer{
 		Transformers: []transform.Transformer{
 			importmap.NewImportMapTransformer(c),
-			&meta.MetaTransformer{
-				Config:       c,
-				SessionStore: &sessionStore,
-			},
-			&app.AppTransformer{
-				Config: c,
-			},
+			meta.NewMetaTransformer(c, &sessionStore),
+			navigation.NewNavigationTransformer(c),
+			app.NewAppTransformer(c),
 		},
 	}
 

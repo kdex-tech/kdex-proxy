@@ -27,6 +27,7 @@ func Test_statusRecorder_WriteHeader(t *testing.T) {
 			name: "status 200",
 			fields: fields{
 				ResponseWriter: httptest.NewRecorder(),
+				status:         200,
 			},
 			args: args{
 				code: http.StatusOK,
@@ -36,6 +37,7 @@ func Test_statusRecorder_WriteHeader(t *testing.T) {
 			name: "status 302",
 			fields: fields{
 				ResponseWriter: httptest.NewRecorder(),
+				status:         302,
 			},
 			args: args{
 				code: http.StatusFound,
@@ -45,6 +47,7 @@ func Test_statusRecorder_WriteHeader(t *testing.T) {
 			name: "status 404",
 			fields: fields{
 				ResponseWriter: httptest.NewRecorder(),
+				status:         404,
 			},
 			args: args{
 				code: http.StatusNotFound,
@@ -54,6 +57,7 @@ func Test_statusRecorder_WriteHeader(t *testing.T) {
 			name: "status 500",
 			fields: fields{
 				ResponseWriter: httptest.NewRecorder(),
+				status:         500,
 			},
 			args: args{
 				code: http.StatusInternalServerError,
@@ -67,6 +71,7 @@ func Test_statusRecorder_WriteHeader(t *testing.T) {
 				status:         tt.fields.status,
 			}
 			rec.WriteHeader(tt.args.code)
+			assert.Equal(t, tt.fields.status, rec.status)
 		})
 	}
 }

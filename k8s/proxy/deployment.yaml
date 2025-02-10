@@ -94,9 +94,9 @@ spec:
         - mountPath: /modules
           name: kdex-proxy-pvc
           subPath: modules
-        - mountPath: /etc/kdex-proxy/config.json
+        - mountPath: /etc/kdex-proxy/proxy.config
           name: kdex-proxy-config
-          subPath: config.json
+          subPath: proxy.config
       volumes:
       - name: kdex-proxy-pvc
         persistentVolumeClaim:

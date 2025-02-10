@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"slices"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"golang.org/x/oauth2"
@@ -39,8 +40,19 @@ func NewOAuthValidator(
 		log.Fatalf("Failed to create provider: %v", err)
 	}
 
-	scopes := []string{oidc.ScopeOpenID}
-	scopes = append(scopes, "roles")
+	scopes := config.OAuth.Scopes
+	if !slices.Contains(scopes, oidc.ScopeOpenID) {
+		scopes = append(scopes, oidc.ScopeOpenID)
+	}
+	if !slices.Contains(scopes, "email") {
+		scopes = append(scopes, "email")
+	}
+	if !slices.Contains(scopes, "profile") {
+		scopes = append(scopes, "profile")
+	}
+	if !slices.Contains(scopes, "roles") {
+		scopes = append(scopes, "roles")
+	}
 
 	verifier := provider.Verifier(&oidc.Config{
 		ClientID: config.OAuth.ClientID,

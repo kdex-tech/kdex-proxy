@@ -14,22 +14,51 @@
 package util
 
 import (
+	"bytes"
 	"math"
 	"net/http"
+	"strings"
 	"time"
 
 	"golang.org/x/exp/rand"
+	"golang.org/x/net/html"
 )
 
 const (
 	letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 )
 
+func Filter[T any](slice []T, filter func(T) bool) []T {
+	filtered := make([]T, 0, len(slice))
+	for _, item := range slice {
+		if filter(item) {
+			filtered = append(filtered, item)
+		}
+	}
+	return filtered
+}
+
 func GetScheme(r *http.Request) string {
 	if r.URL.Scheme != "" {
 		return r.URL.Scheme
 	}
 	return "http"
+}
+
+func Keys[K comparable, V any](m map[K]V) []K {
+	keys := make([]K, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+func NormalizeString(s string) string {
+	s = strings.ReplaceAll(s, "\n", "")
+	s = strings.ReplaceAll(s, "\r", "")
+	s = strings.ReplaceAll(s, "\t", "")
+	s = strings.TrimSpace(s)
+	return s
 }
 
 func RandStringBytes(length int) string {
@@ -43,4 +72,9 @@ func RandStringBytes(length int) string {
 func TimeFromFloat64Seconds(seconds float64) time.Time {
 	round, frac := math.Modf(seconds)
 	return time.Unix(int64(round), int64(frac*1e9)).Truncate(time.Second)
+}
+
+func ToDoc(body string) *html.Node {
+	doc, _ := html.Parse(bytes.NewReader([]byte(body)))
+	return doc
 }

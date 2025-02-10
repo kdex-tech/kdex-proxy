@@ -8,11 +8,15 @@ require (
 )
 
 require (
+	github.com/antchfx/xpath v1.3.3 // indirect
 	github.com/go-jose/go-jose/v4 v4.0.2 // indirect
+	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	golang.org/x/crypto v0.31.0 // indirect
+	golang.org/x/text v0.21.0 // indirect
 )
 
 require (
+	github.com/antchfx/htmlquery v1.3.4
 	github.com/coreos/go-oidc/v3 v3.12.0
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect

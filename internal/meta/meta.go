@@ -18,8 +18,15 @@ type MetaTransformer struct {
 	SessionStore *session.SessionStore
 }
 
+func NewMetaTransformer(config *config.Config, sessionStore *session.SessionStore) *MetaTransformer {
+	return &MetaTransformer{
+		Config:       config,
+		SessionStore: sessionStore,
+	}
+}
+
 func (m *MetaTransformer) Transform(r *http.Response, doc *html.Node) error {
-	isLoggedIn, err := m.getSessionStatus(r)
+	isLoggedIn, err := m.IsLoggedIn(r)
 	if err != nil {
 		log.Printf("Error getting session status: %v", err)
 	}
@@ -50,7 +57,7 @@ func (m *MetaTransformer) ShouldTransform(r *http.Response) bool {
 	return transform.HtmlTransformCheck(r)
 }
 
-func (m *MetaTransformer) getSessionStatus(r *http.Response) (bool, error) {
+func (m *MetaTransformer) IsLoggedIn(r *http.Response) (bool, error) {
 	sessionCookie, err := r.Request.Cookie(m.Config.Session.CookieName)
 	if err != nil {
 		return false, err

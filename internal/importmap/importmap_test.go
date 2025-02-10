@@ -15,11 +15,11 @@
 package importmap
 
 import (
-	"bytes"
 	"reflect"
 	"testing"
 
 	"golang.org/x/net/html"
+	"kdex.dev/proxy/internal/util"
 )
 
 func TestImportMapManager_Mutate(t *testing.T) {
@@ -30,28 +30,28 @@ func TestImportMapManager_Mutate(t *testing.T) {
 	}{
 		{
 			name:    "no doc node",
-			docNode: toDoc(""),
+			docNode: util.ToDoc(""),
 			imports: map[string]string{
 				"@kdex-ui": "/~/m/kdex-ui/index.js",
 			},
 		},
 		{
 			name:    "no script node",
-			docNode: toDoc("<html></html>"),
+			docNode: util.ToDoc("<html></html>"),
 			imports: map[string]string{
 				"@kdex-ui": "/~/m/kdex-ui/index.js",
 			},
 		},
 		{
 			name:    "mutate importmap",
-			docNode: toDoc(`<html><script type="importmap"></script></html>`),
+			docNode: util.ToDoc(`<html><script type="importmap"></script></html>`),
 			imports: map[string]string{
 				"@kdex-ui": "/~/m/kdex-ui/index.js",
 			},
 		},
 		{
 			name:    "mutate importmap with existing imports",
-			docNode: toDoc(`<html><script type="importmap">{"imports":{"@foo/bar":"/foo/bar.js"}}</script></html>`),
+			docNode: util.ToDoc(`<html><script type="importmap">{"imports":{"@foo/bar":"/foo/bar.js"}}</script></html>`),
 			imports: map[string]string{
 				"@foo/bar": "/foo/bar.js",
 				"@kdex-ui": "/~/m/kdex-ui/index.js",
@@ -73,9 +73,4 @@ func TestImportMapManager_Mutate(t *testing.T) {
 			}
 		})
 	}
-}
-
-func toDoc(body string) *html.Node {
-	doc, _ := html.Parse(bytes.NewReader([]byte(body)))
-	return doc
 }
