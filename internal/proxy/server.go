@@ -97,14 +97,24 @@ func (s *Server) rewrite(r *httputil.ProxyRequest) {
 	req.URL.Scheme = target.Scheme
 	req.URL.Host = target.Host
 
-	if parts.AppAlias != "" {
+	if parts.AppAlias != "" || parts.Path != req.URL.Path {
 		req.URL.Path = parts.Path
-		log.Printf("Path rewritten as: %s to %s (Alias: %s, Path: %s)", r.In.URL.Path, parts.Path, parts.AppAlias, parts.AppPath)
 	} else {
 		req.URL.Path = r.In.URL.Path
 	}
 
-	req.URL.RawPath = r.In.URL.RawPath
+	// Once the path is rewritten we need to check if there are Config.Navigation.TemplatePaths that match the path
+	// If there is a match we need to set the AppAlias and AppPath
+
+	strippedURLPath := strings.TrimSuffix(req.URL.Path, "/")
+
+	for _, templatePath := range s.Config.Navigation.TemplatePaths {
+		if strings.HasPrefix(strippedURLPath, templatePath.Href) {
+			req.URL.Path = templatePath.Template + strings.TrimPrefix(req.URL.Path, templatePath.Href)
+		}
+	}
+
+	log.Printf("Path rewritten as: %s to %s (Alias: %s, Path: %s)", r.In.URL.Path, req.URL.Path, parts.AppAlias, parts.AppPath)
 
 	if targetQuery == "" || req.URL.RawQuery == "" {
 		req.URL.RawQuery = targetQuery + req.URL.RawQuery
@@ -114,8 +124,12 @@ func (s *Server) rewrite(r *httputil.ProxyRequest) {
 
 	r.Out.Host = r.In.Host
 
-	r.Out.Header["X-Kdex-Proxy-App-Alias"] = []string{parts.AppAlias}
-	r.Out.Header["X-Kdex-Proxy-App-Path"] = []string{parts.AppPath}
+	if parts.AppAlias != "" {
+		r.Out.Header["X-Kdex-Proxy-App-Alias"] = []string{parts.AppAlias}
+	}
+	if parts.AppPath != "" {
+		r.Out.Header["X-Kdex-Proxy-App-Path"] = []string{parts.AppPath}
+	}
 
 	{
 		// Everything bellow is about Proxy Protocol
@@ -226,7 +240,7 @@ func (s *Server) modifyResponse(r *http.Response) (err error) {
 func getOutboundIP() net.IP {
 	conn, err := net.Dial("udp", "8.8.8.8:80")
 	if err != nil {
-		log.Fatal(err)
+		return net.IPv4zero
 	}
 	defer conn.Close()
 

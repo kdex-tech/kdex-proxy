@@ -20,6 +20,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/http/httputil"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -391,6 +393,81 @@ func TestServer_Probe(t *testing.T) {
 
 			assert.Equal(t, tt.recorder.Code, tt.wantStatus)
 			assert.Equal(t, tt.recorder.Body.String(), tt.wantBody)
+		})
+	}
+}
+
+func TestServer_rewrite(t *testing.T) {
+	defaultConfig := config.DefaultConfig()
+	defaultConfig.Proxy.UpstreamAddress = "target-server"
+	defaultConfig.Proxy.UpstreamScheme = "http"
+	defaultConfig.Proxy.PathSeparator = "/_/"
+	defaultConfig.Proxy.AlwaysAppendSlash = true
+	defaultConfig.Navigation.TemplatePaths = []config.TemplatePath{
+		{
+			Href:     "/alias",
+			Label:    "Alias",
+			Template: "/template",
+			Weight:   1,
+		},
+	}
+
+	tests := []struct {
+		name string
+		r    *httputil.ProxyRequest
+		want *url.URL
+	}{
+		{
+			name: "test",
+			r: &httputil.ProxyRequest{
+				In: &http.Request{
+					URL:    &url.URL{Path: "/test", Scheme: "http", Host: "localhost"},
+					Header: http.Header{},
+				},
+				Out: &http.Request{
+					URL:    &url.URL{},
+					Header: http.Header{},
+				},
+			},
+			want: &url.URL{Path: "/test", Scheme: "http", Host: "target-server"},
+		},
+		{
+			name: "test with alias",
+			r: &httputil.ProxyRequest{
+				In: &http.Request{
+					URL:    &url.URL{Path: "/alias", Scheme: "http", Host: "localhost"},
+					Header: http.Header{},
+				},
+				Out: &http.Request{
+					URL:    &url.URL{},
+					Header: http.Header{},
+				},
+			},
+			want: &url.URL{Path: "/template", Scheme: "http", Host: "target-server"},
+		},
+		{
+			name: "test with alias and path",
+			r: &httputil.ProxyRequest{
+				In: &http.Request{
+					URL:    &url.URL{Path: "/css/base.min.2fbd9dd903cac0d10e1ae4765ed55e6f79bf4e4728d27a56f74dae99768ca735.css", Scheme: "http", Host: "localhost"},
+					Header: http.Header{},
+				},
+				Out: &http.Request{
+					URL:    &url.URL{},
+					Header: http.Header{},
+				},
+			},
+			want: &url.URL{Path: "/css/base.min.2fbd9dd903cac0d10e1ae4765ed55e6f79bf4e4728d27a56f74dae99768ca735.css", Scheme: "http", Host: "target-server"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := NewServer(
+				&defaultConfig,
+				nil,
+			)
+			s.rewrite(tt.r)
+			assert.Equal(t, tt.want, tt.r.Out.URL)
 		})
 	}
 }
