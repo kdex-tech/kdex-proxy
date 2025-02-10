@@ -143,13 +143,12 @@ func TestServer_ReverseProxy(t *testing.T) {
 		},
 	}
 
+	defaultConfig.Proxy.PathSeparator = "/_/"
+
 	// Configure server for proxy
 	s := Server{
-		PathSeparator:       "/_/",
-		UpstreamAddress:     upstreamAddress,
-		UpstreamScheme:      "http",
-		UpstreamHealthzPath: "/healthz",
-		transformer:         transformer,
+		Config:      &defaultConfig,
+		transformer: transformer,
 	}
 
 	// Create test proxy server
@@ -271,7 +270,7 @@ func TestServer_ReverseProxy(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s.UpstreamAddress = tt.upstreamAddress
+			s.Config.Proxy.UpstreamAddress = tt.upstreamAddress
 
 			// Create request to proxy
 			req, _ := http.NewRequest(tt.method, proxyServer.URL+tt.path, nil)
@@ -334,9 +333,13 @@ func TestServer_Probe(t *testing.T) {
 	defer targetServer.Close()
 
 	upstreamAddress := strings.TrimPrefix(targetServer.URL, "http://")
+	defaultConfig := config.DefaultConfig()
+	defaultConfig.Proxy.UpstreamAddress = upstreamAddress
+	defaultConfig.Proxy.UpstreamScheme = "http"
+	defaultConfig.Proxy.UpstreamHealthzPath = "/healthz"
 
 	s := &Server{
-		UpstreamScheme: "http",
+		Config: &defaultConfig,
 	}
 
 	proxyServer := httptest.NewServer(http.HandlerFunc(s.ReverseProxy()))
@@ -381,8 +384,8 @@ func TestServer_Probe(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s.UpstreamAddress = tt.upstreamAddress
-			s.UpstreamHealthzPath = tt.healthzPath
+			s.Config.Proxy.UpstreamAddress = tt.upstreamAddress
+			s.Config.Proxy.UpstreamHealthzPath = tt.healthzPath
 
 			s.Probe(tt.recorder, httptest.NewRequest(tt.method, proxyServer.URL, nil))
 

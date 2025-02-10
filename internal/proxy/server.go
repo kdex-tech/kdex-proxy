@@ -34,30 +34,20 @@ import (
 )
 
 type Server struct {
-	proxy               *httputil.ReverseProxy
-	transformer         transform.Transformer
-	AlwaysAppendSlash   bool
-	PathSeparator       string
-	ProbePath           string
-	UpstreamAddress     string
-	UpstreamScheme      string
-	UpstreamHealthzPath string
+	proxy       *httputil.ReverseProxy
+	transformer transform.Transformer
+	Config      *config.Config
 }
 
-func NewServer(proxyConfig *config.ProxyConfig, transformer transform.Transformer) *Server {
+func NewServer(config *config.Config, transformer transform.Transformer) *Server {
 	return &Server{
-		AlwaysAppendSlash:   proxyConfig.AlwaysAppendSlash,
-		PathSeparator:       proxyConfig.PathSeparator,
-		ProbePath:           proxyConfig.ProbePath,
-		UpstreamAddress:     proxyConfig.UpstreamAddress,
-		UpstreamScheme:      proxyConfig.UpstreamScheme,
-		UpstreamHealthzPath: proxyConfig.UpstreamHealthzPath,
-		transformer:         transformer,
+		Config:      config,
+		transformer: transformer,
 	}
 }
 
 func (s *Server) Probe(w http.ResponseWriter, r *http.Request) {
-	url := fmt.Sprintf("%s://%s%s", util.GetScheme(r), s.UpstreamAddress, s.UpstreamHealthzPath)
+	url := fmt.Sprintf("%s://%s%s", util.GetScheme(r), s.Config.Proxy.UpstreamAddress, s.Config.Proxy.UpstreamHealthzPath)
 
 	req, _ := http.NewRequest("GET", url, nil)
 
@@ -78,7 +68,7 @@ func (s *Server) Probe(w http.ResponseWriter, r *http.Request) {
 	if resp.StatusCode == http.StatusOK {
 		w.Write([]byte("OK"))
 	} else {
-		w.Write([]byte(fmt.Sprintf("GET %s returned %d", s.UpstreamHealthzPath, resp.StatusCode)))
+		w.Write([]byte(fmt.Sprintf("GET %s returned %d", s.Config.Proxy.UpstreamHealthzPath, resp.StatusCode)))
 	}
 }
 
@@ -98,7 +88,7 @@ func (s *Server) errorHandler(w http.ResponseWriter, r *http.Request, err error)
 }
 
 func (s *Server) rewrite(r *httputil.ProxyRequest) {
-	target := &url.URL{Scheme: s.UpstreamScheme, Host: s.UpstreamAddress}
+	target := &url.URL{Scheme: s.Config.Proxy.UpstreamScheme, Host: s.Config.Proxy.UpstreamAddress}
 	req := r.Out
 
 	parts := s.rewritePath(r)
@@ -143,12 +133,12 @@ type PathParts struct {
 }
 
 func (s *Server) rewritePath(r *httputil.ProxyRequest) PathParts {
-	parts := strings.SplitN(r.In.URL.Path, s.PathSeparator, 2)
+	parts := strings.SplitN(r.In.URL.Path, s.Config.Proxy.PathSeparator, 2)
 
 	if len(parts) > 1 {
 		newPath := parts[0]
 
-		if s.AlwaysAppendSlash && !strings.HasSuffix(newPath, "/") {
+		if s.Config.Proxy.AlwaysAppendSlash && !strings.HasSuffix(newPath, "/") {
 			newPath = newPath + "/"
 		}
 

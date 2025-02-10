@@ -76,10 +76,7 @@ func main() {
 		},
 	}
 
-	proxyServer := proxy.NewServer(
-		&c.Proxy,
-		transformer,
-	)
+	proxyServer := proxy.NewServer(c, transformer)
 
 	mux := http.NewServeMux()
 
@@ -102,8 +99,8 @@ func main() {
 		Impl: log.Default(),
 	}
 
-	mux.Handle("GET "+fileServer.Prefix, loggerMiddleware.Log(fileServer.ServeHTTP()))
-	mux.Handle("GET "+proxyServer.ProbePath, loggerMiddleware.Log(http.HandlerFunc(proxyServer.Probe)))
+	mux.Handle("GET "+c.Fileserver.Prefix, loggerMiddleware.Log(fileServer.ServeHTTP()))
+	mux.Handle("GET "+c.Proxy.ProbePath, loggerMiddleware.Log(http.HandlerFunc(proxyServer.Probe)))
 	mux.Handle("/",
 		loggerMiddleware.Log(
 			authnMiddleware.Authn(
