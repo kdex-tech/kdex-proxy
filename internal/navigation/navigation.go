@@ -12,21 +12,24 @@ import (
 	"github.com/antchfx/htmlquery"
 	"golang.org/x/net/html"
 	"kdex.dev/proxy/internal/config"
+	"kdex.dev/proxy/internal/store/session"
 	"kdex.dev/proxy/internal/transform"
 	"kdex.dev/proxy/internal/util"
 )
 
 type NavigationTransformer struct {
 	transform.Transformer
-	Config  *config.Config
-	navTmpl *template.Template
+	Config       *config.Config
+	SessionStore *session.SessionStore
+	navTmpl      *template.Template
 }
 
-func NewNavigationTransformer(config *config.Config) *NavigationTransformer {
+func NewNavigationTransformer(config *config.Config, sessionStore *session.SessionStore) *NavigationTransformer {
 	tmpl := template.Must(template.New("Navigation").Parse(config.Navigation.NavItemTemplate))
 	return &NavigationTransformer{
-		Config:  config,
-		navTmpl: tmpl,
+		Config:       config,
+		SessionStore: sessionStore,
+		navTmpl:      tmpl,
 	}
 }
 
@@ -80,11 +83,15 @@ func (t *NavigationTransformer) Transform(r *http.Response, doc *html.Node) erro
 		})
 	}
 
-	// filter out any items that match the protected paths
-	for _, protectedPath := range t.Config.Navigation.ProtectedPaths {
-		navItems = util.Filter(navItems, func(item map[string]interface{}) bool {
-			return !strings.HasPrefix(item["href"].(string), protectedPath)
-		})
+	// filter out any items that match the protected paths if not logged in
+	if isLoggedIn, err := t.IsLoggedIn(r); err != nil {
+		log.Printf("Error checking if user is logged in: %v", err)
+	} else if !isLoggedIn {
+		for _, protectedPath := range t.Config.Navigation.ProtectedPaths {
+			navItems = util.Filter(navItems, func(item map[string]interface{}) bool {
+				return !strings.HasPrefix(item["href"].(string), protectedPath)
+			})
+		}
 	}
 
 	sort.Slice(navItems, func(i, j int) bool {
@@ -125,4 +132,22 @@ func (t *NavigationTransformer) Transform(r *http.Response, doc *html.Node) erro
 
 func (t *NavigationTransformer) ShouldTransform(r *http.Response) bool {
 	return transform.HtmlTransformCheck(r)
+}
+
+func (m *NavigationTransformer) IsLoggedIn(r *http.Response) (bool, error) {
+	sessionCookie, err := r.Request.Cookie(m.Config.Session.CookieName)
+	if err != nil {
+		return false, err
+	}
+
+	if m.SessionStore == nil {
+		return false, nil
+	}
+
+	isLoggedIn, err := (*m.SessionStore).IsLoggedIn(r.Request.Context(), sessionCookie.Value)
+	if err != nil {
+		return false, err
+	}
+
+	return isLoggedIn, nil
 }

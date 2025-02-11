@@ -55,7 +55,7 @@ data:
       - href: /admin
         label: Admin
         template: /template1
-        weight: 10.5
+        weight: 1.5
     proxy:
       always_append_slash: true
       upstream_address: sample-site

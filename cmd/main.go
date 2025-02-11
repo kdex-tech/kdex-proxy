@@ -71,7 +71,7 @@ func main() {
 		Transformers: []transform.Transformer{
 			importmap.NewImportMapTransformer(c),
 			meta.NewMetaTransformer(c, &sessionStore),
-			navigation.NewNavigationTransformer(c),
+			navigation.NewNavigationTransformer(c, &sessionStore),
 			app.NewAppTransformer(c),
 		},
 	}
