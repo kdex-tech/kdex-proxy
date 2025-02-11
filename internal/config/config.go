@@ -138,10 +138,6 @@ var defaultConfig = Config{
 			ClientID:    "kdex-proxy",
 			Prefix:      "/~/o/",
 			RedirectURI: "/~/o/oauth/callback",
-			Scopes: []string{
-				"read",
-				"write",
-			},
 		},
 		Realm: "KDEX Proxy",
 	},
