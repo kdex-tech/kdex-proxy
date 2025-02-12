@@ -1,7 +1,7 @@
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  name: kdex-proxy-pvc
+  name: proxy-pvc
 spec:
   accessModes:
     - ReadWriteOnce

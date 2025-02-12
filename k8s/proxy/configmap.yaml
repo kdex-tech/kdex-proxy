@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: kdex-proxy-config
+  name: proxy-config
   labels:
-    app: kdex-proxy
+    app: proxy
 data:
   proxy.config: |
     apps:

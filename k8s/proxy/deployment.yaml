@@ -1,18 +1,18 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: kdex-proxy
+  name: proxy
   labels:
-    app: kdex-proxy
+    app: proxy
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: kdex-proxy
+      app: proxy
   template:
     metadata:
       labels:
-        app: kdex-proxy
+        app: proxy
     spec:
       initContainers:
       - name: package-dependencies
@@ -39,10 +39,10 @@ spec:
           fi
         volumeMounts:
         - mountPath: /modules
-          name: kdex-proxy-pvc
+          name: proxy-pvc
           subPath: modules
         - mountPath: /app/package.json
-          name: kdex-proxy-config
+          name: proxy-config
           subPath: package.json
         resources:
           limits:
@@ -65,10 +65,10 @@ spec:
             memory: 256Mi
         volumeMounts:
         - mountPath: /modules
-          name: kdex-proxy-pvc
+          name: proxy-pvc
           subPath: modules
         - mountPath: /etc/kdex-proxy/config.json
-          name: kdex-proxy-config
+          name: proxy-config
           subPath: config.json
       - name: proxy
         image: registry:5000/kdex-tech/proxy:latest
@@ -92,18 +92,18 @@ spec:
           periodSeconds: 10
         volumeMounts:
         - mountPath: /modules
-          name: kdex-proxy-pvc
+          name: proxy-pvc
           subPath: modules
         - mountPath: /etc/kdex-proxy/proxy.config
-          name: kdex-proxy-config
+          name: proxy-config
           subPath: proxy.config
       volumes:
-      - name: kdex-proxy-pvc
+      - name: proxy-pvc
         persistentVolumeClaim:
-          claimName: kdex-proxy-pvc
-      - name: kdex-proxy-config
+          claimName: proxy-pvc
+      - name: proxy-config
         configMap:
-          name: kdex-proxy-config
+          name: proxy-config
       securityContext:
         fsGroup: 65532
         runAsNonRoot: true
