@@ -38,6 +38,9 @@ spec:
             ls -l /modules
           fi
         volumeMounts:
+        - mountPath: /cache
+          name: proxy-pvc
+          subPath: cache
         - mountPath: /modules
           name: proxy-pvc
           subPath: modules
