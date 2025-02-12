@@ -33,6 +33,12 @@ import (
 	"kdex.dev/proxy/internal/util"
 )
 
+type PathParts struct {
+	AppAlias string
+	AppPath  string
+	Path     string
+}
+
 type Server struct {
 	proxy       *httputil.ReverseProxy
 	transformer transform.Transformer
@@ -85,6 +91,50 @@ func (s *Server) ReverseProxy() func(http.ResponseWriter, *http.Request) {
 func (s *Server) errorHandler(w http.ResponseWriter, r *http.Request, err error) {
 	log.Printf("Error: %v", err)
 	http.Error(w, err.Error(), http.StatusInternalServerError)
+}
+
+func (s *Server) modifyResponse(r *http.Response) (err error) {
+	if s.transformer == nil {
+		return nil
+	}
+
+	if !(s.transformer).ShouldTransform(r) {
+		return nil
+	}
+
+	// Buffer HTML content
+	b, err := io.ReadAll(r.Body)
+
+	if err != nil {
+		return err
+	}
+
+	if err = r.Body.Close(); err != nil {
+		return err
+	}
+
+	doc, err := html.Parse(bytes.NewReader(b))
+	if err != nil {
+		return err
+	}
+
+	if err := (s.transformer).Transform(r, doc); err != nil {
+		return err
+	}
+
+	var buf bytes.Buffer
+	if err := html.Render(&buf, doc); err != nil {
+		log.Printf("Error rendering modified HTML: %v", err)
+		return err
+	}
+
+	b = buf.Bytes()
+	contentLength := len(b)
+	r.Body = io.NopCloser(bytes.NewReader(b))
+	r.ContentLength = int64(contentLength)
+	r.Header.Set("Content-Length", strconv.Itoa(contentLength))
+
+	return nil
 }
 
 func (s *Server) rewrite(r *httputil.ProxyRequest) {
@@ -140,12 +190,6 @@ func (s *Server) rewrite(r *httputil.ProxyRequest) {
 	}
 }
 
-type PathParts struct {
-	AppAlias string
-	AppPath  string
-	Path     string
-}
-
 func (s *Server) rewritePath(r *httputil.ProxyRequest) PathParts {
 	parts := strings.SplitN(r.In.URL.Path, s.Config.Proxy.PathSeparator, 2)
 
@@ -182,61 +226,6 @@ func (s *Server) rewritePath(r *httputil.ProxyRequest) PathParts {
 	}
 }
 
-func setXForwardedPort(in *http.Request, out *http.Request) {
-	if strings.Contains(in.Host, ":") {
-		_, port, err := net.SplitHostPort(in.Host)
-		if err != nil {
-			log.Printf("Error splitting host and port from %s: %v", in.Host, err)
-			return
-		}
-		out.Header.Set("X-Forwarded-Port", port)
-	}
-}
-
-func (s *Server) modifyResponse(r *http.Response) (err error) {
-	if s.transformer == nil {
-		return nil
-	}
-
-	if !(s.transformer).ShouldTransform(r) {
-		return nil
-	}
-
-	// Buffer HTML content
-	b, err := io.ReadAll(r.Body)
-
-	if err != nil {
-		return err
-	}
-
-	if err = r.Body.Close(); err != nil {
-		return err
-	}
-
-	doc, err := html.Parse(bytes.NewReader(b))
-	if err != nil {
-		return err
-	}
-
-	if err := (s.transformer).Transform(r, doc); err != nil {
-		return err
-	}
-
-	var buf bytes.Buffer
-	if err := html.Render(&buf, doc); err != nil {
-		log.Printf("Error rendering modified HTML: %v", err)
-		return err
-	}
-
-	b = buf.Bytes()
-	contentLength := len(b)
-	r.Body = io.NopCloser(bytes.NewReader(b))
-	r.ContentLength = int64(contentLength)
-	r.Header.Set("Content-Length", strconv.Itoa(contentLength))
-
-	return nil
-}
-
 func getOutboundIP() net.IP {
 	conn, err := net.Dial("udp", "8.8.8.8:80")
 	if err != nil {
@@ -258,4 +247,15 @@ func setForwarded(in *http.Request, out *http.Request) {
 			out.Header.Get("X-Forwarded-For"),
 			in.Host,
 			util.GetScheme(in)))
+}
+
+func setXForwardedPort(in *http.Request, out *http.Request) {
+	if strings.Contains(in.Host, ":") {
+		_, port, err := net.SplitHostPort(in.Host)
+		if err != nil {
+			log.Printf("Error splitting host and port from %s: %v", in.Host, err)
+			return
+		}
+		out.Header.Set("X-Forwarded-Port", port)
+	}
 }
