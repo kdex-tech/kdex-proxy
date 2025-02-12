@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coredns-custom
+  namespace: kube-system
+data:
+  test.override: |
+    rewrite stop {
+      name regex (.*)\.docker\.localhost {1}.default.svc.cluster.local
+      answer name (.*)\.default\.svc\.cluster\.local {1}.docker.localhost
+    }
