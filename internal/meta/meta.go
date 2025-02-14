@@ -14,19 +14,19 @@ import (
 
 type MetaTransformer struct {
 	transform.Transformer
-	Config       *config.Config
-	SessionStore *session.SessionStore
+	Config        *config.Config
+	SessionHelper *session.SessionHelper
 }
 
-func NewMetaTransformer(config *config.Config, sessionStore *session.SessionStore) *MetaTransformer {
+func NewMetaTransformer(config *config.Config, sessionHelper *session.SessionHelper) *MetaTransformer {
 	return &MetaTransformer{
-		Config:       config,
-		SessionStore: sessionStore,
+		Config:        config,
+		SessionHelper: sessionHelper,
 	}
 }
 
 func (m *MetaTransformer) Transform(r *http.Response, doc *html.Node) error {
-	isLoggedIn, err := m.IsLoggedIn(r)
+	isLoggedIn, err := m.SessionHelper.IsLoggedIn(r)
 	if err != nil {
 		log.Printf("Error getting session status: %v", err)
 	}
@@ -55,22 +55,4 @@ func (m *MetaTransformer) Transform(r *http.Response, doc *html.Node) error {
 
 func (m *MetaTransformer) ShouldTransform(r *http.Response) bool {
 	return transform.HtmlTransformCheck(r)
-}
-
-func (m *MetaTransformer) IsLoggedIn(r *http.Response) (bool, error) {
-	sessionCookie, err := r.Request.Cookie(m.Config.Session.CookieName)
-	if err != nil {
-		return false, err
-	}
-
-	if m.SessionStore == nil {
-		return false, nil
-	}
-
-	isLoggedIn, err := (*m.SessionStore).IsLoggedIn(r.Request.Context(), sessionCookie.Value)
-	if err != nil {
-		return false, err
-	}
-
-	return isLoggedIn, nil
 }

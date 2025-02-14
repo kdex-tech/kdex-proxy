@@ -139,8 +139,8 @@ func TestServer_ReverseProxy(t *testing.T) {
 				Config: &defaultConfig,
 			},
 			&meta.MetaTransformer{
-				Config:       &defaultConfig,
-				SessionStore: nil,
+				Config:        &defaultConfig,
+				SessionHelper: nil,
 			},
 		},
 	}

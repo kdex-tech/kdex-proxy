@@ -19,17 +19,17 @@ import (
 
 type NavigationTransformer struct {
 	transform.Transformer
-	Config       *config.Config
-	SessionStore *session.SessionStore
-	navTmpl      *template.Template
+	Config        *config.Config
+	navTmpl       *template.Template
+	sessionHelper *session.SessionHelper
 }
 
-func NewNavigationTransformer(config *config.Config, sessionStore *session.SessionStore) *NavigationTransformer {
+func NewNavigationTransformer(config *config.Config, sessionHelper *session.SessionHelper) *NavigationTransformer {
 	tmpl := template.Must(template.New("Navigation").Parse(config.Navigation.NavItemTemplate))
 	return &NavigationTransformer{
-		Config:       config,
-		SessionStore: sessionStore,
-		navTmpl:      tmpl,
+		Config:        config,
+		navTmpl:       tmpl,
+		sessionHelper: sessionHelper,
 	}
 }
 
@@ -84,7 +84,7 @@ func (t *NavigationTransformer) Transform(r *http.Response, doc *html.Node) erro
 	}
 
 	// filter out any items that match the protected paths if not logged in
-	if isLoggedIn, err := t.IsLoggedIn(r); err != nil {
+	if isLoggedIn, err := t.sessionHelper.IsLoggedIn(r); err != nil {
 		log.Printf("Error checking if user is logged in: %v", err)
 	} else if !isLoggedIn {
 		for _, protectedPath := range t.Config.Navigation.ProtectedPaths {
@@ -132,22 +132,4 @@ func (t *NavigationTransformer) Transform(r *http.Response, doc *html.Node) erro
 
 func (t *NavigationTransformer) ShouldTransform(r *http.Response) bool {
 	return transform.HtmlTransformCheck(r)
-}
-
-func (m *NavigationTransformer) IsLoggedIn(r *http.Response) (bool, error) {
-	sessionCookie, err := r.Request.Cookie(m.Config.Session.CookieName)
-	if err != nil {
-		return false, err
-	}
-
-	if m.SessionStore == nil {
-		return false, nil
-	}
-
-	isLoggedIn, err := (*m.SessionStore).IsLoggedIn(r.Request.Context(), sessionCookie.Value)
-	if err != nil {
-		return false, err
-	}
-
-	return isLoggedIn, nil
 }

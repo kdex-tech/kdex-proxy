@@ -67,16 +67,21 @@ func main() {
 		log.Println("Server graceful shutdown complete.")
 	}()
 
+	sessionHelper := &session.SessionHelper{
+		Config:       &c,
+		SessionStore: &sessionStore,
+	}
+
 	transformer := &transform.AggregatedTransformer{
 		Transformers: []transform.Transformer{
-			importmap.NewImportMapTransformer(c),
-			meta.NewMetaTransformer(c, &sessionStore),
-			navigation.NewNavigationTransformer(c, &sessionStore),
-			app.NewAppTransformer(c),
+			importmap.NewImportMapTransformer(&c),
+			meta.NewMetaTransformer(&c, sessionHelper),
+			navigation.NewNavigationTransformer(&c, sessionHelper),
+			app.NewAppTransformer(&c),
 		},
 	}
 
-	proxyServer := proxy.NewServer(c, transformer)
+	proxyServer := proxy.NewServer(&c, transformer)
 
 	mux := http.NewServeMux()
 
