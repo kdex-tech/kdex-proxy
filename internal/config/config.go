@@ -14,6 +14,7 @@ import (
 type Config struct {
 	Apps          []App            `json:"apps,omitempty" yaml:"apps,omitempty"`
 	Authn         AuthnConfig      `json:"authn,omitempty" yaml:"authn,omitempty"`
+	Authz         AuthzConfig      `json:"authz,omitempty" yaml:"authz,omitempty"`
 	Fileserver    FileserverConfig `json:"fileserver,omitempty" yaml:"fileserver,omitempty"`
 	Importmap     ImportmapConfig  `json:"importmap,omitempty" yaml:"importmap,omitempty"`
 	ListenAddress string           `json:"listen_address,omitempty" yaml:"listen_address,omitempty"`
@@ -44,6 +45,11 @@ type AuthnConfig struct {
 	Logout                 LogoutConfig    `json:"logout,omitempty" yaml:"logout,omitempty"`
 	OAuth                  OAuthConfig     `json:"oauth,omitempty" yaml:"oauth,omitempty"`
 	Realm                  string          `json:"realm,omitempty" yaml:"realm,omitempty"`
+}
+
+type AuthzConfig struct {
+	Provider string                    `json:"provider,omitempty" yaml:"provider,omitempty"`
+	Static   StaticAuthzProviderConfig `json:"static,omitempty" yaml:"static,omitempty"`
 }
 
 type BasicAuthConfig struct {
@@ -77,6 +83,16 @@ type NavigationConfig struct {
 	NavItemTemplate string            `json:"nav_item_template" yaml:"nav_item_template"`
 	ProtectedPaths  []string          `json:"protected_paths" yaml:"protected_paths"`
 	TemplatePaths   []TemplatePath    `json:"template_paths" yaml:"template_paths"`
+}
+
+type Permission struct {
+	Resource string   `json:"resource" yaml:"resource"` // Resource being accessed (e.g., "page", "api")
+	Action   string   `json:"action" yaml:"action"`     // Action being performed (e.g., "view", "edit")
+	Roles    []string `json:"roles" yaml:"roles"`       // Roles that can perform this action
+}
+
+type StaticAuthzProviderConfig struct {
+	Permissions map[string][]Permission `json:"permissions,omitempty" yaml:"permissions,omitempty"`
 }
 
 type TemplatePath struct {
@@ -140,6 +156,12 @@ var defaultConfig = Config{
 			RedirectURI: "/~/o/oauth/callback",
 		},
 		Realm: "KDEX Proxy",
+	},
+	Authz: AuthzConfig{
+		Provider: "static",
+		Static: StaticAuthzProviderConfig{
+			Permissions: make(map[string][]Permission),
+		},
 	},
 	Fileserver: FileserverConfig{
 		Prefix: "/~/m/",

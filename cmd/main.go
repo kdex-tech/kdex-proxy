@@ -26,11 +26,13 @@ import (
 
 	"kdex.dev/proxy/internal/app"
 	"kdex.dev/proxy/internal/authn"
+	"kdex.dev/proxy/internal/authz"
 	"kdex.dev/proxy/internal/config"
 	"kdex.dev/proxy/internal/fileserver"
 	"kdex.dev/proxy/internal/importmap"
 	"kdex.dev/proxy/internal/meta"
 	mAuthn "kdex.dev/proxy/internal/middleware/authn"
+	mAuthz "kdex.dev/proxy/internal/middleware/authz"
 	mLogger "kdex.dev/proxy/internal/middleware/log"
 	"kdex.dev/proxy/internal/navigation"
 	"kdex.dev/proxy/internal/proxy"
@@ -104,12 +106,21 @@ func main() {
 		Impl: log.Default(),
 	}
 
+	// Initialize permission provider
+	permProvider := authz.NewPermissionProvider(&c)
+
+	// Create authorizer with provider
+	authorizer := authz.NewAuthorizer(permProvider)
+	authzMiddleware := mAuthz.NewAuthzMiddleware(authorizer)
+
 	mux.Handle("GET "+c.Fileserver.Prefix, loggerMiddleware.Log(fileServer.ServeHTTP()))
 	mux.Handle("GET "+c.Proxy.ProbePath, loggerMiddleware.Log(http.HandlerFunc(proxyServer.Probe)))
 	mux.Handle("/",
 		loggerMiddleware.Log(
 			authnMiddleware.Authn(
-				http.HandlerFunc(proxyServer.ReverseProxy()),
+				authzMiddleware.Authz(
+					http.HandlerFunc(proxyServer.ReverseProxy()),
+				),
 			),
 		),
 	)
