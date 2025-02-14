@@ -1,8 +1,6 @@
 package meta
 
 import (
-	"fmt"
-	"log"
 	"net/http"
 
 	"golang.org/x/net/html"
@@ -26,10 +24,10 @@ func NewMetaTransformer(config *config.Config, sessionHelper *session.SessionHel
 }
 
 func (m *MetaTransformer) Transform(r *http.Response, doc *html.Node) error {
-	isLoggedIn, err := m.SessionHelper.IsLoggedIn(r)
-	if err != nil {
-		log.Printf("Error getting session status: %v", err)
-	}
+	// isLoggedIn, err := m.SessionHelper.IsLoggedIn(r)
+	// if err != nil {
+	// 	log.Printf("Error getting session status: %v", err)
+	// }
 
 	if headNode := dom.FindElementByName("head", doc, nil); headNode != nil {
 		metaNode := &html.Node{
@@ -44,7 +42,7 @@ func (m *MetaTransformer) Transform(r *http.Response, doc *html.Node) error {
 				{Key: "data-logout-path", Val: m.Config.Authn.Logout.Path},
 				{Key: "data-logout-label", Val: m.Config.Authn.Logout.Label},
 				{Key: "data-logout-css-query", Val: m.Config.Authn.Logout.Query},
-				{Key: "data-logged-in", Val: fmt.Sprintf("%t", isLoggedIn)},
+				//{Key: "data-logged-in", Val: fmt.Sprintf("%t", isLoggedIn)},
 			},
 		}
 		headNode.AppendChild(metaNode)

@@ -83,16 +83,16 @@ func (t *NavigationTransformer) Transform(r *http.Response, doc *html.Node) erro
 		})
 	}
 
-	// filter out any items that match the protected paths if not logged in
-	if isLoggedIn, err := t.SessionHelper.IsLoggedIn(r); err != nil {
-		log.Printf("Error checking if user is logged in: %v", err)
-	} else if !isLoggedIn {
-		for _, protectedPath := range t.Config.Navigation.ProtectedPaths {
-			navItems = util.Filter(navItems, func(item map[string]interface{}) bool {
-				return !strings.HasPrefix(item["href"].(string), protectedPath)
-			})
-		}
-	}
+	// // filter out any items that match the protected paths if not logged in
+	// if isLoggedIn, err := t.SessionHelper.IsLoggedIn(r); err != nil {
+	// 	log.Printf("Error checking if user is logged in: %v", err)
+	// } else if !isLoggedIn {
+	// 	for _, protectedPath := range t.Config.Navigation.ProtectedPaths {
+	// 		navItems = util.Filter(navItems, func(item map[string]interface{}) bool {
+	// 			return !strings.HasPrefix(item["href"].(string), protectedPath)
+	// 		})
+	// 	}
+	// }
 
 	sort.Slice(navItems, func(i, j int) bool {
 		return navItems[i]["weight"].(float64) < navItems[j]["weight"].(float64)

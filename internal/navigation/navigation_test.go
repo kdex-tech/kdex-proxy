@@ -87,6 +87,9 @@ func TestNavigationTransformer_Transform(t *testing.T) {
 			<a class="Banner-link u-clickable" href="/foo">Foo</a>
 		</li>
 		<li class="Banner-item">
+			<a class="Banner-link u-clickable" href="/private">Private</a>
+		</li>
+		<li class="Banner-item">
 			<a class="Banner-link u-clickable" href="/other">Other</a>
 		</li>
 		<li class="Banner-item">
