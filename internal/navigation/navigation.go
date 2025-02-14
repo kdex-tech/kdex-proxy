@@ -20,16 +20,16 @@ import (
 type NavigationTransformer struct {
 	transform.Transformer
 	Config        *config.Config
+	SessionHelper *session.SessionHelper
 	navTmpl       *template.Template
-	sessionHelper *session.SessionHelper
 }
 
 func NewNavigationTransformer(config *config.Config, sessionHelper *session.SessionHelper) *NavigationTransformer {
 	tmpl := template.Must(template.New("Navigation").Parse(config.Navigation.NavItemTemplate))
 	return &NavigationTransformer{
 		Config:        config,
+		SessionHelper: sessionHelper,
 		navTmpl:       tmpl,
-		sessionHelper: sessionHelper,
 	}
 }
 
@@ -84,7 +84,7 @@ func (t *NavigationTransformer) Transform(r *http.Response, doc *html.Node) erro
 	}
 
 	// filter out any items that match the protected paths if not logged in
-	if isLoggedIn, err := t.sessionHelper.IsLoggedIn(r); err != nil {
+	if isLoggedIn, err := t.SessionHelper.IsLoggedIn(r); err != nil {
 		log.Printf("Error checking if user is logged in: %v", err)
 	} else if !isLoggedIn {
 		for _, protectedPath := range t.Config.Navigation.ProtectedPaths {

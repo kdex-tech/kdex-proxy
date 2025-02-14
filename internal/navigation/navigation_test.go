@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/html"
 	"kdex.dev/proxy/internal/config"
+	"kdex.dev/proxy/internal/store/session"
 	"kdex.dev/proxy/internal/util"
 )
 
@@ -102,14 +103,24 @@ func TestNavigationTransformer_Transform(t *testing.T) {
 			defaultConfig.Navigation.NavItemFields = tt.fields.NavItemFields
 			defaultConfig.Navigation.ProtectedPaths = tt.fields.ProtectedPaths
 			defaultConfig.Navigation.TemplatePaths = tt.fields.TemplatePaths
+			defaultConfig.Session.CookieName = "session_id"
+
+			sessionStore := session.NewMemorySessionStore(&defaultConfig.Session)
+			sessionHelper := session.SessionHelper{
+				Config:       &defaultConfig,
+				SessionStore: &sessionStore,
+			}
 
 			tr := &NavigationTransformer{
-				Config:  &defaultConfig,
-				navTmpl: template.Must(template.New("Navigation").Parse(tt.fields.NavItemTemplate)),
+				Config:        &defaultConfig,
+				navTmpl:       template.Must(template.New("Navigation").Parse(tt.fields.NavItemTemplate)),
+				SessionHelper: &sessionHelper,
 			}
 
 			rec := httptest.NewRecorder()
-			if err := tr.Transform(rec.Result(), tt.args.doc); (err != nil) != tt.wantErr {
+			res := rec.Result()
+			res.Request = httptest.NewRequest("GET", "/", nil)
+			if err := tr.Transform(res, tt.args.doc); (err != nil) != tt.wantErr {
 				t.Errorf("NavigationTransformer.Transform() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			var buf bytes.Buffer
