@@ -93,6 +93,10 @@ func main() {
 		c.Session.CookieName,
 	)
 
+	loggerMiddleware := &mLogger.LoggerMiddleware{
+		Impl: log.Default(),
+	}
+
 	(*authValidator).Register(mux)
 
 	authnMiddleware := &mAuthn.AuthnMiddleware{
@@ -102,14 +106,11 @@ func main() {
 		AuthValidator:          *authValidator,
 	}
 
-	loggerMiddleware := &mLogger.LoggerMiddleware{
-		Impl: log.Default(),
-	}
-
-	// Initialize permission provider
-	permProvider := authz.NewPermissionProvider(&c)
+	// After authn middleware
+	rolesMiddleware := mAuthz.NewRolesMiddleware()
 
 	// Create authorizer with provider
+	permProvider := authz.NewPermissionProvider(&c)
 	authorizer := authz.NewAuthorizer(permProvider)
 	authzMiddleware := mAuthz.NewAuthzMiddleware(authorizer)
 
@@ -118,8 +119,10 @@ func main() {
 	mux.Handle("/",
 		loggerMiddleware.Log(
 			authnMiddleware.Authn(
-				authzMiddleware.Authz(
-					http.HandlerFunc(proxyServer.ReverseProxy()),
+				rolesMiddleware.InjectRoles(
+					authzMiddleware.Authz(
+						http.HandlerFunc(proxyServer.ReverseProxy()),
+					),
 				),
 			),
 		),
