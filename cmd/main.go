@@ -79,7 +79,7 @@ func main() {
 	transformer := &transform.AggregatedTransformer{
 		Transformers: []transform.Transformer{
 			importmap.NewImportMapTransformer(&c),
-			meta.NewMetaTransformer(&c, sessionHelper),
+			meta.NewMetaTransformer(&c),
 			navigation.NewNavigationTransformer(&c, sessionHelper),
 			app.NewAppTransformer(&c),
 		},

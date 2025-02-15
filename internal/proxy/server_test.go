@@ -31,7 +31,6 @@ import (
 	"kdex.dev/proxy/internal/importmap"
 	"kdex.dev/proxy/internal/meta"
 	"kdex.dev/proxy/internal/navigation"
-	"kdex.dev/proxy/internal/store/session"
 	"kdex.dev/proxy/internal/transform"
 )
 
@@ -128,13 +127,6 @@ func TestServer_ReverseProxy(t *testing.T) {
 	defaultConfig.Importmap.PreloadModules = []string{
 		"@kdex-ui",
 	}
-	defaultConfig.Session.CookieName = "session_id"
-
-	sessionStore := session.NewMemorySessionStore(&defaultConfig.Session)
-	sessionHelper := session.SessionHelper{
-		Config:       &defaultConfig,
-		SessionStore: &sessionStore,
-	}
 
 	transformer := &transform.AggregatedTransformer{
 		Transformers: []transform.Transformer{
@@ -148,12 +140,10 @@ func TestServer_ReverseProxy(t *testing.T) {
 				Config: &defaultConfig,
 			},
 			&meta.MetaTransformer{
-				Config:        &defaultConfig,
-				SessionHelper: &sessionHelper,
+				Config: &defaultConfig,
 			},
 			&navigation.NavigationTransformer{
-				Config:        &defaultConfig,
-				SessionHelper: &sessionHelper,
+				Config: &defaultConfig,
 			},
 		},
 	}

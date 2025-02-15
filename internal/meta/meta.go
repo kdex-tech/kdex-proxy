@@ -6,20 +6,16 @@ import (
 	"golang.org/x/net/html"
 	"kdex.dev/proxy/internal/config"
 	"kdex.dev/proxy/internal/dom"
-	"kdex.dev/proxy/internal/store/session"
 	"kdex.dev/proxy/internal/transform"
 )
 
 type MetaTransformer struct {
-	transform.Transformer
-	Config        *config.Config
-	SessionHelper *session.SessionHelper
+	Config *config.Config
 }
 
-func NewMetaTransformer(config *config.Config, sessionHelper *session.SessionHelper) *MetaTransformer {
+func NewMetaTransformer(config *config.Config) *MetaTransformer {
 	return &MetaTransformer{
-		Config:        config,
-		SessionHelper: sessionHelper,
+		Config: config,
 	}
 }
 
