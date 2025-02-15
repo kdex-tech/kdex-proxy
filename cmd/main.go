@@ -99,13 +99,13 @@ func main() {
 		Impl: log.Default(),
 	}
 
-	(*authValidator).Register(mux)
+	authValidator.Register(mux)
 
 	authnMiddleware := &mAuthn.AuthnMiddleware{
 		AuthenticateHeader:     c.Authn.AuthenticateHeader,
 		AuthenticateStatusCode: c.Authn.AuthenticateStatusCode,
 		ProtectedPaths:         c.Navigation.ProtectedPaths,
-		AuthValidator:          *authValidator,
+		AuthValidator:          authValidator,
 	}
 
 	evaluator, err := cel.NewEvaluator()

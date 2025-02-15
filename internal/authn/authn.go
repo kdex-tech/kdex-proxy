@@ -31,7 +31,7 @@ func AuthValidatorFactory(
 	config *config.AuthnConfig,
 	sessionStore *session.SessionStore,
 	sessionCookieName string,
-) *AuthValidator {
+) AuthValidator {
 	var auth_validator AuthValidator
 	switch config.AuthValidator {
 	case Validator_StaticBasicAuth:
@@ -59,5 +59,5 @@ func AuthValidatorFactory(
 		auth_validator = &NoOpAuthValidator{}
 	}
 
-	return &auth_validator
+	return auth_validator
 }
