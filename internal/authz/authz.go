@@ -36,7 +36,6 @@ func (a *defaultAuthorizer) CheckAccess(r *http.Request) error {
 		return err
 	}
 
-	// Check path-specific permissions first
 	for _, perm := range pathPerms {
 		if !hasIntersection(perm.Roles, userRoles) {
 			return ErrUnauthorized
