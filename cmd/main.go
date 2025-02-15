@@ -35,6 +35,7 @@ import (
 	mAuthn "kdex.dev/proxy/internal/middleware/authn"
 	mAuthz "kdex.dev/proxy/internal/middleware/authz"
 	mLogger "kdex.dev/proxy/internal/middleware/log"
+	mRoles "kdex.dev/proxy/internal/middleware/roles"
 	"kdex.dev/proxy/internal/navigation"
 	"kdex.dev/proxy/internal/proxy"
 	"kdex.dev/proxy/internal/store/session"
@@ -114,7 +115,7 @@ func main() {
 	fieldEvaluator := expression.NewFieldEvaluator(evaluator, &c)
 
 	// After authn middleware
-	rolesMiddleware := &mAuthz.RolesMiddleware{
+	rolesMiddleware := &mRoles.RolesMiddleware{
 		FieldEvaluator: fieldEvaluator,
 	}
 
