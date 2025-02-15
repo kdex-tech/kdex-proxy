@@ -61,6 +61,30 @@ func TestStateHandler_StateHandler(t *testing.T) {
 			},
 			want: `{"identity":"test","isLoggedIn":true,"roles":["admin","user"],"data":{"roles":["admin","user"],"sub":"test"}}`,
 		},
+		{
+			name: "no identity",
+			fields: fields{
+				FieldEvaluator: expression.NewFieldEvaluator(evaluator, &defaultConfig),
+			},
+			session: &session.SessionData{
+				Data: map[string]interface{}{
+					"roles": []string{"admin", "user"},
+				},
+			},
+			want: `{"identity":"","isLoggedIn":true,"roles":["admin","user"],"data":{"roles":["admin","user"]}}`,
+		},
+		{
+			name: "no roles",
+			fields: fields{
+				FieldEvaluator: expression.NewFieldEvaluator(evaluator, &defaultConfig),
+			},
+			session: &session.SessionData{
+				Data: map[string]interface{}{
+					"sub": "test",
+				},
+			},
+			want: `{"identity":"test","isLoggedIn":true,"roles":[],"data":{"sub":"test"}}`,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -4,23 +4,16 @@ import (
 	"net/http"
 
 	"kdex.dev/proxy/internal/authz"
-	"kdex.dev/proxy/internal/config"
 )
 
 type AuthzMiddleware struct {
-	Authorizer      authz.Authorizer
-	PathPermissions map[string]config.Permission
+	Authorizer authz.Authorizer
 }
 
 func NewAuthzMiddleware(authorizer authz.Authorizer) *AuthzMiddleware {
 	return &AuthzMiddleware{
 		Authorizer: authorizer,
 	}
-}
-
-func (a *AuthzMiddleware) WithPathPermission(path string, permission config.Permission) *AuthzMiddleware {
-	a.PathPermissions[path] = permission
-	return a
 }
 
 func (a *AuthzMiddleware) Authz(next http.Handler) http.HandlerFunc {
