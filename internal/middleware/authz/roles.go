@@ -2,50 +2,16 @@ package authz
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"kdex.dev/proxy/internal/authn"
 	"kdex.dev/proxy/internal/authz"
-	"kdex.dev/proxy/internal/cel"
-	"kdex.dev/proxy/internal/config"
+	"kdex.dev/proxy/internal/roles"
 	"kdex.dev/proxy/internal/store/session"
 )
 
 type RolesMiddleware struct {
-	Config    *config.Config
-	Evaluator *cel.Evaluator
-}
-
-func NewRolesMiddleware(config *config.Config) (*RolesMiddleware, error) {
-	evaluator, err := cel.NewEvaluator()
-	if err != nil {
-		return nil, err
-	}
-
-	return &RolesMiddleware{
-		Config:    config,
-		Evaluator: evaluator,
-	}, nil
-}
-
-func (m *RolesMiddleware) EvaluateRoles(data map[string]interface{}) ([]string, error) {
-	result, err := m.Evaluator.Evaluate(m.Config.Authz.Roles.Expression, data)
-	if err != nil {
-		return nil, fmt.Errorf("failed to evaluate expression: %v", err)
-	}
-
-	typedResult, ok := result.([]interface{})
-	if !ok {
-		return nil, fmt.Errorf("expression must evaluate to a list of strings")
-	}
-
-	roles := make([]string, len(typedResult))
-	for i, v := range typedResult {
-		roles[i] = fmt.Sprint(v)
-	}
-
-	return roles, nil
+	RoleEvaluator *roles.RoleEvaluator
 }
 
 func (m *RolesMiddleware) InjectRoles(next http.Handler) http.HandlerFunc {
@@ -57,7 +23,7 @@ func (m *RolesMiddleware) InjectRoles(next http.Handler) http.HandlerFunc {
 			return
 		}
 
-		roles, err := m.EvaluateRoles(sessionData.Data)
+		roles, err := m.RoleEvaluator.EvaluateRoles(sessionData.Data)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

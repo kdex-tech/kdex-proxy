@@ -45,6 +45,7 @@ type AuthnConfig struct {
 	Logout                 LogoutConfig    `json:"logout,omitempty" yaml:"logout,omitempty"`
 	OAuth                  OAuthConfig     `json:"oauth,omitempty" yaml:"oauth,omitempty"`
 	Realm                  string          `json:"realm,omitempty" yaml:"realm,omitempty"`
+	StateEndpoint          string          `json:"state_endpoint,omitempty" yaml:"state_endpoint,omitempty"`
 }
 
 type AuthzConfig struct {
@@ -160,7 +161,8 @@ var defaultConfig = Config{
 			Prefix:      "/~/o/",
 			RedirectURI: "/~/o/oauth/callback",
 		},
-		Realm: "KDEX Proxy",
+		StateEndpoint: "/~/o/oauth/state",
+		Realm:         "KDEX Proxy",
 	},
 	Authz: AuthzConfig{
 		Provider: "static",
