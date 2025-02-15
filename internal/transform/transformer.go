@@ -37,7 +37,8 @@ func HtmlTransformCheck(r *http.Response) bool {
 	// Check if response is HTML and not streaming
 	contentType := r.Header.Get("Content-Type")
 	isHTML := strings.Contains(contentType, "text/html")
-	isStreaming := r.Header.Get("Transfer-Encoding") == "chunked"
+	transferEncoding := r.Header.Get("Transfer-Encoding")
+	isStreaming := strings.Contains(transferEncoding, "chunked")
 
 	if !isHTML || isStreaming {
 		return false
