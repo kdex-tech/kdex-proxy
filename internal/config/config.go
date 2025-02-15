@@ -48,8 +48,9 @@ type AuthnConfig struct {
 }
 
 type AuthzConfig struct {
-	Provider string                    `json:"provider,omitempty" yaml:"provider,omitempty"`
+	Provider string                    `json:"provider" yaml:"provider"`
 	Static   StaticAuthzProviderConfig `json:"static,omitempty" yaml:"static,omitempty"`
+	Roles    RolesConfig               `json:"roles,omitempty" yaml:"roles,omitempty"`
 }
 
 type BasicAuthConfig struct {
@@ -132,6 +133,10 @@ type Target struct {
 	Container string `json:"container_id,omitempty" yaml:"container_id,omitempty"`
 }
 
+type RolesConfig struct {
+	Expression string `json:"expression" yaml:"expression"`
+}
+
 var defaultConfig = Config{
 	Authn: AuthnConfig{
 		AuthenticateHeader:     "WWW-Authenticate",
@@ -159,6 +164,9 @@ var defaultConfig = Config{
 	},
 	Authz: AuthzConfig{
 		Provider: "static",
+		Roles: RolesConfig{
+			Expression: "this.roles",
+		},
 		Static: StaticAuthzProviderConfig{
 			Permissions: make(map[string][]Permission),
 		},
