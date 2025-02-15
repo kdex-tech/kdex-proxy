@@ -10,12 +10,6 @@ type AuthzMiddleware struct {
 	Authorizer authz.Authorizer
 }
 
-func NewAuthzMiddleware(authorizer authz.Authorizer) *AuthzMiddleware {
-	return &AuthzMiddleware{
-		Authorizer: authorizer,
-	}
-}
-
 func (a *AuthzMiddleware) Authz(next http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := a.Authorizer.CheckAccess(r); err != nil {

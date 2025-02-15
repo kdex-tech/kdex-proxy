@@ -122,7 +122,9 @@ func main() {
 	// Create authorizer with provider
 	permProvider := authz.NewPermissionProvider(&c)
 	authorizer := authz.NewAuthorizer(permProvider)
-	authzMiddleware := mAuthz.NewAuthzMiddleware(authorizer)
+	authzMiddleware := &mAuthz.AuthzMiddleware{
+		Authorizer: authorizer,
+	}
 
 	stateHandler := &authn.StateHandler{
 		FieldEvaluator: fieldEvaluator,
