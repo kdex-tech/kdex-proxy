@@ -38,6 +38,12 @@ func Filter[T any](slice []T, filter func(T) bool) []T {
 	return filtered
 }
 
+func FromDoc(doc *html.Node) string {
+	var buf bytes.Buffer
+	html.Render(&buf, doc)
+	return buf.String()
+}
+
 func GetScheme(r *http.Request) string {
 	if r.URL.Scheme != "" {
 		return r.URL.Scheme

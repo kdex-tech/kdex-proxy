@@ -18,7 +18,6 @@ const (
 )
 
 type AppTransformer struct {
-	transform.Transformer
 	Config *config.Config
 }
 
@@ -43,8 +42,9 @@ func (t *AppTransformer) Transform(r *http.Response, doc *html.Node) error {
 	bodyNode := dom.FindElementByName("body", doc, nil)
 
 	for _, app := range apps {
+		var appContainerNode *html.Node
 		for _, target := range app.Targets {
-			appContainerNode := dom.FindElementByName(KDEX_UI_APP_CONTAINER_ID, doc, func(n *html.Node) bool {
+			appContainerNode = dom.FindElementByName(KDEX_UI_APP_CONTAINER_ID, doc, func(n *html.Node) bool {
 				foundId := false
 				for _, a := range n.Attr {
 					if a.Key == "id" {
@@ -89,9 +89,10 @@ func (t *AppTransformer) Transform(r *http.Response, doc *html.Node) error {
 			}
 
 			appContainerNode.AppendChild(customElement)
+			break
 		}
 
-		if bodyNode != nil {
+		if bodyNode != nil && appContainerNode != nil {
 			scriptNode := &html.Node{
 				Type: html.ElementNode,
 				Data: "script",
