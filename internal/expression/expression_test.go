@@ -1,4 +1,4 @@
-package cel
+package expression
 
 import (
 	"testing"

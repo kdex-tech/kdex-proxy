@@ -27,8 +27,8 @@ import (
 	"kdex.dev/proxy/internal/app"
 	"kdex.dev/proxy/internal/authn"
 	"kdex.dev/proxy/internal/authz"
-	"kdex.dev/proxy/internal/cel"
 	"kdex.dev/proxy/internal/config"
+	"kdex.dev/proxy/internal/expression"
 	"kdex.dev/proxy/internal/fileserver"
 	"kdex.dev/proxy/internal/importmap"
 	"kdex.dev/proxy/internal/meta"
@@ -37,7 +37,6 @@ import (
 	mLogger "kdex.dev/proxy/internal/middleware/log"
 	"kdex.dev/proxy/internal/navigation"
 	"kdex.dev/proxy/internal/proxy"
-	"kdex.dev/proxy/internal/roles"
 	"kdex.dev/proxy/internal/store/session"
 	"kdex.dev/proxy/internal/transform"
 )
@@ -108,15 +107,15 @@ func main() {
 		AuthValidator:          authValidator,
 	}
 
-	evaluator, err := cel.NewEvaluator()
+	evaluator, err := expression.NewEvaluator()
 	if err != nil {
 		log.Fatalf("Failed to create CEL evaluator: %v", err)
 	}
-	roleEvaluator := roles.NewRoleEvaluator(evaluator, &c)
+	fieldEvaluator := expression.NewFieldEvaluator(evaluator, &c)
 
 	// After authn middleware
 	rolesMiddleware := &mAuthz.RolesMiddleware{
-		RoleEvaluator: roleEvaluator,
+		FieldEvaluator: fieldEvaluator,
 	}
 
 	// Create authorizer with provider
@@ -125,7 +124,7 @@ func main() {
 	authzMiddleware := mAuthz.NewAuthzMiddleware(authorizer)
 
 	stateHandler := &authn.StateHandler{
-		RoleEvaluator: roleEvaluator,
+		FieldEvaluator: fieldEvaluator,
 	}
 
 	mux.Handle("GET "+c.Fileserver.Prefix, loggerMiddleware.Log(fileServer.ServeHTTP()))

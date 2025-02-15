@@ -12,17 +12,18 @@ import (
 )
 
 type Config struct {
-	Apps          []App            `json:"apps,omitempty" yaml:"apps,omitempty"`
-	Authn         AuthnConfig      `json:"authn,omitempty" yaml:"authn,omitempty"`
-	Authz         AuthzConfig      `json:"authz,omitempty" yaml:"authz,omitempty"`
-	Fileserver    FileserverConfig `json:"fileserver,omitempty" yaml:"fileserver,omitempty"`
-	Importmap     ImportmapConfig  `json:"importmap,omitempty" yaml:"importmap,omitempty"`
-	ListenAddress string           `json:"listen_address,omitempty" yaml:"listen_address,omitempty"`
-	ListenPort    string           `json:"listen_port,omitempty" yaml:"listen_port,omitempty"`
-	ModuleDir     string           `json:"module_dir,omitempty" yaml:"module_dir,omitempty"`
-	Navigation    NavigationConfig `json:"navigation,omitempty" yaml:"navigation,omitempty"`
-	Proxy         ProxyConfig      `json:"proxy" yaml:"proxy"`
-	Session       SessionConfig    `json:"session,omitempty" yaml:"session,omitempty"`
+	Apps          []App             `json:"apps,omitempty" yaml:"apps,omitempty"`
+	Authn         AuthnConfig       `json:"authn,omitempty" yaml:"authn,omitempty"`
+	Authz         AuthzConfig       `json:"authz,omitempty" yaml:"authz,omitempty"`
+	Expressions   ExpressionsConfig `json:"expressions,omitempty" yaml:"expressions,omitempty"`
+	Fileserver    FileserverConfig  `json:"fileserver,omitempty" yaml:"fileserver,omitempty"`
+	Importmap     ImportmapConfig   `json:"importmap,omitempty" yaml:"importmap,omitempty"`
+	ListenAddress string            `json:"listen_address,omitempty" yaml:"listen_address,omitempty"`
+	ListenPort    string            `json:"listen_port,omitempty" yaml:"listen_port,omitempty"`
+	ModuleDir     string            `json:"module_dir,omitempty" yaml:"module_dir,omitempty"`
+	Navigation    NavigationConfig  `json:"navigation,omitempty" yaml:"navigation,omitempty"`
+	Proxy         ProxyConfig       `json:"proxy" yaml:"proxy"`
+	Session       SessionConfig     `json:"session,omitempty" yaml:"session,omitempty"`
 	json          bool
 }
 
@@ -51,12 +52,16 @@ type AuthnConfig struct {
 type AuthzConfig struct {
 	Provider string                    `json:"provider" yaml:"provider"`
 	Static   StaticAuthzProviderConfig `json:"static,omitempty" yaml:"static,omitempty"`
-	Roles    RolesConfig               `json:"roles,omitempty" yaml:"roles,omitempty"`
 }
 
 type BasicAuthConfig struct {
 	Username string `json:"username,omitempty" yaml:"username,omitempty"`
 	Password string `json:"password,omitempty" yaml:"password,omitempty"`
+}
+
+type ExpressionsConfig struct {
+	Roles    string `json:"roles,omitempty" yaml:"roles,omitempty"`
+	Identity string `json:"identity,omitempty" yaml:"identity,omitempty"`
 }
 
 type FileserverConfig struct {
@@ -166,12 +171,13 @@ var defaultConfig = Config{
 	},
 	Authz: AuthzConfig{
 		Provider: "static",
-		Roles: RolesConfig{
-			Expression: "this.roles",
-		},
 		Static: StaticAuthzProviderConfig{
 			Permissions: make(map[string][]Permission),
 		},
+	},
+	Expressions: ExpressionsConfig{
+		Roles:    "this.roles",
+		Identity: "this.sub",
 	},
 	Fileserver: FileserverConfig{
 		Prefix: "/~/m/",

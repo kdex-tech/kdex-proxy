@@ -6,12 +6,12 @@ import (
 
 	"kdex.dev/proxy/internal/authn"
 	"kdex.dev/proxy/internal/authz"
-	"kdex.dev/proxy/internal/roles"
+	"kdex.dev/proxy/internal/expression"
 	"kdex.dev/proxy/internal/store/session"
 )
 
 type RolesMiddleware struct {
-	RoleEvaluator *roles.RoleEvaluator
+	FieldEvaluator *expression.FieldEvaluator
 }
 
 func (m *RolesMiddleware) InjectRoles(next http.Handler) http.HandlerFunc {
@@ -23,7 +23,7 @@ func (m *RolesMiddleware) InjectRoles(next http.Handler) http.HandlerFunc {
 			return
 		}
 
-		roles, err := m.RoleEvaluator.EvaluateRoles(sessionData.Data)
+		roles, err := m.FieldEvaluator.EvaluateRoles(sessionData.Data)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
