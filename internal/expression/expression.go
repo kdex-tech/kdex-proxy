@@ -2,6 +2,7 @@ package expression
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/google/cel-go/cel"
 	"github.com/google/cel-go/checker/decls"
@@ -11,17 +12,17 @@ type Evaluator struct {
 	env *cel.Env
 }
 
-func NewEvaluator() (*Evaluator, error) {
+func NewEvaluator() *Evaluator {
 	env, err := cel.NewEnv(
 		cel.Declarations(
 			decls.NewVar("this", decls.NewMapType(decls.String, decls.Any)),
 		),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create CEL environment: %v", err)
+		log.Fatalf("failed to create CEL environment: %v", err)
 	}
 
-	return &Evaluator{env: env}, nil
+	return &Evaluator{env: env}
 }
 
 func (e *Evaluator) Evaluate(expression string, data map[string]interface{}) (any, error) {

@@ -108,11 +108,7 @@ func main() {
 		AuthValidator:          authValidator,
 	}
 
-	evaluator, err := expression.NewEvaluator()
-	if err != nil {
-		log.Fatalf("Failed to create CEL evaluator: %v", err)
-	}
-	fieldEvaluator := expression.NewFieldEvaluator(evaluator, &c)
+	fieldEvaluator := expression.NewFieldEvaluator(&c)
 
 	// After authn middleware
 	rolesMiddleware := &mRoles.RolesMiddleware{

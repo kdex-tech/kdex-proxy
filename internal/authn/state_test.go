@@ -14,32 +14,21 @@ import (
 
 func TestStateHandler_StateHandler(t *testing.T) {
 	defaultConfig := config.DefaultConfig()
-	evaluator, err := expression.NewEvaluator()
-	if err != nil {
-		t.Fatalf("failed to create evaluator: %v", err)
-	}
-	type fields struct {
-		FieldEvaluator *expression.FieldEvaluator
-	}
 	tests := []struct {
-		name    string
-		fields  fields
-		session *session.SessionData
-		want    string
+		name           string
+		FieldEvaluator *expression.FieldEvaluator
+		session        *session.SessionData
+		want           string
 	}{
 		{
-			name: "not logged in",
-			fields: fields{
-				FieldEvaluator: expression.NewFieldEvaluator(evaluator, &defaultConfig),
-			},
-			session: nil,
-			want:    `{"identity":"","isLoggedIn":false,"roles":[],"data":{}}`,
+			name:           "not logged in",
+			FieldEvaluator: expression.NewFieldEvaluator(&defaultConfig),
+			session:        nil,
+			want:           `{"identity":"","isLoggedIn":false,"roles":[],"data":{}}`,
 		},
 		{
-			name: "logged in",
-			fields: fields{
-				FieldEvaluator: expression.NewFieldEvaluator(evaluator, &defaultConfig),
-			},
+			name:           "logged in",
+			FieldEvaluator: expression.NewFieldEvaluator(&defaultConfig),
 			session: &session.SessionData{
 				Data: map[string]interface{}{
 					"roles": []string{"admin"},
@@ -49,10 +38,8 @@ func TestStateHandler_StateHandler(t *testing.T) {
 			want: `{"identity":"test","isLoggedIn":true,"roles":["admin"],"data":{"roles":["admin"],"sub":"test"}}`,
 		},
 		{
-			name: "logged in with multiple roles",
-			fields: fields{
-				FieldEvaluator: expression.NewFieldEvaluator(evaluator, &defaultConfig),
-			},
+			name:           "logged in with multiple roles",
+			FieldEvaluator: expression.NewFieldEvaluator(&defaultConfig),
 			session: &session.SessionData{
 				Data: map[string]interface{}{
 					"roles": []string{"admin", "user"},
@@ -62,10 +49,8 @@ func TestStateHandler_StateHandler(t *testing.T) {
 			want: `{"identity":"test","isLoggedIn":true,"roles":["admin","user"],"data":{"roles":["admin","user"],"sub":"test"}}`,
 		},
 		{
-			name: "no identity",
-			fields: fields{
-				FieldEvaluator: expression.NewFieldEvaluator(evaluator, &defaultConfig),
-			},
+			name:           "no identity",
+			FieldEvaluator: expression.NewFieldEvaluator(&defaultConfig),
 			session: &session.SessionData{
 				Data: map[string]interface{}{
 					"roles": []string{"admin", "user"},
@@ -74,10 +59,8 @@ func TestStateHandler_StateHandler(t *testing.T) {
 			want: `{"identity":"","isLoggedIn":true,"roles":["admin","user"],"data":{"roles":["admin","user"]}}`,
 		},
 		{
-			name: "no roles",
-			fields: fields{
-				FieldEvaluator: expression.NewFieldEvaluator(evaluator, &defaultConfig),
-			},
+			name:           "no roles",
+			FieldEvaluator: expression.NewFieldEvaluator(&defaultConfig),
 			session: &session.SessionData{
 				Data: map[string]interface{}{
 					"sub": "test",
@@ -89,7 +72,7 @@ func TestStateHandler_StateHandler(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			h := &StateHandler{
-				FieldEvaluator: tt.fields.FieldEvaluator,
+				FieldEvaluator: tt.FieldEvaluator,
 			}
 			recorder := httptest.NewRecorder()
 			request := httptest.NewRequest("GET", "/", nil)

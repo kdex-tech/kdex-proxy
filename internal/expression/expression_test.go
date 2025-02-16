@@ -7,10 +7,7 @@ import (
 )
 
 func TestEvaluator_Evaluate(t *testing.T) {
-	e, err := NewEvaluator()
-	if err != nil {
-		t.Fatalf("failed to create evaluator: %v", err)
-	}
+	e := NewEvaluator()
 	tests := []struct {
 		name       string
 		expression string

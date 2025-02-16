@@ -11,7 +11,8 @@ type FieldEvaluator struct {
 	Evaluator *Evaluator
 }
 
-func NewFieldEvaluator(evaluator *Evaluator, config *config.Config) *FieldEvaluator {
+func NewFieldEvaluator(config *config.Config) *FieldEvaluator {
+	evaluator := NewEvaluator()
 	return &FieldEvaluator{Evaluator: evaluator, Config: config}
 }
 

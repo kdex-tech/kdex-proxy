@@ -2,6 +2,7 @@ package roles
 
 import (
 	"context"
+	"log"
 	"net/http"
 
 	"kdex.dev/proxy/internal/authn"
@@ -18,15 +19,15 @@ func (m *RolesMiddleware) InjectRoles(next http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Get session data from context
 		sessionData, ok := r.Context().Value(authn.ContextUserKey).(*session.SessionData)
-		if !ok {
+		if !ok || sessionData == nil {
 			next.ServeHTTP(w, r)
 			return
 		}
 
 		roles, err := m.FieldEvaluator.EvaluateRoles(sessionData.Data)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+			log.Printf("failed to evaluate roles: %v", err)
+			roles = []string{}
 		}
 
 		// Add roles to context
