@@ -25,7 +25,7 @@ func TestStateHandler_StateHandler(t *testing.T) {
 			name:           "not logged in",
 			FieldEvaluator: expression.NewFieldEvaluator(&defaultConfig),
 			session:        nil,
-			want:           `{"identity":"","isLoggedIn":false,"roles":[],"data":{}}`,
+			want:           `{"principal":"","roles":[],"data":{}}`,
 		},
 		{
 			name:           "logged in",
@@ -36,7 +36,7 @@ func TestStateHandler_StateHandler(t *testing.T) {
 					"sub":   "test",
 				},
 			},
-			want: `{"identity":"test","isLoggedIn":true,"roles":["admin"],"data":{"roles":["admin"],"sub":"test"}}`,
+			want: `{"principal":"test","roles":["admin"],"data":{"roles":["admin"],"sub":"test"}}`,
 		},
 		{
 			name:           "logged in with multiple roles",
@@ -47,7 +47,7 @@ func TestStateHandler_StateHandler(t *testing.T) {
 					"sub":   "test",
 				},
 			},
-			want: `{"identity":"test","isLoggedIn":true,"roles":["admin","user"],"data":{"roles":["admin","user"],"sub":"test"}}`,
+			want: `{"principal":"test","roles":["admin","user"],"data":{"roles":["admin","user"],"sub":"test"}}`,
 		},
 		{
 			name:           "no identity",
@@ -57,7 +57,7 @@ func TestStateHandler_StateHandler(t *testing.T) {
 					"roles": []string{"admin", "user"},
 				},
 			},
-			want: `{"identity":"","isLoggedIn":true,"roles":["admin","user"],"data":{"roles":["admin","user"]}}`,
+			want: `{"principal":"","roles":["admin","user"],"data":{"roles":["admin","user"]}}`,
 		},
 		{
 			name:           "no roles",
@@ -67,7 +67,7 @@ func TestStateHandler_StateHandler(t *testing.T) {
 					"sub": "test",
 				},
 			},
-			want: `{"identity":"test","isLoggedIn":true,"roles":[],"data":{"sub":"test"}}`,
+			want: `{"principal":"test","roles":[],"data":{"sub":"test"}}`,
 		},
 	}
 	for _, tt := range tests {

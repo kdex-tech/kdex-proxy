@@ -11,10 +11,9 @@ import (
 )
 
 type UserState struct {
-	Identity   string                 `json:"identity"`
-	IsLoggedIn bool                   `json:"isLoggedIn"`
-	Roles      []string               `json:"roles"`
-	Data       map[string]interface{} `json:"data"`
+	Principal string                 `json:"principal"`
+	Roles     []string               `json:"roles"`
+	Data      map[string]interface{} `json:"data"`
 }
 
 type StateHandler struct {
@@ -28,18 +27,17 @@ func (h *StateHandler) StateHandler() http.HandlerFunc {
 		sessionData, ok := r.Context().Value(authn.ContextUserKey).(*session.SessionData)
 		if !ok || sessionData == nil {
 			json.NewEncoder(w).Encode(UserState{
-				Identity:   "",
-				IsLoggedIn: false,
-				Roles:      []string{},
-				Data:       map[string]interface{}{},
+				Principal: "",
+				Roles:     []string{},
+				Data:      map[string]interface{}{},
 			})
 			return
 		}
 
-		identity, err := h.FieldEvaluator.EvaluateIdentity(sessionData.Data)
+		principal, err := h.FieldEvaluator.EvaluatePrincipal(sessionData.Data)
 		if err != nil {
-			log.Printf("error evaluating identity: %v", err)
-			identity = ""
+			log.Printf("error evaluating principal: %v", err)
+			principal = ""
 		}
 
 		roles, err := h.FieldEvaluator.EvaluateRoles(sessionData.Data)
@@ -49,10 +47,9 @@ func (h *StateHandler) StateHandler() http.HandlerFunc {
 		}
 
 		json.NewEncoder(w).Encode(UserState{
-			Identity:   identity,
-			IsLoggedIn: true,
-			Roles:      roles,
-			Data:       sessionData.Data,
+			Principal: principal,
+			Roles:     roles,
+			Data:      sessionData.Data,
 		})
 	}
 }

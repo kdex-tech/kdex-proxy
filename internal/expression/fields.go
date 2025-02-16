@@ -16,8 +16,8 @@ func NewFieldEvaluator(config *config.Config) *FieldEvaluator {
 	return &FieldEvaluator{Evaluator: evaluator, Config: config}
 }
 
-func (e *FieldEvaluator) EvaluateIdentity(data map[string]interface{}) (string, error) {
-	result, err := e.Evaluator.Evaluate(e.Config.Expressions.Identity, data)
+func (e *FieldEvaluator) EvaluatePrincipal(data map[string]interface{}) (string, error) {
+	result, err := e.Evaluator.Evaluate(e.Config.Expressions.Principal, data)
 	if err != nil {
 		return "", fmt.Errorf("failed to evaluate expression: %v", err)
 	}

@@ -60,8 +60,8 @@ type BasicAuthConfig struct {
 }
 
 type ExpressionsConfig struct {
-	Roles    string `json:"roles,omitempty" yaml:"roles,omitempty"`
-	Identity string `json:"identity,omitempty" yaml:"identity,omitempty"`
+	Roles     string `json:"roles,omitempty" yaml:"roles,omitempty"`
+	Principal string `json:"principal,omitempty" yaml:"principal,omitempty"`
 }
 
 type FileserverConfig struct {
@@ -179,8 +179,8 @@ var defaultConfig = Config{
 		},
 	},
 	Expressions: ExpressionsConfig{
-		Roles:    "this.roles",
-		Identity: "this.sub",
+		Roles:     "this.roles",
+		Principal: "this.sub",
 	},
 	Fileserver: FileserverConfig{
 		Prefix: "/~/m/",
