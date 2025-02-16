@@ -24,18 +24,18 @@ data:
     authn:
       auth_validator: oauth
       login:
-        path: /~/o/oauth/login
+        path: /~/oauth/login
         label: Login
         query: nav a[href="/signin/"]
       logout:
-        path: /~/o/oauth/logout
+        path: /~/oauth/logout
         label: Logout
         query: nav a[href="/signin/"]
       oauth:
         auth_server_url: http://keycloak.docker.localhost
         client_id: kdex-proxy
         client_secret: FZd8qsIive63taCdU3y3fARCCMU1SCUS
-        redirect_uri: http://proxy.docker.localhost/~/o/oauth/callback
+        redirect_uri: http://proxy.docker.localhost/~/oauth/callback
     navigation:
       nav_items_query: //nav//li[not(contains(@class,'Banner-item--title')) and contains(@class,'Banner-item')]
       nav_item_fields:

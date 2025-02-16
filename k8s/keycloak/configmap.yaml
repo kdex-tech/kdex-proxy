@@ -29,7 +29,7 @@ data:
           "clientAuthenticatorType": "client-secret",
           "secret": "FZd8qsIive63taCdU3y3fARCCMU1SCUS",
           "redirectUris": [
-            "http://proxy.docker.localhost/~/o/oauth/callback"
+            "http://proxy.docker.localhost/~/oauth/callback"
           ],
           "webOrigins": ["*"],
           "standardFlowEnabled": true,
@@ -43,7 +43,7 @@ data:
             "realm_client": "false",
             "oidc.ciba.grant.enabled": "false",
             "client.secret.creation.time": "1739029422",
-            "backchannel.logout.url": "http://proxy.docker.localhost/~/o/oauth/back_channel_logout",
+            "backchannel.logout.url": "http://proxy.docker.localhost/~/oauth/back_channel_logout",
             "backchannel.logout.session.required": "true",
             "post.logout.redirect.uris": "http://proxy.docker.localhost/*##http://proxy.docker.localhost",
             "oauth2.device.authorization.grant.enabled": "false",

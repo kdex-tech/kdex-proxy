@@ -158,17 +158,17 @@ var defaultConfig = Config{
 			Password: "admin",
 		},
 		Login: LoginConfig{
-			Path:  "/~/o/oauth/login",
+			Path:  "/~/oauth/login",
 			Label: "Login",
 		},
 		Logout: LogoutConfig{
-			Path:  "/~/o/oauth/logout",
+			Path:  "/~/oauth/logout",
 			Label: "Logout",
 		},
 		OAuth: OAuthConfig{
 			ClientID:    "kdex-proxy",
-			Prefix:      "/~/o/",
-			RedirectURI: "/~/o/oauth/callback",
+			Prefix:      "/~/oauth",
+			RedirectURI: "/~/oauth/callback",
 		},
 		Realm: "KDEX Proxy",
 	},

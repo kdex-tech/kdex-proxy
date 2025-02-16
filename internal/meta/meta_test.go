@@ -13,10 +13,10 @@ import (
 func TestMetaTransformer_Transform(t *testing.T) {
 	defaultConfig := config.DefaultConfig()
 	defaultConfig.Proxy.PathSeparator = "/_/"
-	defaultConfig.Authn.Login.Path = "/~/o/oauth/login"
+	defaultConfig.Authn.Login.Path = "/~/oauth/login"
 	defaultConfig.Authn.Login.Label = "Login"
 	defaultConfig.Authn.Login.Query = `nav a[href="/signin/"]`
-	defaultConfig.Authn.Logout.Path = "/~/o/oauth/logout"
+	defaultConfig.Authn.Logout.Path = "/~/oauth/logout"
 	defaultConfig.Authn.Logout.Label = "Logout"
 	defaultConfig.Authn.Logout.Query = `nav a[href="/signin/"]`
 	defaultConfig.State.Endpoint = "/~/state"
@@ -51,7 +51,7 @@ func TestMetaTransformer_Transform(t *testing.T) {
 				Data: "head",
 			},
 			wantErr: false,
-			want:    `<head><meta name="kdex-ui" data-path-separator="/_/" data-login-path="/~/o/oauth/login" data-login-label="Login" data-login-css-query="nav a[href=&#34;/signin/&#34;]" data-logout-path="/~/o/oauth/logout" data-logout-label="Logout" data-logout-css-query="nav a[href=&#34;/signin/&#34;]" data-state-endpoint="/~/state"/></head>`,
+			want:    `<head><meta name="kdex-ui" data-path-separator="/_/" data-login-path="/~/oauth/login" data-login-label="Login" data-login-css-query="nav a[href=&#34;/signin/&#34;]" data-logout-path="/~/oauth/logout" data-logout-label="Logout" data-logout-css-query="nav a[href=&#34;/signin/&#34;]" data-state-endpoint="/~/state"/></head>`,
 		},
 	}
 	for _, tt := range tests {
