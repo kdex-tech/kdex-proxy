@@ -33,7 +33,7 @@ func (m *MetaTransformer) Transform(r *http.Response, doc *html.Node) error {
 				{Key: "data-logout-path", Val: m.Config.Authn.Logout.Path},
 				{Key: "data-logout-label", Val: m.Config.Authn.Logout.Label},
 				{Key: "data-logout-css-query", Val: m.Config.Authn.Logout.Query},
-				{Key: "data-state-endpoint", Val: m.Config.Authn.StateEndpoint},
+				{Key: "data-state-endpoint", Val: m.Config.State.Endpoint},
 			},
 		}
 		headNode.AppendChild(metaNode)

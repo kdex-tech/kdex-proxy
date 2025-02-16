@@ -220,7 +220,7 @@ func TestServer_ReverseProxy(t *testing.T) {
 			method:          "GET",
 			path:            "/test/html_without_importmap",
 			expectedStatus:  http.StatusOK,
-			expectedBody:    `<html><head><script type="importmap">{"imports":{"@kdex-ui":"/~/m/@kdex-ui/index.js"}}</script><meta name="kdex-ui" data-path-separator="/_/" data-login-path="/~/o/oauth/login" data-login-label="Login" data-login-css-query="nav a[href=&#34;/signin/&#34;]" data-logout-path="/~/o/oauth/logout" data-logout-label="Logout" data-logout-css-query="nav a[href=&#34;/signin/&#34;]" data-state-endpoint="/~/o/oauth/state"/></head><body><h1>Hello, World!</h1><script type="module">import '@kdex-ui';</script></body></html>`,
+			expectedBody:    `<html><head><script type="importmap">{"imports":{"@kdex-ui":"/~/m/@kdex-ui/index.js"}}</script><meta name="kdex-ui" data-path-separator="/_/" data-login-path="/~/o/oauth/login" data-login-label="Login" data-login-css-query="nav a[href=&#34;/signin/&#34;]" data-logout-path="/~/o/oauth/logout" data-logout-label="Logout" data-logout-css-query="nav a[href=&#34;/signin/&#34;]" data-state-endpoint="/~/state"/></head><body><h1>Hello, World!</h1><script type="module">import '@kdex-ui';</script></body></html>`,
 			upstreamAddress: upstreamAddress,
 		},
 		{
@@ -228,7 +228,7 @@ func TestServer_ReverseProxy(t *testing.T) {
 			method:          "GET",
 			path:            "/test/html_with_importmap",
 			expectedStatus:  http.StatusOK,
-			expectedBody:    `<html><head><script type="importmap">{"imports":{"@foo/bar":"/foo/bar.js","@kdex-ui":"/~/m/@kdex-ui/index.js"}}</script><meta name="kdex-ui" data-path-separator="/_/" data-login-path="/~/o/oauth/login" data-login-label="Login" data-login-css-query="nav a[href=&#34;/signin/&#34;]" data-logout-path="/~/o/oauth/logout" data-logout-label="Logout" data-logout-css-query="nav a[href=&#34;/signin/&#34;]" data-state-endpoint="/~/o/oauth/state"/></head><body>test<script type="module">import '@kdex-ui';</script></body></html>`,
+			expectedBody:    `<html><head><script type="importmap">{"imports":{"@foo/bar":"/foo/bar.js","@kdex-ui":"/~/m/@kdex-ui/index.js"}}</script><meta name="kdex-ui" data-path-separator="/_/" data-login-path="/~/o/oauth/login" data-login-label="Login" data-login-css-query="nav a[href=&#34;/signin/&#34;]" data-logout-path="/~/o/oauth/logout" data-logout-label="Logout" data-logout-css-query="nav a[href=&#34;/signin/&#34;]" data-state-endpoint="/~/state"/></head><body>test<script type="module">import '@kdex-ui';</script></body></html>`,
 			upstreamAddress: upstreamAddress,
 		},
 		{
@@ -252,7 +252,7 @@ func TestServer_ReverseProxy(t *testing.T) {
 			method:          "GET",
 			path:            "/test/app1/_/app1/bar",
 			expectedStatus:  http.StatusOK,
-			expectedBody:    `<html><head><script type="importmap">{"imports":{"@kdex-ui":"/~/m/@kdex-ui/index.js"}}</script><meta name="kdex-ui" data-path-separator="/_/" data-login-path="/~/o/oauth/login" data-login-label="Login" data-login-css-query="nav a[href=&#34;/signin/&#34;]" data-logout-path="/~/o/oauth/logout" data-logout-label="Logout" data-logout-css-query="nav a[href=&#34;/signin/&#34;]" data-state-endpoint="/~/o/oauth/state"/></head><body><kdex-ui-app-container><app-one id="app1" route-path="/bar"></app-one></kdex-ui-app-container><script type="module">import '@kdex-ui';</script><script type="module" src="http://localhost:61345/app1.js"></script></body></html>`,
+			expectedBody:    `<html><head><script type="importmap">{"imports":{"@kdex-ui":"/~/m/@kdex-ui/index.js"}}</script><meta name="kdex-ui" data-path-separator="/_/" data-login-path="/~/o/oauth/login" data-login-label="Login" data-login-css-query="nav a[href=&#34;/signin/&#34;]" data-logout-path="/~/o/oauth/logout" data-logout-label="Logout" data-logout-css-query="nav a[href=&#34;/signin/&#34;]" data-state-endpoint="/~/state"/></head><body><kdex-ui-app-container><app-one id="app1" route-path="/bar"></app-one></kdex-ui-app-container><script type="module">import '@kdex-ui';</script><script type="module" src="http://localhost:61345/app1.js"></script></body></html>`,
 			upstreamAddress: upstreamAddress,
 		},
 		{
@@ -260,7 +260,7 @@ func TestServer_ReverseProxy(t *testing.T) {
 			method:          "GET",
 			path:            "/test/app1/_/app1",
 			expectedStatus:  http.StatusOK,
-			expectedBody:    `<html><head><script type="importmap">{"imports":{"@kdex-ui":"/~/m/@kdex-ui/index.js"}}</script><meta name="kdex-ui" data-path-separator="/_/" data-login-path="/~/o/oauth/login" data-login-label="Login" data-login-css-query="nav a[href=&#34;/signin/&#34;]" data-logout-path="/~/o/oauth/logout" data-logout-label="Logout" data-logout-css-query="nav a[href=&#34;/signin/&#34;]" data-state-endpoint="/~/o/oauth/state"/></head><body><kdex-ui-app-container><app-one id="app1"></app-one></kdex-ui-app-container><script type="module">import '@kdex-ui';</script><script type="module" src="http://localhost:61345/app1.js"></script></body></html>`,
+			expectedBody:    `<html><head><script type="importmap">{"imports":{"@kdex-ui":"/~/m/@kdex-ui/index.js"}}</script><meta name="kdex-ui" data-path-separator="/_/" data-login-path="/~/o/oauth/login" data-login-label="Login" data-login-css-query="nav a[href=&#34;/signin/&#34;]" data-logout-path="/~/o/oauth/logout" data-logout-label="Logout" data-logout-css-query="nav a[href=&#34;/signin/&#34;]" data-state-endpoint="/~/state"/></head><body><kdex-ui-app-container><app-one id="app1"></app-one></kdex-ui-app-container><script type="module">import '@kdex-ui';</script><script type="module" src="http://localhost:61345/app1.js"></script></body></html>`,
 			upstreamAddress: upstreamAddress,
 		},
 		{
@@ -268,7 +268,7 @@ func TestServer_ReverseProxy(t *testing.T) {
 			method:          "GET",
 			path:            "/test/app1/_/app2/bar",
 			expectedStatus:  http.StatusOK,
-			expectedBody:    `<html><head><script type="importmap">{"imports":{"@kdex-ui":"/~/m/@kdex-ui/index.js"}}</script><meta name="kdex-ui" data-path-separator="/_/" data-login-path="/~/o/oauth/login" data-login-label="Login" data-login-css-query="nav a[href=&#34;/signin/&#34;]" data-logout-path="/~/o/oauth/logout" data-logout-label="Logout" data-logout-css-query="nav a[href=&#34;/signin/&#34;]" data-state-endpoint="/~/o/oauth/state"/></head><body><kdex-ui-app-container><app-one id="app1"></app-one></kdex-ui-app-container><script type="module">import '@kdex-ui';</script><script type="module" src="http://localhost:61345/app1.js"></script></body></html>`,
+			expectedBody:    `<html><head><script type="importmap">{"imports":{"@kdex-ui":"/~/m/@kdex-ui/index.js"}}</script><meta name="kdex-ui" data-path-separator="/_/" data-login-path="/~/o/oauth/login" data-login-label="Login" data-login-css-query="nav a[href=&#34;/signin/&#34;]" data-logout-path="/~/o/oauth/logout" data-logout-label="Logout" data-logout-css-query="nav a[href=&#34;/signin/&#34;]" data-state-endpoint="/~/state"/></head><body><kdex-ui-app-container><app-one id="app1"></app-one></kdex-ui-app-container><script type="module">import '@kdex-ui';</script><script type="module" src="http://localhost:61345/app1.js"></script></body></html>`,
 			upstreamAddress: upstreamAddress,
 		},
 	}

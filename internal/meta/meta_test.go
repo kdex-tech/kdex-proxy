@@ -19,7 +19,7 @@ func TestMetaTransformer_Transform(t *testing.T) {
 	defaultConfig.Authn.Logout.Path = "/~/o/oauth/logout"
 	defaultConfig.Authn.Logout.Label = "Logout"
 	defaultConfig.Authn.Logout.Query = `nav a[href="/signin/"]`
-	defaultConfig.Authn.StateEndpoint = "/~/o/oauth/state"
+	defaultConfig.State.Endpoint = "/~/state"
 
 	type fields struct {
 		Config        *config.Config
@@ -51,7 +51,7 @@ func TestMetaTransformer_Transform(t *testing.T) {
 				Data: "head",
 			},
 			wantErr: false,
-			want:    `<head><meta name="kdex-ui" data-path-separator="/_/" data-login-path="/~/o/oauth/login" data-login-label="Login" data-login-css-query="nav a[href=&#34;/signin/&#34;]" data-logout-path="/~/o/oauth/logout" data-logout-label="Logout" data-logout-css-query="nav a[href=&#34;/signin/&#34;]" data-state-endpoint="/~/o/oauth/state"/></head>`,
+			want:    `<head><meta name="kdex-ui" data-path-separator="/_/" data-login-path="/~/o/oauth/login" data-login-label="Login" data-login-css-query="nav a[href=&#34;/signin/&#34;]" data-logout-path="/~/o/oauth/logout" data-logout-label="Logout" data-logout-css-query="nav a[href=&#34;/signin/&#34;]" data-state-endpoint="/~/state"/></head>`,
 		},
 	}
 	for _, tt := range tests {

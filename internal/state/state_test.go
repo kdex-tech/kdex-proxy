@@ -1,4 +1,4 @@
-package authn
+package state
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"kdex.dev/proxy/internal/authn"
 	"kdex.dev/proxy/internal/config"
 	"kdex.dev/proxy/internal/expression"
 	"kdex.dev/proxy/internal/store/session"
@@ -76,7 +77,7 @@ func TestStateHandler_StateHandler(t *testing.T) {
 			}
 			recorder := httptest.NewRecorder()
 			request := httptest.NewRequest("GET", "/", nil)
-			request = request.WithContext(context.WithValue(request.Context(), ContextUserKey, tt.session))
+			request = request.WithContext(context.WithValue(request.Context(), authn.ContextUserKey, tt.session))
 			handler := h.StateHandler()
 			handler(recorder, request)
 			assert.Equal(t, tt.want, util.NormalizeString(recorder.Body.String()))

@@ -24,6 +24,7 @@ type Config struct {
 	Navigation    NavigationConfig  `json:"navigation,omitempty" yaml:"navigation,omitempty"`
 	Proxy         ProxyConfig       `json:"proxy" yaml:"proxy"`
 	Session       SessionConfig     `json:"session,omitempty" yaml:"session,omitempty"`
+	State         StateConfig       `json:"state,omitempty" yaml:"state,omitempty"`
 	json          bool
 }
 
@@ -46,7 +47,6 @@ type AuthnConfig struct {
 	Logout                 LogoutConfig    `json:"logout,omitempty" yaml:"logout,omitempty"`
 	OAuth                  OAuthConfig     `json:"oauth,omitempty" yaml:"oauth,omitempty"`
 	Realm                  string          `json:"realm,omitempty" yaml:"realm,omitempty"`
-	StateEndpoint          string          `json:"state_endpoint,omitempty" yaml:"state_endpoint,omitempty"`
 }
 
 type AuthzConfig struct {
@@ -96,6 +96,10 @@ type Permission struct {
 	Resource string   `json:"resource" yaml:"resource"` // Resource being accessed (e.g., "page", "api")
 	Action   string   `json:"action" yaml:"action"`     // Action being performed (e.g., "view", "edit")
 	Roles    []string `json:"roles" yaml:"roles"`       // Roles that can perform this action
+}
+
+type StateConfig struct {
+	Endpoint string `json:"endpoint,omitempty" yaml:"endpoint,omitempty"`
 }
 
 type StaticAuthzProviderConfig struct {
@@ -166,8 +170,7 @@ var defaultConfig = Config{
 			Prefix:      "/~/o/",
 			RedirectURI: "/~/o/oauth/callback",
 		},
-		StateEndpoint: "/~/o/oauth/state",
-		Realm:         "KDEX Proxy",
+		Realm: "KDEX Proxy",
 	},
 	Authz: AuthzConfig{
 		Provider: "static",
@@ -207,6 +210,9 @@ var defaultConfig = Config{
 	Session: SessionConfig{
 		CookieName: "session_id",
 		Store:      "memory",
+	},
+	State: StateConfig{
+		Endpoint: "/~/state",
 	},
 }
 

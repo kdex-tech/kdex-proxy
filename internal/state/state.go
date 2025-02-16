@@ -1,10 +1,11 @@
-package authn
+package state
 
 import (
 	"encoding/json"
 	"log"
 	"net/http"
 
+	"kdex.dev/proxy/internal/authn"
 	"kdex.dev/proxy/internal/expression"
 	"kdex.dev/proxy/internal/store/session"
 )
@@ -24,7 +25,7 @@ func (h *StateHandler) StateHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
-		sessionData, ok := r.Context().Value(ContextUserKey).(*session.SessionData)
+		sessionData, ok := r.Context().Value(authn.ContextUserKey).(*session.SessionData)
 		if !ok || sessionData == nil {
 			json.NewEncoder(w).Encode(UserState{
 				Identity:   "",

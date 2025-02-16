@@ -38,6 +38,7 @@ import (
 	mRoles "kdex.dev/proxy/internal/middleware/roles"
 	"kdex.dev/proxy/internal/navigation"
 	"kdex.dev/proxy/internal/proxy"
+	"kdex.dev/proxy/internal/state"
 	"kdex.dev/proxy/internal/store/session"
 	"kdex.dev/proxy/internal/transform"
 )
@@ -122,13 +123,13 @@ func main() {
 		Authorizer: authorizer,
 	}
 
-	stateHandler := &authn.StateHandler{
+	stateHandler := &state.StateHandler{
 		FieldEvaluator: fieldEvaluator,
 	}
 
 	mux.Handle("GET "+c.Fileserver.Prefix, loggerMiddleware.Log(fileServer.ServeHTTP()))
 	mux.Handle("GET "+c.Proxy.ProbePath, loggerMiddleware.Log(http.HandlerFunc(proxyServer.Probe)))
-	mux.Handle("GET "+c.Authn.StateEndpoint,
+	mux.Handle("GET "+c.State.Endpoint,
 		loggerMiddleware.Log(
 			authnMiddleware.Authn(
 				rolesMiddleware.InjectRoles(
