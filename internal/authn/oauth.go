@@ -100,7 +100,7 @@ func (v *OAuthValidator) Validate(w http.ResponseWriter, r *http.Request) func(h
 				Value: "",
 				Path:  "/",
 			})
-			v.challengeAction(w, r)
+			h.ServeHTTP(w, r)
 		}
 	}
 
