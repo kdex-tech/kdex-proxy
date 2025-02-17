@@ -2,6 +2,17 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Remote Debug Proxy",
+            "type": "go",
+            "request": "attach",
+            "mode": "remote",
+            "cwd": "${workspaceFolder}",
+            "port": 2345,
+            "host": "localhost",
+            "trace": "log",
+            "logOutput": "rpc",
+        },
+        {
             "name": "Launch Proxy",
             "type": "go",
             "request": "launch",
