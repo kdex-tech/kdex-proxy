@@ -78,10 +78,10 @@ func NewOAuthValidator(
 }
 
 func (v *OAuthValidator) Register(mux *http.ServeMux) {
-	mux.HandleFunc("GET "+v.Config.OAuth.Prefix+"oauth/callback", v.callbackHandler())
-	mux.HandleFunc("GET "+v.Config.OAuth.Prefix+"oauth/login", v.logInHandler())
-	mux.HandleFunc("GET "+v.Config.OAuth.Prefix+"oauth/logout", v.logOutHandler())
-	mux.HandleFunc("POST "+v.Config.OAuth.Prefix+"oauth/back_channel_logout", v.backChannelLogOutHandler())
+	mux.HandleFunc("GET "+v.Config.OAuth.Prefix+"/callback", v.callbackHandler())
+	mux.HandleFunc("GET "+v.Config.OAuth.Prefix+"/login", v.logInHandler())
+	mux.HandleFunc("GET "+v.Config.OAuth.Prefix+"/logout", v.logOutHandler())
+	mux.HandleFunc("POST "+v.Config.OAuth.Prefix+"/back_channel_logout", v.backChannelLogOutHandler())
 }
 
 func (v *OAuthValidator) Validate(w http.ResponseWriter, r *http.Request) func(h http.Handler) {
@@ -198,7 +198,7 @@ func (v *OAuthValidator) challengeAction(w http.ResponseWriter, r *http.Request)
 
 func (v *OAuthValidator) logInHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		redirectURL := fmt.Sprintf("%s://%s%s", util.GetScheme(r), r.Host, v.Config.OAuth.Prefix+"oauth/callback")
+		redirectURL := fmt.Sprintf("%s://%s%s", util.GetScheme(r), r.Host, v.Config.OAuth.Prefix+"/callback")
 		state := util.RandStringBytes(32)
 		if err := (*v.StateStore).Set(r.Context(), state); err != nil {
 			log.Printf("Error setting state: %v", err)
