@@ -72,8 +72,23 @@ spec:
           subPath: config.json
       - name: proxy
         image: registry:5000/kdex-tech/proxy:latest
+        # Add delve debugging
+        args:
+        - --continue
+        - --listen=:2345
+        - --headless=true
+        - --api-version=2
+        - --log=true
+        - --accept-multiclient
+        - --check-go-version=false
+        - --only-same-user=false
+        - exec
+        - /proxy
         ports:
-        - containerPort: 8080
+        - name: main
+          containerPort: 8080
+        - name: debug
+          containerPort: 2345
         resources:
           limits:
             cpu: 500m
@@ -90,6 +105,9 @@ spec:
             port: 8080
           initialDelaySeconds: 5
           periodSeconds: 10
+        securityContext:
+          capabilities:
+            add: ["SYS_PTRACE"]
         volumeMounts:
         - mountPath: /cache
           name: proxy-pvc
