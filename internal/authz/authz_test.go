@@ -26,10 +26,14 @@ func Test_defaultAuthorizer_CheckAccess(t *testing.T) {
 		err                error
 	}{
 		{
-			name: "no roles",
+			name: "permissions but don't have roles",
 			permissionProvider: &mockPermissionProvider{
 				GetPermissionsFunc: func(path string) ([]config.Permission, error) {
-					return nil, nil
+					return []config.Permission{
+						{
+							Roles: []string{"admin"},
+						},
+					}, nil
 				},
 			},
 			r:   httptest.NewRequest("GET", "/", nil),

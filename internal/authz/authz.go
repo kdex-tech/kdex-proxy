@@ -26,14 +26,18 @@ type defaultAuthorizer struct {
 }
 
 func (a *defaultAuthorizer) CheckAccess(r *http.Request) error {
-	userRoles, ok := r.Context().Value(ContextUserRolesKey).([]string)
-	if !ok {
-		return ErrNoRoles
-	}
-
 	pathPerms, err := a.permissionProvider.GetPermissions(r.URL.Path)
 	if err != nil {
 		return err
+	}
+
+	if len(pathPerms) == 0 {
+		return nil
+	}
+
+	userRoles, ok := r.Context().Value(ContextUserRolesKey).([]string)
+	if !ok {
+		return ErrNoRoles
 	}
 
 	for _, perm := range pathPerms {
