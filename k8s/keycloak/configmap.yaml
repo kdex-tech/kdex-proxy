@@ -63,6 +63,25 @@ data:
             "description": "Administrator role"
           }
         ]
-      }
+      },
+      "users": [
+        {
+          "username": "test",
+          "enabled": true,
+          "emailVerified": true,
+          "firstName": "Test",
+          "lastName": "User",
+          "email": "test.user@fake.localhost",
+          "credentials": [
+            {
+              "type": "password",
+              "value": "test"
+            }
+          ],
+          "realmRoles": [
+            "user"
+          ]
+        }
+      ]
     }
 
