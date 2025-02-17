@@ -78,8 +78,7 @@ func TestStaticBasicAuthValidator_Validate(t *testing.T) {
 
 func TestAuthnMiddleware_Authn(t *testing.T) {
 	type fields struct {
-		ProtectedPaths []string
-		AuthValidator  iauthn.AuthValidator
+		AuthValidator iauthn.AuthValidator
 	}
 	type args struct {
 		h        http.Handler
@@ -95,22 +94,8 @@ func TestAuthnMiddleware_Authn(t *testing.T) {
 		args   args
 	}{
 		{
-			name: "no protected paths",
-			fields: fields{
-				ProtectedPaths: []string{},
-			},
-			args: args{
-				h: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					w.WriteHeader(http.StatusOK)
-				}),
-				method: "GET",
-				path:   "/",
-			},
-		},
-		{
 			name: "protected path without auth",
 			fields: fields{
-				ProtectedPaths: []string{"/protected"},
 				AuthValidator: &iauthn.StaticBasicAuthValidator{
 					AuthenticateHeader:     "WWW-Authenticate",
 					AuthenticateStatusCode: http.StatusUnauthorized,
@@ -132,7 +117,6 @@ func TestAuthnMiddleware_Authn(t *testing.T) {
 		{
 			name: "protected path with invalid auth",
 			fields: fields{
-				ProtectedPaths: []string{"/protected"},
 				AuthValidator: &iauthn.StaticBasicAuthValidator{
 					AuthenticateHeader:     "WWW-Authenticate",
 					AuthenticateStatusCode: http.StatusUnauthorized,
@@ -156,7 +140,6 @@ func TestAuthnMiddleware_Authn(t *testing.T) {
 		{
 			name: "protected path with valid auth",
 			fields: fields{
-				ProtectedPaths: []string{"/protected"},
 				AuthValidator: &iauthn.StaticBasicAuthValidator{
 					AuthenticateHeader:     "WWW-Authenticate",
 					AuthenticateStatusCode: http.StatusUnauthorized,
@@ -180,7 +163,6 @@ func TestAuthnMiddleware_Authn(t *testing.T) {
 		{
 			name: "not a protected path	",
 			fields: fields{
-				ProtectedPaths: []string{"/protected"},
 				AuthValidator: &iauthn.StaticBasicAuthValidator{
 					AuthenticateHeader:     "WWW-Authenticate",
 					AuthenticateStatusCode: http.StatusUnauthorized,
@@ -207,7 +189,6 @@ func TestAuthnMiddleware_Authn(t *testing.T) {
 			a := &AuthnMiddleware{
 				AuthenticateStatusCode: http.StatusUnauthorized,
 				AuthValidator:          tt.fields.AuthValidator,
-				ProtectedPaths:         tt.fields.ProtectedPaths,
 			}
 			got := a.Authn(tt.args.h)
 			if got == nil {
@@ -235,8 +216,7 @@ func TestAuthnMiddleware_Authn(t *testing.T) {
 
 func TestAuthnMiddleware_IsProtected(t *testing.T) {
 	type fields struct {
-		ProtectedPaths []string
-		AuthValidator  iauthn.AuthValidator
+		AuthValidator iauthn.AuthValidator
 	}
 	type args struct {
 		r *http.Request
@@ -248,22 +228,9 @@ func TestAuthnMiddleware_IsProtected(t *testing.T) {
 		want   bool
 	}{
 		{
-			name: "no protected paths",
-			fields: fields{
-				ProtectedPaths: []string{},
-			},
-			args: args{
-				r: &http.Request{
-					URL: &url.URL{Path: "/"},
-				},
-			},
-			want: false,
-		},
-		{
 			name: "protected path without auth and no validators",
 			fields: fields{
-				ProtectedPaths: []string{"/protected"},
-				AuthValidator:  &iauthn.NoOpAuthValidator{},
+				AuthValidator: &iauthn.NoOpAuthValidator{},
 			},
 			args: args{
 				r: &http.Request{
@@ -275,7 +242,6 @@ func TestAuthnMiddleware_IsProtected(t *testing.T) {
 		{
 			name: "protected path without auth and with validators",
 			fields: fields{
-				ProtectedPaths: []string{"/protected"},
 				AuthValidator: &iauthn.StaticBasicAuthValidator{
 					AuthenticateHeader:     "WWW-Authenticate",
 					AuthenticateStatusCode: http.StatusUnauthorized,
@@ -295,7 +261,6 @@ func TestAuthnMiddleware_IsProtected(t *testing.T) {
 		{
 			name: "protected path with invalid auth",
 			fields: fields{
-				ProtectedPaths: []string{"/protected"},
 				AuthValidator: &iauthn.StaticBasicAuthValidator{
 					AuthenticateHeader:     "WWW-Authenticate",
 					AuthenticateStatusCode: http.StatusUnauthorized,
@@ -316,7 +281,6 @@ func TestAuthnMiddleware_IsProtected(t *testing.T) {
 		{
 			name: "protected path with valid auth",
 			fields: fields{
-				ProtectedPaths: []string{"/protected"},
 				AuthValidator: &iauthn.StaticBasicAuthValidator{
 					AuthenticateHeader:     "WWW-Authenticate",
 					AuthenticateStatusCode: http.StatusUnauthorized,
@@ -339,7 +303,6 @@ func TestAuthnMiddleware_IsProtected(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			a := &AuthnMiddleware{
 				AuthenticateStatusCode: http.StatusUnauthorized,
-				ProtectedPaths:         tt.fields.ProtectedPaths,
 				AuthValidator:          tt.fields.AuthValidator,
 			}
 			got := a.IsProtected(httptest.NewRecorder(), tt.args.r)

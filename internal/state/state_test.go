@@ -15,6 +15,7 @@ import (
 
 func TestStateHandler_StateHandler(t *testing.T) {
 	defaultConfig := config.DefaultConfig()
+	defaultConfig.Expressions.Principal = "data.sub"
 	tests := []struct {
 		name           string
 		FieldEvaluator *expression.FieldEvaluator
