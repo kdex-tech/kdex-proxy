@@ -45,8 +45,6 @@ data:
         <li class="Banner-item">
           <a class="Banner-link u-clickable" href="{{ .href }}">{{ .label }}</a>
         </li>
-      protected_paths:
-      - /private
       template_paths:
       - href: /foo
         label: Foo

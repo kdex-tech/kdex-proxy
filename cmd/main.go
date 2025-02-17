@@ -105,7 +105,6 @@ func main() {
 	authnMiddleware := &mAuthn.AuthnMiddleware{
 		AuthenticateHeader:     c.Authn.AuthenticateHeader,
 		AuthenticateStatusCode: c.Authn.AuthenticateStatusCode,
-		ProtectedPaths:         c.Navigation.ProtectedPaths,
 		AuthValidator:          authValidator,
 	}
 
