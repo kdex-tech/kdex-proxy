@@ -86,7 +86,7 @@ func main() {
 		},
 	}
 
-	proxyServer := proxy.NewServer(&c, transformer)
+	proxyServer := proxy.NewProxy(&c, transformer)
 
 	mux := http.NewServeMux()
 

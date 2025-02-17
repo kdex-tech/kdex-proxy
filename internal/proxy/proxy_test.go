@@ -151,7 +151,7 @@ func TestServer_ReverseProxy(t *testing.T) {
 	defaultConfig.Proxy.PathSeparator = "/_/"
 
 	// Configure server for proxy
-	s := Server{
+	s := Proxy{
 		Config:      &defaultConfig,
 		transformer: transformer,
 	}
@@ -343,7 +343,7 @@ func TestServer_Probe(t *testing.T) {
 	defaultConfig.Proxy.UpstreamScheme = "http"
 	defaultConfig.Proxy.UpstreamHealthzPath = "/healthz"
 
-	s := &Server{
+	s := &Proxy{
 		Config: &defaultConfig,
 	}
 
@@ -465,7 +465,7 @@ func TestServer_rewrite(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewServer(
+			s := NewProxy(
 				&defaultConfig,
 				nil,
 			)

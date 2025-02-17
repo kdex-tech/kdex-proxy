@@ -39,20 +39,20 @@ type PathParts struct {
 	Path     string
 }
 
-type Server struct {
+type Proxy struct {
 	proxy       *httputil.ReverseProxy
 	transformer transform.Transformer
 	Config      *config.Config
 }
 
-func NewServer(config *config.Config, transformer transform.Transformer) *Server {
-	return &Server{
+func NewProxy(config *config.Config, transformer transform.Transformer) *Proxy {
+	return &Proxy{
 		Config:      config,
 		transformer: transformer,
 	}
 }
 
-func (s *Server) Probe(w http.ResponseWriter, r *http.Request) {
+func (s *Proxy) Probe(w http.ResponseWriter, r *http.Request) {
 	url := fmt.Sprintf("%s://%s%s", util.GetScheme(r), s.Config.Proxy.UpstreamAddress, s.Config.Proxy.UpstreamHealthzPath)
 
 	req, _ := http.NewRequest("GET", url, nil)
@@ -78,7 +78,7 @@ func (s *Server) Probe(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) ReverseProxy() func(http.ResponseWriter, *http.Request) {
+func (s *Proxy) ReverseProxy() func(http.ResponseWriter, *http.Request) {
 	s.proxy = &httputil.ReverseProxy{
 		ErrorHandler:   s.errorHandler,
 		ModifyResponse: s.modifyResponse,
@@ -88,12 +88,12 @@ func (s *Server) ReverseProxy() func(http.ResponseWriter, *http.Request) {
 	return s.proxy.ServeHTTP
 }
 
-func (s *Server) errorHandler(w http.ResponseWriter, r *http.Request, err error) {
+func (s *Proxy) errorHandler(w http.ResponseWriter, r *http.Request, err error) {
 	log.Printf("Error: %v", err)
 	http.Error(w, err.Error(), http.StatusInternalServerError)
 }
 
-func (s *Server) modifyResponse(r *http.Response) (err error) {
+func (s *Proxy) modifyResponse(r *http.Response) (err error) {
 	if s.transformer == nil {
 		return nil
 	}
@@ -137,7 +137,7 @@ func (s *Server) modifyResponse(r *http.Response) (err error) {
 	return nil
 }
 
-func (s *Server) rewrite(r *httputil.ProxyRequest) {
+func (s *Proxy) rewrite(r *httputil.ProxyRequest) {
 	target := &url.URL{Scheme: s.Config.Proxy.UpstreamScheme, Host: s.Config.Proxy.UpstreamAddress}
 	req := r.Out
 
@@ -190,7 +190,7 @@ func (s *Server) rewrite(r *httputil.ProxyRequest) {
 	}
 }
 
-func (s *Server) rewritePath(r *httputil.ProxyRequest) PathParts {
+func (s *Proxy) rewritePath(r *httputil.ProxyRequest) PathParts {
 	parts := strings.SplitN(r.In.URL.Path, s.Config.Proxy.PathSeparator, 2)
 
 	if len(parts) > 1 {
