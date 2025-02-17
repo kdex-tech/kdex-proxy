@@ -15,7 +15,7 @@ type Evaluator struct {
 func NewEvaluator() *Evaluator {
 	env, err := cel.NewEnv(
 		cel.Declarations(
-			decls.NewVar("this", decls.NewMapType(decls.String, decls.Any)),
+			decls.NewVar("data", decls.NewMapType(decls.String, decls.Any)),
 		),
 	)
 	if err != nil {
@@ -37,7 +37,7 @@ func (e *Evaluator) Evaluate(expression string, data map[string]interface{}) (an
 	}
 
 	out, _, err := prg.Eval(map[string]interface{}{
-		"this": data,
+		"data": data,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to evaluate expression: %v", err)
