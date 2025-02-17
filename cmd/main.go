@@ -134,7 +134,8 @@ func main() {
 			authnMiddleware.Authn(
 				rolesMiddleware.InjectRoles(
 					authzMiddleware.Authz(
-						stateHandler.StateHandler()),
+						stateHandler.StateHandler(),
+					),
 				),
 			),
 		),
