@@ -93,9 +93,9 @@ type NavigationConfig struct {
 }
 
 type Permission struct {
-	Resource string   `json:"resource" yaml:"resource"` // Resource being accessed (e.g., "page", "api")
-	Action   string   `json:"action" yaml:"action"`     // Action being performed (e.g., "view", "edit")
-	Roles    []string `json:"roles" yaml:"roles"`       // Roles that can perform this action
+	Action    string `json:"action" yaml:"action"`       // Action being performed (e.g., "view", "edit")
+	Principal string `json:"principal" yaml:"principal"` // Principal that can perform this action
+	Resource  string `json:"resource" yaml:"resource"`   // Resource being accessed (e.g., "page", "api")
 }
 
 type StateConfig struct {
@@ -103,7 +103,7 @@ type StateConfig struct {
 }
 
 type StaticAuthzProviderConfig struct {
-	Permissions map[string][]Permission `json:"permissions,omitempty" yaml:"permissions,omitempty"`
+	Permissions []Permission `json:"permissions,omitempty" yaml:"permissions,omitempty"`
 }
 
 type TemplatePath struct {
@@ -174,9 +174,6 @@ var defaultConfig = Config{
 	},
 	Authz: AuthzConfig{
 		Provider: "static",
-		Static: StaticAuthzProviderConfig{
-			Permissions: make(map[string][]Permission),
-		},
 	},
 	Expressions: ExpressionsConfig{
 		Principal: "data.preferred_username",

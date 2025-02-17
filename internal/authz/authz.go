@@ -1,6 +1,7 @@
 package authz
 
 import (
+	"log"
 	"net/http"
 
 	khttp "kdex.dev/proxy/internal/http"
@@ -28,34 +29,35 @@ type defaultAuthorizer struct {
 func (a *defaultAuthorizer) CheckAccess(r *http.Request) error {
 	pathPerms, err := a.permissionProvider.GetPermissions(r.URL.Path)
 	if err != nil {
+		// Don't accidentally give access on error
+		log.Printf("Error getting permissions for path %s: %v", r.URL.Path, err)
 		return err
 	}
 
 	if len(pathPerms) == 0 {
+		// No permissions for this path, so we can give access by returning nil
 		return nil
 	}
 
 	userRoles, ok := r.Context().Value(ContextUserRolesKey).([]string)
 	if !ok {
+		// No roles for this user, so we can't check permissions
 		return ErrNoRoles
 	}
 
 	for _, perm := range pathPerms {
-		if !hasIntersection(perm.Roles, userRoles) {
-			return ErrUnauthorized
+		if perm.Action == "view" && hasIntersection(perm.Principal, userRoles) {
+			return nil
 		}
 	}
 
-	return nil
+	// No permissions for this path, so we can't give access
+	return ErrUnauthorized
 }
 
-func hasIntersection(a, b []string) bool {
-	set := make(map[string]bool)
-	for _, item := range a {
-		set[item] = true
-	}
+func hasIntersection(a string, b []string) bool {
 	for _, item := range b {
-		if set[item] {
+		if item == a {
 			return true
 		}
 	}

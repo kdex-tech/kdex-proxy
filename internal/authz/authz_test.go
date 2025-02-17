@@ -26,21 +26,17 @@ func Test_defaultAuthorizer_CheckAccess(t *testing.T) {
 		err                error
 	}{
 		{
-			name: "permissions but don't have roles",
+			name: "permission required but don't have roles",
 			permissionProvider: &mockPermissionProvider{
 				GetPermissionsFunc: func(path string) ([]config.Permission, error) {
-					return []config.Permission{
-						{
-							Roles: []string{"admin"},
-						},
-					}, nil
+					return []config.Permission{{Principal: "admin"}}, nil
 				},
 			},
 			r:   httptest.NewRequest("GET", "/", nil),
 			err: ErrNoRoles,
 		},
 		{
-			name: "no permissions are required",
+			name: "permission are not required",
 			permissionProvider: &mockPermissionProvider{
 				GetPermissionsFunc: func(path string) ([]config.Permission, error) {
 					return []config.Permission{}, nil
@@ -54,10 +50,10 @@ func Test_defaultAuthorizer_CheckAccess(t *testing.T) {
 			err: nil,
 		},
 		{
-			name: "permissions are required",
+			name: "permission required but user doesn't have correct role",
 			permissionProvider: &mockPermissionProvider{
 				GetPermissionsFunc: func(path string) ([]config.Permission, error) {
-					return []config.Permission{{Roles: []string{"admin"}}}, nil
+					return []config.Permission{{Principal: "admin"}}, nil
 				},
 			},
 			r: func() *http.Request {
@@ -68,10 +64,10 @@ func Test_defaultAuthorizer_CheckAccess(t *testing.T) {
 			err: ErrUnauthorized,
 		},
 		{
-			name: "permissions are required and user has one",
+			name: "permission required and user has correct role",
 			permissionProvider: &mockPermissionProvider{
 				GetPermissionsFunc: func(path string) ([]config.Permission, error) {
-					return []config.Permission{{Roles: []string{"admin"}}}, nil
+					return []config.Permission{{Principal: "admin", Action: "view"}}, nil
 				},
 			},
 			r: func() *http.Request {

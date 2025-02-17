@@ -37,6 +37,15 @@ data:
         client_secret: FZd8qsIive63taCdU3y3fARCCMU1SCUS
         dump_claims: true
         redirect_uri: http://proxy.docker.localhost/~/oauth/callback
+    authz:
+      static:
+        permissions:
+        - resource: /admin
+          action: view
+          principal: user
+        - resource: /private
+          action: view
+          principal: user
     expressions:
       principal: "data.preferred_username"
       roles: "data.realm_access.roles"
