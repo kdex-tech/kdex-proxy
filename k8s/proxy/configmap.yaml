@@ -35,6 +35,7 @@ data:
         auth_server_url: http://keycloak.docker.localhost
         client_id: kdex-proxy
         client_secret: FZd8qsIive63taCdU3y3fARCCMU1SCUS
+        dump_claims: true
         redirect_uri: http://proxy.docker.localhost/~/oauth/callback
     expressions:
       principal: "data.preferred_username"
