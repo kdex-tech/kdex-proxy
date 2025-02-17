@@ -179,8 +179,8 @@ var defaultConfig = Config{
 		},
 	},
 	Expressions: ExpressionsConfig{
+		Principal: "this.preferred_username",
 		Roles:     "this.roles",
-		Principal: "this.sub",
 	},
 	Fileserver: FileserverConfig{
 		Prefix: "/~/m/",

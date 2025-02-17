@@ -36,6 +36,9 @@ data:
         client_id: kdex-proxy
         client_secret: FZd8qsIive63taCdU3y3fARCCMU1SCUS
         redirect_uri: http://proxy.docker.localhost/~/oauth/callback
+    expressions:
+      principal: "this.preferred_username"
+      roles: "this.roles"
     navigation:
       nav_items_query: //nav//li[not(contains(@class,'Banner-item--title')) and contains(@class,'Banner-item')]
       nav_item_fields:
