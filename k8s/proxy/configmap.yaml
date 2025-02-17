@@ -39,7 +39,7 @@ data:
         redirect_uri: http://proxy.docker.localhost/~/oauth/callback
     expressions:
       principal: "data.preferred_username"
-      roles: "data.roles"
+      roles: "data.realm_access.roles"
     navigation:
       nav_items_query: //nav//li[not(contains(@class,'Banner-item--title')) and contains(@class,'Banner-item')]
       nav_item_fields:
