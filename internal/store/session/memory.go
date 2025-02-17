@@ -2,7 +2,6 @@ package session
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
@@ -50,7 +49,7 @@ func (s *memorySessionStore) Get(ctx context.Context, sessionID string) (*Sessio
 	defer s.mu.RUnlock()
 	data, ok := s.sessions[sessionID]
 	if !ok {
-		return nil, fmt.Errorf("session not found")
+		return nil, ErrSessionNotFound
 	}
 	return &data, nil
 }

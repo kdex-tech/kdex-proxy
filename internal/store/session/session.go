@@ -2,11 +2,16 @@ package session
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
 
 	"kdex.dev/proxy/internal/config"
+)
+
+var (
+	ErrSessionNotFound = errors.New("session not found")
 )
 
 type SessionData struct {
