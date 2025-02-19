@@ -30,7 +30,7 @@ func TestChecker_Check(t *testing.T) {
 				PermissionProvider: &StaticPermissionProvider{},
 			},
 			args: args{
-				ctx:      context.Background(),
+				ctx:      context.WithValue(context.Background(), ContextUserRolesKey, []string{"admin"}),
 				resource: "page:/",
 				action:   "read",
 			},
@@ -164,6 +164,84 @@ func TestChecker_Check(t *testing.T) {
 				PermissionProvider: tt.fields.PermissionProvider,
 			}
 			got, err := c.Check(tt.args.ctx, tt.args.resource, tt.args.action)
+			assert.Equal(t, tt.wantErr, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestChecker_CheckBatch(t *testing.T) {
+	type fields struct {
+		PermissionProvider PermissionProvider
+	}
+	type args struct {
+		ctx       context.Context
+		resources []string
+		action    string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    []CheckBatchResult
+		wantErr error
+	}{
+		{
+			name: "no roles",
+			fields: fields{
+				PermissionProvider: &StaticPermissionProvider{},
+			},
+			args: args{
+				ctx:       context.Background(),
+				resources: []string{"page:/", "page:/users/"},
+				action:    "read",
+			},
+			want:    nil,
+			wantErr: ErrNoRoles,
+		},
+		{
+			name: "no permissions",
+			fields: fields{
+				PermissionProvider: &StaticPermissionProvider{
+					permissions: []config.Permission{},
+				},
+			},
+			args: args{
+				ctx:       context.WithValue(context.Background(), ContextUserRolesKey, []string{"admin"}),
+				resources: []string{"page:/", "page:/users/"},
+				action:    "read",
+			},
+			want: []CheckBatchResult{
+				{Resource: "page:/", Allowed: false, Error: ErrNoPermissions},
+				{Resource: "page:/users/", Allowed: false, Error: ErrNoPermissions},
+			},
+			wantErr: nil,
+		},
+		{
+			name: "has some permissions",
+			fields: fields{
+				PermissionProvider: &StaticPermissionProvider{
+					permissions: []config.Permission{{Resource: "page:/", Action: "read", Principal: "admin"}},
+				},
+			},
+			args: args{
+				ctx:       context.WithValue(context.Background(), ContextUserRolesKey, []string{"admin"}),
+				resources: []string{"page:/", "page:/users/"},
+				action:    "read",
+			},
+			want: []CheckBatchResult{
+				{Resource: "page:/", Allowed: true, Error: nil},
+				{Resource: "page:/users/", Allowed: false, Error: ErrNoPermissions},
+			},
+			wantErr: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &Checker{
+				PermissionProvider: tt.fields.PermissionProvider,
+			}
+			got, err := c.CheckBatch(tt.args.ctx, tt.args.resources, tt.args.action)
 			assert.Equal(t, tt.wantErr, err)
 			assert.Equal(t, tt.want, got)
 		})

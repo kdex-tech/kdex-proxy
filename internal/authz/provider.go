@@ -49,7 +49,7 @@ func (p *StaticPermissionProvider) GetPermissions(resource string) ([]config.Per
 		if (_resourceType == "*" || _resourceType == resourceType) &&
 			(_resourceKey == "*" || _resourceKey == resourceKey ||
 				(strings.HasSuffix(_resourceKey, "*") &&
-					strings.HasPrefix(resourceKey, strings.TrimSuffix(_resourceKey, "*")))) {
+					strings.HasPrefix(resourceKey, _resourceKey[:len(_resourceKey)-1]))) {
 
 			filtered = append(filtered, perm)
 		}
