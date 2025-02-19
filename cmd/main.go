@@ -117,7 +117,10 @@ func main() {
 
 	// Create authorizer with provider
 	permProvider := authz.NewPermissionProvider(&c)
-	authorizer := authz.NewAuthorizer(permProvider)
+	checker := authz.Checker{
+		PermissionProvider: permProvider,
+	}
+	authorizer := authz.NewAuthorizer(checker)
 	authzMiddleware := &mAuthz.AuthzMiddleware{
 		Authorizer: authorizer,
 	}

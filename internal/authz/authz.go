@@ -1,7 +1,8 @@
 package authz
 
 import (
-	"log"
+	"errors"
+	"fmt"
 	"net/http"
 
 	khttp "kdex.dev/proxy/internal/http"
@@ -16,50 +17,26 @@ type Authorizer interface {
 }
 
 // NewAuthorizer creates a new Authorizer based on configuration
-func NewAuthorizer(permissionProvider PermissionProvider) Authorizer {
+func NewAuthorizer(checker Checker) Authorizer {
 	return &defaultAuthorizer{
-		permissionProvider: permissionProvider,
+		checker: checker,
 	}
 }
 
 type defaultAuthorizer struct {
-	permissionProvider PermissionProvider
+	checker Checker
 }
 
 func (a *defaultAuthorizer) CheckAccess(r *http.Request) error {
-	pathPerms, err := a.permissionProvider.GetPermissions(r.URL.Path)
-	if err != nil {
-		// Don't accidentally give access on error
-		log.Printf("Error getting permissions for path %s: %v", r.URL.Path, err)
+	ok, err := a.checker.Check(r.Context(), fmt.Sprintf("page:%s", r.URL.Path), "view")
+
+	if err != nil && !errors.Is(err, ErrNoPermissions) && !errors.Is(err, ErrNoRoles) {
 		return err
 	}
 
-	if len(pathPerms) == 0 {
-		// No permissions for this path, so we can give access by returning nil
+	if ok {
 		return nil
 	}
 
-	userRoles, ok := r.Context().Value(ContextUserRolesKey).([]string)
-	if !ok {
-		// No roles for this user, so we can't check permissions
-		return ErrNoRoles
-	}
-
-	for _, perm := range pathPerms {
-		if perm.Action == "view" && hasIntersection(perm.Principal, userRoles) {
-			return nil
-		}
-	}
-
-	// No permissions for this path, so we can't give access
 	return ErrUnauthorized
-}
-
-func hasIntersection(a string, b []string) bool {
-	for _, item := range b {
-		if item == a {
-			return true
-		}
-	}
-	return false
 }
