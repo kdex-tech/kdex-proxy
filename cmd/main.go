@@ -27,6 +27,7 @@ import (
 	"kdex.dev/proxy/internal/app"
 	"kdex.dev/proxy/internal/authn"
 	"kdex.dev/proxy/internal/authz"
+	"kdex.dev/proxy/internal/check"
 	"kdex.dev/proxy/internal/config"
 	"kdex.dev/proxy/internal/expression"
 	"kdex.dev/proxy/internal/fileserver"
@@ -131,6 +132,33 @@ func main() {
 
 	mux.Handle("GET "+c.Fileserver.Prefix, loggerMiddleware.Log(fileServer.ServeHTTP()))
 	mux.Handle("GET "+c.Proxy.ProbePath, loggerMiddleware.Log(http.HandlerFunc(proxyServer.Probe)))
+
+	checkHandler := &check.CheckHandler{
+		Checker: &checker,
+	}
+	mux.Handle("GET "+c.Authz.CheckPrefix+"/single",
+		loggerMiddleware.Log(
+			authnMiddleware.Authn(
+				rolesMiddleware.InjectRoles(
+					authzMiddleware.Authz(
+						checkHandler.CheckHandler(),
+					),
+				),
+			),
+		),
+	)
+	mux.Handle("POST "+c.Authz.CheckPrefix+"/batch",
+		loggerMiddleware.Log(
+			authnMiddleware.Authn(
+				rolesMiddleware.InjectRoles(
+					authzMiddleware.Authz(
+						checkHandler.CheckBatchHandler(),
+					),
+				),
+			),
+		),
+	)
+
 	mux.Handle("GET "+c.State.Endpoint,
 		loggerMiddleware.Log(
 			authnMiddleware.Authn(

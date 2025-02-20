@@ -41,7 +41,7 @@ func TestChecker_Check(t *testing.T) {
 			name: "has permissions but no roles",
 			fields: fields{
 				PermissionProvider: &StaticPermissionProvider{
-					permissions: []config.Permission{{Resource: "page:/", Action: "read"}},
+					Permissions: []config.Permission{{Resource: "page:/", Action: "read"}},
 				},
 			},
 			args: args{
@@ -56,7 +56,7 @@ func TestChecker_Check(t *testing.T) {
 			name: "has permissions and roles",
 			fields: fields{
 				PermissionProvider: &StaticPermissionProvider{
-					permissions: []config.Permission{{Resource: "page:/", Action: "read", Principal: "admin"}},
+					Permissions: []config.Permission{{Resource: "page:/", Action: "read", Principal: "admin"}},
 				},
 			},
 			args: args{
@@ -71,7 +71,7 @@ func TestChecker_Check(t *testing.T) {
 			name: "has permissions and roles but no intersection",
 			fields: fields{
 				PermissionProvider: &StaticPermissionProvider{
-					permissions: []config.Permission{{Resource: "page:/", Action: "read", Principal: "admin"}},
+					Permissions: []config.Permission{{Resource: "page:/", Action: "read", Principal: "admin"}},
 				},
 			},
 			args: args{
@@ -86,7 +86,7 @@ func TestChecker_Check(t *testing.T) {
 			name: "permission is a identifier glob",
 			fields: fields{
 				PermissionProvider: &StaticPermissionProvider{
-					permissions: []config.Permission{{Resource: "page:/*", Action: "read", Principal: "admin"}},
+					Permissions: []config.Permission{{Resource: "page:/*", Action: "read", Principal: "admin"}},
 				},
 			},
 			args: args{
@@ -101,7 +101,7 @@ func TestChecker_Check(t *testing.T) {
 			name: "permission is a type glob",
 			fields: fields{
 				PermissionProvider: &StaticPermissionProvider{
-					permissions: []config.Permission{{Resource: "*:/foo", Action: "read", Principal: "admin"}},
+					Permissions: []config.Permission{{Resource: "*:/foo", Action: "read", Principal: "admin"}},
 				},
 			},
 			args: args{
@@ -116,7 +116,7 @@ func TestChecker_Check(t *testing.T) {
 			name: "permission is a type and identifier glob",
 			fields: fields{
 				PermissionProvider: &StaticPermissionProvider{
-					permissions: []config.Permission{{Resource: "*:*", Action: "read", Principal: "admin"}},
+					Permissions: []config.Permission{{Resource: "*:*", Action: "read", Principal: "admin"}},
 				},
 			},
 			args: args{
@@ -131,7 +131,7 @@ func TestChecker_Check(t *testing.T) {
 			name: "permission is a type, identifier and action glob",
 			fields: fields{
 				PermissionProvider: &StaticPermissionProvider{
-					permissions: []config.Permission{{Resource: "*:*", Action: "*", Principal: "admin"}},
+					Permissions: []config.Permission{{Resource: "*:*", Action: "*", Principal: "admin"}},
 				},
 			},
 			args: args{
@@ -146,12 +146,27 @@ func TestChecker_Check(t *testing.T) {
 			name: "permission is an identifier prefix glob",
 			fields: fields{
 				PermissionProvider: &StaticPermissionProvider{
-					permissions: []config.Permission{{Resource: "page:/foo*", Action: "read", Principal: "admin"}},
+					Permissions: []config.Permission{{Resource: "page:/foo*", Action: "read", Principal: "admin"}},
 				},
 			},
 			args: args{
 				ctx:      context.WithValue(context.Background(), ContextUserRolesKey, []string{"admin"}),
 				resource: "page:/foo/bar",
+				action:   "read",
+			},
+			want:    true,
+			wantErr: nil,
+		},
+		{
+			name: "permission is a principal prefix glob",
+			fields: fields{
+				PermissionProvider: &StaticPermissionProvider{
+					Permissions: []config.Permission{{Resource: "page:/foo", Action: "read", Principal: "adm*"}},
+				},
+			},
+			args: args{
+				ctx:      context.WithValue(context.Background(), ContextUserRolesKey, []string{"admin"}),
+				resource: "page:/foo",
 				action:   "read",
 			},
 			want:    true,
@@ -175,9 +190,8 @@ func TestChecker_CheckBatch(t *testing.T) {
 		PermissionProvider PermissionProvider
 	}
 	type args struct {
-		ctx       context.Context
-		resources []string
-		action    string
+		ctx    context.Context
+		tuples []CheckBatchTuples
 	}
 	tests := []struct {
 		name    string
@@ -192,9 +206,10 @@ func TestChecker_CheckBatch(t *testing.T) {
 				PermissionProvider: &StaticPermissionProvider{},
 			},
 			args: args{
-				ctx:       context.Background(),
-				resources: []string{"page:/", "page:/users/"},
-				action:    "read",
+				ctx: context.Background(),
+				tuples: []CheckBatchTuples{
+					{Resource: "page:/", Action: "read"},
+				},
 			},
 			want:    nil,
 			wantErr: ErrNoRoles,
@@ -203,13 +218,15 @@ func TestChecker_CheckBatch(t *testing.T) {
 			name: "no permissions",
 			fields: fields{
 				PermissionProvider: &StaticPermissionProvider{
-					permissions: []config.Permission{},
+					Permissions: []config.Permission{},
 				},
 			},
 			args: args{
-				ctx:       context.WithValue(context.Background(), ContextUserRolesKey, []string{"admin"}),
-				resources: []string{"page:/", "page:/users/"},
-				action:    "read",
+				ctx: context.WithValue(context.Background(), ContextUserRolesKey, []string{"admin"}),
+				tuples: []CheckBatchTuples{
+					{Resource: "page:/", Action: "read"},
+					{Resource: "page:/users/", Action: "read"},
+				},
 			},
 			want: []CheckBatchResult{
 				{Resource: "page:/", Allowed: false, Error: ErrNoPermissions},
@@ -221,13 +238,17 @@ func TestChecker_CheckBatch(t *testing.T) {
 			name: "has some permissions",
 			fields: fields{
 				PermissionProvider: &StaticPermissionProvider{
-					permissions: []config.Permission{{Resource: "page:/", Action: "read", Principal: "admin"}},
+					Permissions: []config.Permission{
+						{Resource: "page:/", Action: "read", Principal: "admin"},
+					},
 				},
 			},
 			args: args{
-				ctx:       context.WithValue(context.Background(), ContextUserRolesKey, []string{"admin"}),
-				resources: []string{"page:/", "page:/users/"},
-				action:    "read",
+				ctx: context.WithValue(context.Background(), ContextUserRolesKey, []string{"admin"}),
+				tuples: []CheckBatchTuples{
+					{Resource: "page:/", Action: "read"},
+					{Resource: "page:/users/", Action: "read"},
+				},
 			},
 			want: []CheckBatchResult{
 				{Resource: "page:/", Allowed: true, Error: nil},
@@ -241,7 +262,7 @@ func TestChecker_CheckBatch(t *testing.T) {
 			c := &Checker{
 				PermissionProvider: tt.fields.PermissionProvider,
 			}
-			got, err := c.CheckBatch(tt.args.ctx, tt.args.resources, tt.args.action)
+			got, err := c.CheckBatch(tt.args.ctx, tt.args.tuples)
 			assert.Equal(t, tt.wantErr, err)
 			assert.Equal(t, tt.want, got)
 		})

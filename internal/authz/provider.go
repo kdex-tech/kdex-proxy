@@ -14,7 +14,7 @@ type PermissionProvider interface {
 func NewPermissionProvider(config *config.Config) PermissionProvider {
 	if config.Authz.Provider == "static" {
 		return &StaticPermissionProvider{
-			permissions: config.Authz.Static.Permissions,
+			Permissions: config.Authz.Static.Permissions,
 		}
 	}
 
@@ -23,7 +23,7 @@ func NewPermissionProvider(config *config.Config) PermissionProvider {
 
 // StaticPermissionProvider implements PermissionProvider with a static map
 type StaticPermissionProvider struct {
-	permissions []config.Permission
+	Permissions []config.Permission
 }
 
 func (p *StaticPermissionProvider) GetPermissions(resource string) ([]config.Permission, error) {
@@ -36,7 +36,7 @@ func (p *StaticPermissionProvider) GetPermissions(resource string) ([]config.Per
 	resourceKey := parts[1]
 
 	filtered := []config.Permission{}
-	for _, perm := range p.permissions {
+	for _, perm := range p.Permissions {
 		_parts := strings.SplitN(perm.Resource, ":", 2)
 
 		if len(_parts) != 2 {

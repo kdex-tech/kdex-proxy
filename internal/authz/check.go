@@ -10,35 +10,40 @@ type Checker struct {
 	PermissionProvider PermissionProvider
 }
 
+type CheckBatchResult struct {
+	Resource string `json:"resource"`
+	Allowed  bool   `json:"allowed"`
+	Error    error  `json:"error"`
+}
+
+type CheckBatchTuples struct {
+	Action   string `json:"action"`
+	Resource string `json:"resource"`
+}
+
 func (c *Checker) Check(ctx context.Context, resource string, action string) (bool, error) {
 	userRoles, ok := ctx.Value(ContextUserRolesKey).([]string)
-	if !ok {
+	if !ok || len(userRoles) == 0 {
 		return false, ErrNoRoles
 	}
 
 	return c.check(userRoles, resource, action)
 }
 
-type CheckBatchResult struct {
-	Resource string
-	Allowed  bool
-	Error    error
-}
-
-func (c *Checker) CheckBatch(ctx context.Context, resources []string, action string) ([]CheckBatchResult, error) {
+func (c *Checker) CheckBatch(ctx context.Context, tuples []CheckBatchTuples) ([]CheckBatchResult, error) {
 	userRoles, ok := ctx.Value(ContextUserRolesKey).([]string)
-	if !ok {
+	if !ok || len(userRoles) == 0 {
 		return nil, ErrNoRoles
 	}
 
-	results := make([]CheckBatchResult, len(resources))
-	for i, resource := range resources {
-		allowed, err := c.check(userRoles, resource, action)
+	results := make([]CheckBatchResult, len(tuples))
+	for i, tuple := range tuples {
+		allowed, err := c.check(userRoles, tuple.Resource, tuple.Action)
 		if err != nil {
-			results[i] = CheckBatchResult{Resource: resource, Allowed: false, Error: err}
+			results[i] = CheckBatchResult{Resource: tuple.Resource, Allowed: false, Error: err}
 			continue
 		}
-		results[i] = CheckBatchResult{Resource: resource, Allowed: allowed}
+		results[i] = CheckBatchResult{Resource: tuple.Resource, Allowed: allowed}
 	}
 	return results, nil
 }

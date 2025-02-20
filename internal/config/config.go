@@ -50,8 +50,9 @@ type AuthnConfig struct {
 }
 
 type AuthzConfig struct {
-	Provider string                    `json:"provider" yaml:"provider"`
-	Static   StaticAuthzProviderConfig `json:"static,omitempty" yaml:"static,omitempty"`
+	CheckPrefix string                    `json:"check_prefix,omitempty" yaml:"check_prefix,omitempty"`
+	Provider    string                    `json:"provider" yaml:"provider"`
+	Static      StaticAuthzProviderConfig `json:"static,omitempty" yaml:"static,omitempty"`
 }
 
 type BasicAuthConfig struct {
@@ -173,7 +174,8 @@ var defaultConfig = Config{
 		Realm: "KDEX Proxy",
 	},
 	Authz: AuthzConfig{
-		Provider: "static",
+		CheckPrefix: "/~/check",
+		Provider:    "static",
 	},
 	Expressions: ExpressionsConfig{
 		Principal: "data.preferred_username",
