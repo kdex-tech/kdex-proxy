@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: objectstore
+  labels:
+    app: objectstore
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: objectstore
+  template:
+    metadata:
+      labels:
+        app: objectstore
+    spec:
+      containers:
+      - name: objectstore
+        image: bitnami/minio:2024
+        envFrom:
+        - configMapRef:
+            name: objectstore-config
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          httpGet:
+            path: /minio/health/live
+            port: api
+            scheme: HTTP
+        ports:
+        - name: api
+          containerPort: 9000
+          protocol: TCP
+        - name: console
+          containerPort: 9001
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /minio/health/ready
+            port: api
+            scheme: HTTP
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 1001
+          runAsNonRoot: true
+          runAsUser: 1001
+          seLinuxOptions: {}
+          seccompProfile:
+            type: RuntimeDefault
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        startupProbe:
+          httpGet:
+            path: /minio/health/ready
+            port: api
+            scheme: HTTP
+        volumeMounts:
+        - mountPath: /tmp
+          name: objectstore-pvc
+          subPath: tmp-dir
+        - mountPath: /opt/bitnami/minio/tmp
+          name: objectstore-pvc
+          subPath: app-tmp-dir
+        - mountPath: /.mc
+          name: objectstore-pvc
+          subPath: app-mc-dir
+        - mountPath: /bitnami/minio/data
+          name: objectstore-pvc
+          subPath: data-dir
+      securityContext:
+        fsGroup: 1001
+        fsGroupChangePolicy: "OnRootMismatch"
+      volumes:
+      - name: objectstore-config
+        configMap:
+          name: objectstore-config
+      - name: objectstore-pvc
+        persistentVolumeClaim:
+          claimName: objectstore-pvc
