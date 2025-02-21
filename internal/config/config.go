@@ -93,27 +93,6 @@ type NavigationConfig struct {
 	TemplatePaths   []TemplatePath    `json:"template_paths" yaml:"template_paths"`
 }
 
-type Permission struct {
-	Action    string `json:"action" yaml:"action"`       // Action being performed (e.g., "view", "edit")
-	Principal string `json:"principal" yaml:"principal"` // Principal that can perform this action
-	Resource  string `json:"resource" yaml:"resource"`   // Resource being accessed (e.g., "page", "api")
-}
-
-type StateConfig struct {
-	Endpoint string `json:"endpoint,omitempty" yaml:"endpoint,omitempty"`
-}
-
-type StaticAuthzProviderConfig struct {
-	Permissions []Permission `json:"permissions,omitempty" yaml:"permissions,omitempty"`
-}
-
-type TemplatePath struct {
-	Href     string  `json:"href" yaml:"href"`
-	Label    string  `json:"label" yaml:"label"`
-	Template string  `json:"template" yaml:"template"`
-	Weight   float64 `json:"weight" yaml:"weight"`
-}
-
 type OAuthConfig struct {
 	AuthServerURL     string   `json:"auth_server_url" yaml:"auth_server_url"`
 	ClientID          string   `json:"client_id" yaml:"client_id"`
@@ -125,11 +104,20 @@ type OAuthConfig struct {
 	SignInOnChallenge bool     `json:"sign_in_on_challenge,omitempty" yaml:"sign_in_on_challenge,omitempty"`
 }
 
+type Permission struct {
+	Action    string `json:"action" yaml:"action"`       // Action being performed (e.g., "view", "edit")
+	Principal string `json:"principal" yaml:"principal"` // Principal that can perform this action
+	Resource  string `json:"resource" yaml:"resource"`   // Resource being accessed (e.g., "page", "api")
+}
+
 type ProxyConfig struct {
 	AlwaysAppendSlash   bool   `json:"always_append_slash,omitempty" yaml:"always_append_slash,omitempty"`
+	AppendIndex         bool   `json:"append_index,omitempty" yaml:"append_index,omitempty"`
+	IndexFile           string `json:"index_file,omitempty" yaml:"index_file,omitempty"`
 	PathSeparator       string `json:"path_separator,omitempty" yaml:"path_separator,omitempty"`
 	ProbePath           string `json:"probe_path,omitempty" yaml:"probe_path,omitempty"`
 	UpstreamAddress     string `json:"upstream_address" yaml:"upstream_address"`
+	UpstreamPrefix      string `json:"upstream_prefix,omitempty" yaml:"upstream_prefix,omitempty"`
 	UpstreamScheme      string `json:"upstream_scheme,omitempty" yaml:"upstream_scheme,omitempty"`
 	UpstreamHealthzPath string `json:"upstream_healthz_path,omitempty" yaml:"upstream_healthz_path,omitempty"`
 }
@@ -139,9 +127,24 @@ type SessionConfig struct {
 	Store      string `json:"store,omitempty" yaml:"store,omitempty"`
 }
 
+type StateConfig struct {
+	Endpoint string `json:"endpoint,omitempty" yaml:"endpoint,omitempty"`
+}
+
+type StaticAuthzProviderConfig struct {
+	Permissions []Permission `json:"permissions,omitempty" yaml:"permissions,omitempty"`
+}
+
 type Target struct {
 	Path      string `json:"path" yaml:"path"`
 	Container string `json:"container_id,omitempty" yaml:"container_id,omitempty"`
+}
+
+type TemplatePath struct {
+	Href     string  `json:"href" yaml:"href"`
+	Label    string  `json:"label" yaml:"label"`
+	Template string  `json:"template" yaml:"template"`
+	Weight   float64 `json:"weight" yaml:"weight"`
 }
 
 type RolesConfig struct {
@@ -201,6 +204,8 @@ var defaultConfig = Config{
 	},
 	Proxy: ProxyConfig{
 		AlwaysAppendSlash:   false,
+		AppendIndex:         false,
+		IndexFile:           "index.html",
 		PathSeparator:       "/_/",
 		ProbePath:           "/~/p/{$}",
 		UpstreamScheme:      "http",
