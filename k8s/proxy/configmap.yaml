@@ -40,13 +40,28 @@ data:
     authz:
       static:
         permissions:
-        - resource: page:/admin
-          action: view
-          principal: user
-        - resource: page:/private
-          action: view
-          principal: user
         - resource: page:/*
+          action: view
+          principal: user
+        - resource: page:/
+          action: view
+          principal: anonymous
+        - resource: page:/~/state
+          action: view
+          principal: anonymous
+        - resource: page:/css/*
+          action: view
+          principal: anonymous
+        - resource: page:/favicon*
+          action: view
+          principal: anonymous
+        - resource: page:/foo/*
+          action: view
+          principal: anonymous
+        - resource: page:/posts/*
+          action: view
+          principal: anonymous
+        - resource: page:/robots.txt
           action: view
           principal: anonymous
     expressions:
