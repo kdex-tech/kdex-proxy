@@ -93,6 +93,27 @@ func (s *Proxy) errorHandler(w http.ResponseWriter, r *http.Request, err error) 
 	http.Error(w, err.Error(), http.StatusInternalServerError)
 }
 
+func (s *Proxy) joinURLPath(a, b *url.URL) (path, rawpath string) {
+	if a.RawPath == "" && b.RawPath == "" {
+		return s.singleJoiningSlash(a.Path, b.Path), ""
+	}
+	// Same as singleJoiningSlash, but uses EscapedPath to determine
+	// whether a slash should be added
+	apath := a.EscapedPath()
+	bpath := b.EscapedPath()
+
+	aslash := strings.HasSuffix(apath, "/")
+	bslash := strings.HasPrefix(bpath, "/")
+
+	switch {
+	case aslash && bslash:
+		return a.Path + b.Path[1:], apath + bpath[1:]
+	case !aslash && !bslash:
+		return a.Path + "/" + b.Path, apath + "/" + bpath
+	}
+	return a.Path + b.Path, apath + bpath
+}
+
 func (s *Proxy) modifyResponse(r *http.Response) (err error) {
 	if s.transformer == nil {
 		return nil
@@ -138,7 +159,13 @@ func (s *Proxy) modifyResponse(r *http.Response) (err error) {
 }
 
 func (s *Proxy) rewrite(r *httputil.ProxyRequest) {
-	target := &url.URL{Scheme: s.Config.Proxy.UpstreamScheme, Host: s.Config.Proxy.UpstreamAddress}
+	target := &url.URL{
+		Scheme:   s.Config.Proxy.UpstreamScheme,
+		Host:     s.Config.Proxy.UpstreamAddress,
+		Path:     s.Config.Proxy.UpstreamPrefix,
+		RawQuery: r.In.URL.RawQuery,
+	}
+
 	req := r.Out
 
 	parts := s.rewritePath(r)
@@ -162,6 +189,15 @@ func (s *Proxy) rewrite(r *httputil.ProxyRequest) {
 		if strings.HasPrefix(strippedURLPath, templatePath.Href) {
 			req.URL.Path = templatePath.Template + strings.TrimPrefix(req.URL.Path, templatePath.Href)
 		}
+	}
+
+	req.URL.Path, req.URL.RawPath = s.joinURLPath(target, req.URL)
+
+	if strings.HasSuffix(req.URL.Path, "/") &&
+		s.Config.Proxy.AppendIndex &&
+		s.Config.Proxy.IndexFile != "" {
+
+		req.URL.Path = req.URL.Path + s.Config.Proxy.IndexFile
 	}
 
 	log.Printf("Path rewritten as: %s to %s (Alias: %s, Path: %s)", r.In.URL.Path, req.URL.Path, parts.AppAlias, parts.AppPath)
@@ -224,6 +260,18 @@ func (s *Proxy) rewritePath(r *httputil.ProxyRequest) PathParts {
 		AppPath:  "",
 		Path:     r.In.URL.Path,
 	}
+}
+
+func (s *Proxy) singleJoiningSlash(a, b string) string {
+	aslash := strings.HasSuffix(a, "/")
+	bslash := strings.HasPrefix(b, "/")
+	switch {
+	case aslash && bslash:
+		return a + b[1:]
+	case !aslash && !bslash:
+		return a + "/" + b
+	}
+	return a + b
 }
 
 func getOutboundIP() net.IP {

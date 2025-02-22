@@ -72,7 +72,11 @@ data:
         weight: 1.5
     proxy:
       always_append_slash: true
-      upstream_address: sample-site
+      append_index: true
+      # upstream_address: sample-site
+      upstream_address: objectstore-api.docker.localhost:9000
+      upstream_healthz_path: /site/public/index.html
+      upstream_prefix: /site/public
 
   # The package.json file for the proxy
   package.json: |
