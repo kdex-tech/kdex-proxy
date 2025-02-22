@@ -16,6 +16,7 @@ package proxy
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"log"
@@ -29,15 +30,10 @@ import (
 
 	"golang.org/x/net/html"
 	"kdex.dev/proxy/internal/config"
+	kctx "kdex.dev/proxy/internal/context"
 	"kdex.dev/proxy/internal/transform"
 	"kdex.dev/proxy/internal/util"
 )
-
-type PathParts struct {
-	AppAlias string
-	AppPath  string
-	Path     string
-}
 
 type Proxy struct {
 	proxy       *httputil.ReverseProxy
@@ -168,14 +164,14 @@ func (s *Proxy) rewrite(r *httputil.ProxyRequest) {
 
 	req := r.Out
 
-	parts := s.rewritePath(r)
+	proxiedParts := s.rewritePath(r)
 
 	targetQuery := target.RawQuery
 	req.URL.Scheme = target.Scheme
 	req.URL.Host = target.Host
 
-	if parts.AppAlias != "" || parts.Path != req.URL.Path {
-		req.URL.Path = parts.Path
+	if proxiedParts.AppAlias != "" || proxiedParts.ProxiedPath != req.URL.Path {
+		req.URL.Path = proxiedParts.ProxiedPath
 	} else {
 		req.URL.Path = r.In.URL.Path
 	}
@@ -200,7 +196,7 @@ func (s *Proxy) rewrite(r *httputil.ProxyRequest) {
 		req.URL.Path = req.URL.Path + s.Config.Proxy.IndexFile
 	}
 
-	log.Printf("Path rewritten as: %s to %s (Alias: %s, Path: %s)", r.In.URL.Path, req.URL.Path, parts.AppAlias, parts.AppPath)
+	log.Printf("Path rewritten as: %s to %s (Alias: %s, Path: %s)", r.In.URL.Path, req.URL.Path, proxiedParts.AppAlias, proxiedParts.AppPath)
 
 	if targetQuery == "" || req.URL.RawQuery == "" {
 		req.URL.RawQuery = targetQuery + req.URL.RawQuery
@@ -209,13 +205,7 @@ func (s *Proxy) rewrite(r *httputil.ProxyRequest) {
 	}
 
 	r.Out.Host = r.In.Host
-
-	if parts.AppAlias != "" {
-		r.Out.Header["X-Kdex-Proxy-App-Alias"] = []string{parts.AppAlias}
-	}
-	if parts.AppPath != "" {
-		r.Out.Header["X-Kdex-Proxy-App-Path"] = []string{parts.AppPath}
-	}
+	r.Out = r.Out.WithContext(context.WithValue(r.Out.Context(), kctx.ProxiedPartsKey, proxiedParts))
 
 	{
 		// Everything bellow is about Proxy Protocol
@@ -226,14 +216,14 @@ func (s *Proxy) rewrite(r *httputil.ProxyRequest) {
 	}
 }
 
-func (s *Proxy) rewritePath(r *httputil.ProxyRequest) PathParts {
+func (s *Proxy) rewritePath(r *httputil.ProxyRequest) kctx.ProxiedParts {
 	parts := strings.SplitN(r.In.URL.Path, s.Config.Proxy.PathSeparator, 2)
 
 	if len(parts) > 1 {
-		newPath := parts[0]
+		proxiedPath := parts[0]
 
-		if s.Config.Proxy.AlwaysAppendSlash && !strings.HasSuffix(newPath, "/") {
-			newPath = newPath + "/"
+		if s.Config.Proxy.AlwaysAppendSlash && !strings.HasSuffix(proxiedPath, "/") {
+			proxiedPath = proxiedPath + "/"
 		}
 
 		appParts := strings.SplitN(parts[1], "/", 2)
@@ -241,24 +231,24 @@ func (s *Proxy) rewritePath(r *httputil.ProxyRequest) PathParts {
 		if len(appParts) > 1 {
 			appAlias := appParts[0]
 			appPath := fmt.Sprintf("/%s", appParts[1])
-			return PathParts{
-				AppAlias: appAlias,
-				AppPath:  appPath,
-				Path:     newPath,
+			return kctx.ProxiedParts{
+				AppAlias:    appAlias,
+				AppPath:     appPath,
+				ProxiedPath: proxiedPath,
 			}
 		} else {
-			return PathParts{
-				AppAlias: parts[1],
-				AppPath:  "",
-				Path:     newPath,
+			return kctx.ProxiedParts{
+				AppAlias:    parts[1],
+				AppPath:     "",
+				ProxiedPath: proxiedPath,
 			}
 		}
 	}
 
-	return PathParts{
-		AppAlias: "",
-		AppPath:  "",
-		Path:     r.In.URL.Path,
+	return kctx.ProxiedParts{
+		AppAlias:    "",
+		AppPath:     "",
+		ProxiedPath: r.In.URL.Path,
 	}
 }
 

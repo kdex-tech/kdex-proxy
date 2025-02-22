@@ -8,6 +8,7 @@ import (
 
 	"golang.org/x/net/html"
 	"kdex.dev/proxy/internal/config"
+	kctx "kdex.dev/proxy/internal/context"
 	"kdex.dev/proxy/internal/dom"
 	"kdex.dev/proxy/internal/transform"
 	"kdex.dev/proxy/internal/util"
@@ -28,16 +29,19 @@ func NewAppTransformer(config *config.Config) *AppTransformer {
 }
 
 func (t *AppTransformer) Transform(r *http.Response, doc *html.Node) error {
-	targetPath := strings.TrimSuffix(r.Request.URL.Path, "/")
+	proxiedParts, ok := r.Request.Context().Value(kctx.ProxiedPartsKey).(kctx.ProxiedParts)
+
+	if !ok {
+		return nil
+	}
+
+	targetPath := strings.TrimSuffix(proxiedParts.ProxiedPath, "/")
 	log.Printf("Looking for apps for %s", targetPath)
 	apps := t.Config.GetAppsForTargetPath(targetPath)
 
 	if len(apps) == 0 {
 		return nil
 	}
-
-	appAlias := r.Request.Header.Get("X-Kdex-Proxy-App-Alias")
-	appPath := r.Request.Header.Get("X-Kdex-Proxy-App-Path")
 
 	bodyNode := dom.FindElementByName("body", doc, nil)
 
@@ -79,8 +83,8 @@ func (t *AppTransformer) Transform(r *http.Response, doc *html.Node) error {
 				},
 			}
 
-			if app.Alias == appAlias && appPath != "" {
-				customElement.Attr = append(customElement.Attr, html.Attribute{Key: "route-path", Val: appPath})
+			if app.Alias == proxiedParts.AppAlias && proxiedParts.AppPath != "" {
+				customElement.Attr = append(customElement.Attr, html.Attribute{Key: "route-path", Val: proxiedParts.AppPath})
 			}
 
 			// remove all children of the app container node

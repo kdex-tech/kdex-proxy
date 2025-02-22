@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -9,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/html"
 	"kdex.dev/proxy/internal/config"
+	kctx "kdex.dev/proxy/internal/context"
 	"kdex.dev/proxy/internal/util"
 )
 
@@ -222,8 +224,11 @@ func TestAppTransformer_Transform(t *testing.T) {
 				r: &http.Response{
 					Request: func() *http.Request {
 						r := httptest.NewRequest("GET", "/posts", nil)
-						r.Header.Set("X-Kdex-Proxy-App-Alias", "ta")
-						r.Header.Set("X-Kdex-Proxy-App-Path", "/foo")
+						pp := kctx.ProxiedParts{
+							AppAlias: "ta",
+							AppPath:  "/foo",
+						}
+						r = r.WithContext(context.WithValue(r.Context(), kctx.ProxiedPartsKey, pp))
 						return r
 					}(),
 				},

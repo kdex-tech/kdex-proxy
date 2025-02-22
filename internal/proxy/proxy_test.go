@@ -244,7 +244,7 @@ func TestServer_ReverseProxy(t *testing.T) {
 			method:          "GET",
 			path:            "/test/_/foo/bar",
 			expectedStatus:  http.StatusOK,
-			expectedBody:    fmt.Sprintf(`{"method":"GET","path":"/test","headers":{"Accept-Encoding":["gzip"],"Forwarded":["by=%s;for=127.0.0.1;host=foo.bar;proto=http"],"User-Agent":["Go-http-client/1.1"],"X-Forwarded-For":["127.0.0.1"],"X-Forwarded-Host":["foo.bar"],"X-Forwarded-Proto":["http"],"X-Kdex-Proxy-App-Alias":["foo"],"X-Kdex-Proxy-App-Path":["/bar"]}}`, getOutboundIP().String()),
+			expectedBody:    fmt.Sprintf(`{"method":"GET","path":"/test","headers":{"Accept-Encoding":["gzip"],"Forwarded":["by=%s;for=127.0.0.1;host=foo.bar;proto=http"],"User-Agent":["Go-http-client/1.1"],"X-Forwarded-For":["127.0.0.1"],"X-Forwarded-Host":["foo.bar"],"X-Forwarded-Proto":["http"]}}`, getOutboundIP().String()),
 			upstreamAddress: upstreamAddress,
 		},
 		{
