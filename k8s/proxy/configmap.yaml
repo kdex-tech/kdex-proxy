@@ -40,12 +40,15 @@ data:
     authz:
       static:
         permissions:
-        - resource: /admin
+        - resource: page:/admin
           action: view
           principal: user
-        - resource: /private
+        - resource: page:/private
           action: view
           principal: user
+        - resource: page:/*
+          action: view
+          principal: anonymous
     expressions:
       principal: "data.preferred_username"
       roles: "data.realm_access.roles"

@@ -55,7 +55,7 @@ func TestRolesMiddleware_InjectRoles(t *testing.T) {
 				req: httptest.NewRequest("GET", "/", nil),
 			},
 			want:      http.StatusOK,
-			wantRoles: nil,
+			wantRoles: []string{"anonymous"},
 		},
 		{
 			name: "with roles",
@@ -75,7 +75,7 @@ func TestRolesMiddleware_InjectRoles(t *testing.T) {
 				req: httptest.NewRequest("GET", "/", nil),
 			},
 			want:      http.StatusOK,
-			wantRoles: nil,
+			wantRoles: []string{"anonymous"},
 		},
 	}
 	for _, tt := range tests {
