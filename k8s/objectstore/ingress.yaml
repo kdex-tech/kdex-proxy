@@ -6,23 +6,23 @@ metadata:
     app: objectstore
 spec:
   rules:
-  - host: api.objectstore.docker.localhost
+  - host: objectstore-api.docker.localhost
     http:
       paths:
         - path: /
           pathType: ImplementationSpecific
           backend:
               service:
-                name: objectstore
+                name: objectstore-api
                 port:
                   name: api
-  - host: console.objectstore.docker.localhost
+  - host: objectstore-console.docker.localhost
     http:
       paths:
         - path: /
           pathType: ImplementationSpecific
           backend:
               service:
-                name: objectstore
+                name: objectstore-console
                 port:
                   name: console

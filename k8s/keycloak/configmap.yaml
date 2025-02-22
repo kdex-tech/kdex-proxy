@@ -29,7 +29,9 @@ data:
           "clientAuthenticatorType": "client-secret",
           "secret": "FZd8qsIive63taCdU3y3fARCCMU1SCUS",
           "redirectUris": [
-            "http://proxy.docker.localhost/~/oauth/callback"
+            "http://proxy.docker.localhost/~/oauth/callback",
+            "http://objectstore-console.docker.localhost",
+            "http://objectstore-console.docker.localhost/*"
           ],
           "webOrigins": ["*"],
           "standardFlowEnabled": true,
