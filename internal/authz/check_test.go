@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"kdex.dev/proxy/internal/config"
+	kctx "kdex.dev/proxy/internal/context"
 )
 
 func TestChecker_Check(t *testing.T) {
@@ -30,7 +31,7 @@ func TestChecker_Check(t *testing.T) {
 				PermissionProvider: &StaticPermissionProvider{},
 			},
 			args: args{
-				ctx:      context.WithValue(context.Background(), ContextUserRolesKey, []string{"admin"}),
+				ctx:      context.WithValue(context.Background(), kctx.UserRolesKey, []string{"admin"}),
 				resource: "page:/",
 				action:   "read",
 			},
@@ -60,7 +61,7 @@ func TestChecker_Check(t *testing.T) {
 				},
 			},
 			args: args{
-				ctx:      context.WithValue(context.Background(), ContextUserRolesKey, []string{"admin"}),
+				ctx:      context.WithValue(context.Background(), kctx.UserRolesKey, []string{"admin"}),
 				resource: "page:/",
 				action:   "read",
 			},
@@ -75,7 +76,7 @@ func TestChecker_Check(t *testing.T) {
 				},
 			},
 			args: args{
-				ctx:      context.WithValue(context.Background(), ContextUserRolesKey, []string{"user"}),
+				ctx:      context.WithValue(context.Background(), kctx.UserRolesKey, []string{"user"}),
 				resource: "page:/",
 				action:   "read",
 			},
@@ -90,7 +91,7 @@ func TestChecker_Check(t *testing.T) {
 				},
 			},
 			args: args{
-				ctx:      context.WithValue(context.Background(), ContextUserRolesKey, []string{"admin"}),
+				ctx:      context.WithValue(context.Background(), kctx.UserRolesKey, []string{"admin"}),
 				resource: "page:/users/foo",
 				action:   "read",
 			},
@@ -105,7 +106,7 @@ func TestChecker_Check(t *testing.T) {
 				},
 			},
 			args: args{
-				ctx:      context.WithValue(context.Background(), ContextUserRolesKey, []string{"admin"}),
+				ctx:      context.WithValue(context.Background(), kctx.UserRolesKey, []string{"admin"}),
 				resource: "page:/foo",
 				action:   "read",
 			},
@@ -120,7 +121,7 @@ func TestChecker_Check(t *testing.T) {
 				},
 			},
 			args: args{
-				ctx:      context.WithValue(context.Background(), ContextUserRolesKey, []string{"admin"}),
+				ctx:      context.WithValue(context.Background(), kctx.UserRolesKey, []string{"admin"}),
 				resource: "page:/foo",
 				action:   "read",
 			},
@@ -135,7 +136,7 @@ func TestChecker_Check(t *testing.T) {
 				},
 			},
 			args: args{
-				ctx:      context.WithValue(context.Background(), ContextUserRolesKey, []string{"admin"}),
+				ctx:      context.WithValue(context.Background(), kctx.UserRolesKey, []string{"admin"}),
 				resource: "page:/foo",
 				action:   "read",
 			},
@@ -150,7 +151,7 @@ func TestChecker_Check(t *testing.T) {
 				},
 			},
 			args: args{
-				ctx:      context.WithValue(context.Background(), ContextUserRolesKey, []string{"admin"}),
+				ctx:      context.WithValue(context.Background(), kctx.UserRolesKey, []string{"admin"}),
 				resource: "page:/foo/bar",
 				action:   "read",
 			},
@@ -165,7 +166,7 @@ func TestChecker_Check(t *testing.T) {
 				},
 			},
 			args: args{
-				ctx:      context.WithValue(context.Background(), ContextUserRolesKey, []string{"admin"}),
+				ctx:      context.WithValue(context.Background(), kctx.UserRolesKey, []string{"admin"}),
 				resource: "page:/foo",
 				action:   "read",
 			},
@@ -222,7 +223,7 @@ func TestChecker_CheckBatch(t *testing.T) {
 				},
 			},
 			args: args{
-				ctx: context.WithValue(context.Background(), ContextUserRolesKey, []string{"admin"}),
+				ctx: context.WithValue(context.Background(), kctx.UserRolesKey, []string{"admin"}),
 				tuples: []CheckBatchTuples{
 					{Resource: "page:/", Action: "read"},
 					{Resource: "page:/users/", Action: "read"},
@@ -244,7 +245,7 @@ func TestChecker_CheckBatch(t *testing.T) {
 				},
 			},
 			args: args{
-				ctx: context.WithValue(context.Background(), ContextUserRolesKey, []string{"admin"}),
+				ctx: context.WithValue(context.Background(), kctx.UserRolesKey, []string{"admin"}),
 				tuples: []CheckBatchTuples{
 					{Resource: "page:/", Action: "read"},
 					{Resource: "page:/users/", Action: "read"},

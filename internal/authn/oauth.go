@@ -11,6 +11,7 @@ import (
 	"github.com/coreos/go-oidc/v3/oidc"
 	"golang.org/x/oauth2"
 	"kdex.dev/proxy/internal/config"
+	kctx "kdex.dev/proxy/internal/context"
 	"kdex.dev/proxy/internal/store/session"
 	"kdex.dev/proxy/internal/store/state"
 	"kdex.dev/proxy/internal/util"
@@ -121,7 +122,7 @@ func (v *OAuthValidator) Validate(w http.ResponseWriter, r *http.Request) func(h
 	}
 
 	return func(h http.Handler) {
-		r = r.WithContext(context.WithValue(r.Context(), ContextUserKey, sessionData))
+		r = r.WithContext(context.WithValue(r.Context(), kctx.SessionDataKey, sessionData))
 
 		h.ServeHTTP(w, r)
 	}

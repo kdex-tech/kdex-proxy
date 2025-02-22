@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"kdex.dev/proxy/internal/authn"
 	"kdex.dev/proxy/internal/config"
+	kctx "kdex.dev/proxy/internal/context"
 	"kdex.dev/proxy/internal/expression"
 	"kdex.dev/proxy/internal/store/session"
 	"kdex.dev/proxy/internal/util"
@@ -78,7 +78,7 @@ func TestStateHandler_StateHandler(t *testing.T) {
 			}
 			recorder := httptest.NewRecorder()
 			request := httptest.NewRequest("GET", "/", nil)
-			request = request.WithContext(context.WithValue(request.Context(), authn.ContextUserKey, tt.session))
+			request = request.WithContext(context.WithValue(request.Context(), kctx.SessionDataKey, tt.session))
 			handler := h.StateHandler()
 			handler(recorder, request)
 			assert.Equal(t, tt.want, util.NormalizeString(recorder.Body.String()))

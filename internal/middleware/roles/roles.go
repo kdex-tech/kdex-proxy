@@ -5,8 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"kdex.dev/proxy/internal/authn"
-	"kdex.dev/proxy/internal/authz"
+	kctx "kdex.dev/proxy/internal/context"
 	"kdex.dev/proxy/internal/expression"
 	"kdex.dev/proxy/internal/store/session"
 )
@@ -19,7 +18,7 @@ func (m *RolesMiddleware) InjectRoles(next http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var roles []string
 
-		sessionData, ok := r.Context().Value(authn.ContextUserKey).(*session.SessionData)
+		sessionData, ok := r.Context().Value(kctx.SessionDataKey).(*session.SessionData)
 		if ok && sessionData != nil {
 			var err error
 			roles, err = m.FieldEvaluator.EvaluateRoles(sessionData.Data)
@@ -32,7 +31,7 @@ func (m *RolesMiddleware) InjectRoles(next http.Handler) http.HandlerFunc {
 		}
 
 		// Add roles to context
-		ctx := context.WithValue(r.Context(), authz.ContextUserRolesKey, roles)
+		ctx := context.WithValue(r.Context(), kctx.UserRolesKey, roles)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 }

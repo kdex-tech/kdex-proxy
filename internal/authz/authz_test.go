@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"kdex.dev/proxy/internal/config"
+	kctx "kdex.dev/proxy/internal/context"
 )
 
 type mockPermissionProvider struct {
@@ -48,7 +49,7 @@ func Test_defaultAuthorizer_CheckAccess(t *testing.T) {
 			},
 			r: func() *http.Request {
 				r := httptest.NewRequest("GET", "/", nil)
-				r = r.WithContext(context.WithValue(r.Context(), ContextUserRolesKey, []string{"admin"}))
+				r = r.WithContext(context.WithValue(r.Context(), kctx.UserRolesKey, []string{"admin"}))
 				return r
 			}(),
 			err: ErrUnauthorized,
@@ -64,7 +65,7 @@ func Test_defaultAuthorizer_CheckAccess(t *testing.T) {
 			},
 			r: func() *http.Request {
 				r := httptest.NewRequest("GET", "/", nil)
-				r = r.WithContext(context.WithValue(r.Context(), ContextUserRolesKey, []string{"user"}))
+				r = r.WithContext(context.WithValue(r.Context(), kctx.UserRolesKey, []string{"user"}))
 				return r
 			}(),
 			err: ErrUnauthorized,
@@ -80,7 +81,7 @@ func Test_defaultAuthorizer_CheckAccess(t *testing.T) {
 			},
 			r: func() *http.Request {
 				r := httptest.NewRequest("GET", "/", nil)
-				r = r.WithContext(context.WithValue(r.Context(), ContextUserRolesKey, []string{"admin"}))
+				r = r.WithContext(context.WithValue(r.Context(), kctx.UserRolesKey, []string{"admin"}))
 				return r
 			}(),
 			err: nil,

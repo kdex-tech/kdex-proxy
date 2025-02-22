@@ -4,11 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-
-	khttp "kdex.dev/proxy/internal/http"
 )
-
-const ContextUserRolesKey khttp.ContextKey = "user_roles"
 
 // Authorizer defines the interface for authorization checks
 type Authorizer interface {

@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"strings"
+
+	kctx "kdex.dev/proxy/internal/context"
 )
 
 type Checker struct {
@@ -22,7 +24,7 @@ type CheckBatchTuples struct {
 }
 
 func (c *Checker) Check(ctx context.Context, resource string, action string) (bool, error) {
-	userRoles, ok := ctx.Value(ContextUserRolesKey).([]string)
+	userRoles, ok := ctx.Value(kctx.UserRolesKey).([]string)
 	if !ok || len(userRoles) == 0 {
 		return false, ErrNoRoles
 	}
@@ -31,7 +33,7 @@ func (c *Checker) Check(ctx context.Context, resource string, action string) (bo
 }
 
 func (c *Checker) CheckBatch(ctx context.Context, tuples []CheckBatchTuples) ([]CheckBatchResult, error) {
-	userRoles, ok := ctx.Value(ContextUserRolesKey).([]string)
+	userRoles, ok := ctx.Value(kctx.UserRolesKey).([]string)
 	if !ok || len(userRoles) == 0 {
 		return nil, ErrNoRoles
 	}

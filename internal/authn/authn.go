@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"kdex.dev/proxy/internal/config"
-	khttp "kdex.dev/proxy/internal/http"
 	"kdex.dev/proxy/internal/store/session"
 	"kdex.dev/proxy/internal/store/state"
 )
@@ -19,8 +18,6 @@ const (
 	Validator_StaticBasicAuth = "static_basic_auth"
 	Validator_OAuth           = "oauth"
 )
-
-const ContextUserKey khttp.ContextKey = "user"
 
 type AuthValidator interface {
 	Validate(w http.ResponseWriter, r *http.Request) func(h http.Handler)

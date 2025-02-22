@@ -7,9 +7,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"kdex.dev/proxy/internal/authn"
-	"kdex.dev/proxy/internal/authz"
 	"kdex.dev/proxy/internal/config"
+	kctx "kdex.dev/proxy/internal/context"
 	"kdex.dev/proxy/internal/expression"
 	"kdex.dev/proxy/internal/store/session"
 )
@@ -19,7 +18,7 @@ func TestRolesMiddleware_InjectRoles(t *testing.T) {
 	fieldEvaluator := expression.NewFieldEvaluator(&defaultConfig)
 
 	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		rolesObject := r.Context().Value(authz.ContextUserRolesKey)
+		rolesObject := r.Context().Value(kctx.UserRolesKey)
 		if rolesObject == nil {
 			w.WriteHeader(http.StatusOK)
 			return
@@ -85,7 +84,7 @@ func TestRolesMiddleware_InjectRoles(t *testing.T) {
 			}
 			recorder := httptest.NewRecorder()
 			request := tt.args.req
-			request = request.WithContext(context.WithValue(request.Context(), authn.ContextUserKey, tt.session))
+			request = request.WithContext(context.WithValue(request.Context(), kctx.SessionDataKey, tt.session))
 			handler := m.InjectRoles(next)
 			handler.ServeHTTP(recorder, request)
 			assert.Equal(t, tt.want, recorder.Code)

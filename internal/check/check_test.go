@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"kdex.dev/proxy/internal/authz"
 	"kdex.dev/proxy/internal/config"
+	kctx "kdex.dev/proxy/internal/context"
 	"kdex.dev/proxy/internal/util"
 )
 
@@ -71,7 +72,7 @@ func TestCheckHandler_CheckHandler(t *testing.T) {
 				"/check?resource="+tt.fields.resource+"&action="+tt.fields.action,
 				nil,
 			)
-			request = request.WithContext(context.WithValue(request.Context(), authz.ContextUserRolesKey, tt.fields.roles))
+			request = request.WithContext(context.WithValue(request.Context(), kctx.UserRolesKey, tt.fields.roles))
 			handler.ServeHTTP(recorder, request)
 			assert.Equal(t, recorder.Code, tt.status)
 			assert.Equal(t, recorder.Body.String(), tt.body)
@@ -140,7 +141,7 @@ func TestCheckHandler_CheckBatchHandler(t *testing.T) {
 				"/check/batch",
 				bytes.NewReader([]byte(tt.fields.jsonBody)),
 			)
-			request = request.WithContext(context.WithValue(request.Context(), authz.ContextUserRolesKey, tt.fields.roles))
+			request = request.WithContext(context.WithValue(request.Context(), kctx.UserRolesKey, tt.fields.roles))
 			handler.ServeHTTP(recorder, request)
 			assert.Equal(t, tt.status, recorder.Code)
 			assert.Equal(t, tt.body, util.NormalizeString(recorder.Body.String()))

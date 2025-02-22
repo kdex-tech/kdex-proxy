@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"kdex.dev/proxy/internal/authn"
+	kctx "kdex.dev/proxy/internal/context"
 	"kdex.dev/proxy/internal/expression"
 	"kdex.dev/proxy/internal/store/session"
 )
@@ -24,7 +24,7 @@ func (h *StateHandler) StateHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
-		sessionData, ok := r.Context().Value(authn.ContextUserKey).(*session.SessionData)
+		sessionData, ok := r.Context().Value(kctx.SessionDataKey).(*session.SessionData)
 		if !ok || sessionData == nil {
 			json.NewEncoder(w).Encode(UserState{
 				Principal: "",
