@@ -131,7 +131,7 @@ func Test_Log(t *testing.T) {
 				Impl: logRecorder,
 			}
 
-			got := loggerMW.Log(tt.args.next)
+			got := loggerMW.Log(tt.args.next, false)
 			if got == nil {
 				t.Errorf("Log() = %v", got)
 				return

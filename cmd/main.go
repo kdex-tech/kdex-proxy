@@ -130,8 +130,8 @@ func main() {
 		FieldEvaluator: fieldEvaluator,
 	}
 
-	mux.Handle("GET "+c.Fileserver.Prefix, loggerMiddleware.Log(fileServer.ServeHTTP()))
-	mux.Handle("GET "+c.Proxy.ProbePath, loggerMiddleware.Log(http.HandlerFunc(proxyServer.Probe)))
+	mux.Handle("GET "+c.Fileserver.Prefix, loggerMiddleware.Log(fileServer.ServeHTTP(), false))
+	mux.Handle("GET "+c.Proxy.ProbePath, loggerMiddleware.Log(http.HandlerFunc(proxyServer.Probe), true))
 
 	checkHandler := &check.CheckHandler{
 		Checker: &checker,
@@ -145,6 +145,7 @@ func main() {
 					),
 				),
 			),
+			false,
 		),
 	)
 	mux.Handle("POST "+c.Authz.CheckPrefix+"/batch",
@@ -156,6 +157,7 @@ func main() {
 					),
 				),
 			),
+			false,
 		),
 	)
 
@@ -168,6 +170,7 @@ func main() {
 					),
 				),
 			),
+			false,
 		),
 	)
 	mux.Handle("/",
@@ -179,6 +182,7 @@ func main() {
 					),
 				),
 			),
+			false,
 		),
 	)
 
