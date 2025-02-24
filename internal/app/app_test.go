@@ -143,8 +143,8 @@ func TestValidateApp(t *testing.T) {
 
 func TestAppTransformer_Transform(t *testing.T) {
 	type args struct {
-		r   *http.Response
-		doc *html.Node
+		proxiedParts kctx.ProxiedParts
+		doc          *html.Node
 	}
 	tests := []struct {
 		name    string
@@ -159,8 +159,10 @@ func TestAppTransformer_Transform(t *testing.T) {
 				Apps: []config.App{},
 			},
 			args: args{
-				r: &http.Response{
-					Request: httptest.NewRequest("GET", "/", nil),
+				proxiedParts: kctx.ProxiedParts{
+					AppAlias:    "",
+					AppPath:     "",
+					ProxiedPath: "/posts",
 				},
 				doc: util.ToDoc("<html><head></head><body></body></html>"),
 			},
@@ -177,8 +179,10 @@ func TestAppTransformer_Transform(t *testing.T) {
 				},
 			},
 			args: args{
-				r: &http.Response{
-					Request: httptest.NewRequest("GET", "/posts", nil),
+				proxiedParts: kctx.ProxiedParts{
+					AppAlias:    "",
+					AppPath:     "",
+					ProxiedPath: "/posts",
 				},
 				doc: util.ToDoc("<html><head></head><body></body></html>"),
 			},
@@ -199,8 +203,10 @@ func TestAppTransformer_Transform(t *testing.T) {
 				},
 			},
 			args: args{
-				r: &http.Response{
-					Request: httptest.NewRequest("GET", "/posts", nil),
+				proxiedParts: kctx.ProxiedParts{
+					AppAlias:    "",
+					AppPath:     "",
+					ProxiedPath: "/posts",
 				},
 				doc: util.ToDoc("<html><head></head><body><kdex-ui-app-container></kdex-ui-app-container></body></html>"),
 			},
@@ -221,16 +227,10 @@ func TestAppTransformer_Transform(t *testing.T) {
 				},
 			},
 			args: args{
-				r: &http.Response{
-					Request: func() *http.Request {
-						r := httptest.NewRequest("GET", "/posts", nil)
-						pp := kctx.ProxiedParts{
-							AppAlias: "ta",
-							AppPath:  "/foo",
-						}
-						r = r.WithContext(context.WithValue(r.Context(), kctx.ProxiedPartsKey, pp))
-						return r
-					}(),
+				proxiedParts: kctx.ProxiedParts{
+					AppAlias:    "ta",
+					AppPath:     "/foo",
+					ProxiedPath: "/posts",
 				},
 				doc: util.ToDoc("<html><head></head><body><kdex-ui-app-container></kdex-ui-app-container></body></html>"),
 			},
@@ -245,8 +245,10 @@ func TestAppTransformer_Transform(t *testing.T) {
 				},
 			},
 			args: args{
-				r: &http.Response{
-					Request: httptest.NewRequest("GET", "/posts", nil),
+				proxiedParts: kctx.ProxiedParts{
+					AppAlias:    "",
+					AppPath:     "",
+					ProxiedPath: "/posts",
 				},
 				doc: util.ToDoc(`<html><head></head><body><kdex-ui-app-container id="foo"></kdex-ui-app-container></body></html>`),
 			},
@@ -261,8 +263,10 @@ func TestAppTransformer_Transform(t *testing.T) {
 				},
 			},
 			args: args{
-				r: &http.Response{
-					Request: httptest.NewRequest("GET", "/posts", nil),
+				proxiedParts: kctx.ProxiedParts{
+					AppAlias:    "",
+					AppPath:     "",
+					ProxiedPath: "/posts",
 				},
 				doc: util.ToDoc(`<html><head></head><body><kdex-ui-app-container id="bar"></kdex-ui-app-container></body></html>`),
 			},
@@ -277,8 +281,10 @@ func TestAppTransformer_Transform(t *testing.T) {
 				},
 			},
 			args: args{
-				r: &http.Response{
-					Request: httptest.NewRequest("GET", "/posts", nil),
+				proxiedParts: kctx.ProxiedParts{
+					AppAlias:    "",
+					AppPath:     "",
+					ProxiedPath: "/posts",
 				},
 				doc: util.ToDoc(`<html><head></head><body><kdex-ui-app-container><div></div></kdex-ui-app-container></body></html>`),
 			},
@@ -291,7 +297,13 @@ func TestAppTransformer_Transform(t *testing.T) {
 			tr := &AppTransformer{
 				Config: tt.Config,
 			}
-			err := tr.Transform(tt.args.r, tt.args.doc)
+			ctx := context.WithValue(context.Background(), kctx.ProxiedPartsKey, tt.args.proxiedParts)
+			r := httptest.NewRequestWithContext(ctx, "GET", "/", nil)
+			r.URL.Scheme = "http"
+			resp := &http.Response{
+				Request: r,
+			}
+			err := tr.Transform(resp, tt.args.doc)
 			assert.Equal(t, tt.wantErr, err != nil)
 			if tt.wantErr {
 				return
