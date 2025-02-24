@@ -88,9 +88,7 @@ func (v *OAuthValidator) Register(mux *http.ServeMux) {
 func (v *OAuthValidator) Validate(w http.ResponseWriter, r *http.Request) func(h http.Handler) {
 	sessionCookie, err := r.Cookie(v.SessionCookieName)
 	if err != nil {
-		return func(h http.Handler) {
-			v.challengeAction(w, r)
-		}
+		return nil
 	}
 
 	sessionData, err := (*v.SessionStore).Get(r.Context(), sessionCookie.Value)
