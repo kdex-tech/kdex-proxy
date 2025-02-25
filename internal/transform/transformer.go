@@ -2,7 +2,6 @@ package transform
 
 import (
 	"net/http"
-	"strings"
 
 	"golang.org/x/net/html"
 )
@@ -23,18 +22,4 @@ func (t *AggregatedTransformer) Transform(r *http.Response, doc *html.Node) erro
 		}
 	}
 	return nil
-}
-
-func HtmlTransformCheck(r *http.Response) bool {
-	// Check if response is HTML and not streaming
-	contentType := r.Header.Get("Content-Type")
-	isHTML := strings.Contains(contentType, "text/html")
-	transferEncoding := r.Header.Get("Transfer-Encoding")
-	isStreaming := strings.Contains(transferEncoding, "chunked")
-
-	if !isHTML || isStreaming {
-		return false
-	}
-
-	return true
 }

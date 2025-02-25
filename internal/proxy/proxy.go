@@ -115,7 +115,13 @@ func (s *Proxy) modifyResponse(r *http.Response) (err error) {
 		return nil
 	}
 
-	if !transform.HtmlTransformCheck(r) {
+	// Check if response is HTML and not streaming
+	contentType := r.Header.Get("Content-Type")
+	isHTML := strings.Contains(contentType, "text/html")
+	transferEncoding := r.Header.Get("Transfer-Encoding")
+	isStreaming := strings.Contains(transferEncoding, "chunked")
+
+	if !isHTML || isStreaming {
 		return nil
 	}
 
