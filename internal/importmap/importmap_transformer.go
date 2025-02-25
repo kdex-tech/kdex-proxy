@@ -47,10 +47,6 @@ func (t *ImportMapTransformer) ScanForImports() error {
 	return nil
 }
 
-func (t *ImportMapTransformer) ShouldTransform(r *http.Response) bool {
-	return transform.HtmlTransformCheck(r)
-}
-
 func (t *ImportMapTransformer) Transform(r *http.Response, doc *html.Node) error {
 	importMapInstance, err := Parse(doc)
 	if err != nil {

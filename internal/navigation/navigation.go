@@ -118,7 +118,3 @@ func (t *NavigationTransformer) Transform(r *http.Response, doc *html.Node) erro
 
 	return nil
 }
-
-func (t *NavigationTransformer) ShouldTransform(r *http.Response) bool {
-	return transform.HtmlTransformCheck(r)
-}

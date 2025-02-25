@@ -6,7 +6,6 @@ import (
 	"golang.org/x/net/html"
 	"kdex.dev/proxy/internal/config"
 	"kdex.dev/proxy/internal/dom"
-	"kdex.dev/proxy/internal/transform"
 )
 
 type MetaTransformer struct {
@@ -40,8 +39,4 @@ func (m *MetaTransformer) Transform(r *http.Response, doc *html.Node) error {
 	}
 
 	return nil
-}
-
-func (m *MetaTransformer) ShouldTransform(r *http.Response) bool {
-	return transform.HtmlTransformCheck(r)
 }

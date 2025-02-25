@@ -313,34 +313,6 @@ func TestAppTransformer_Transform(t *testing.T) {
 	}
 }
 
-func TestAppTransformer_ShouldTransform(t *testing.T) {
-	tests := []struct {
-		name   string
-		Config *config.Config
-		r      *http.Response
-		want   bool
-	}{
-		{
-			name:   "should transform",
-			Config: &config.Config{},
-			r: &http.Response{
-				Request: httptest.NewRequest("GET", "/", nil),
-			},
-			want: false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tr := &AppTransformer{
-				Config: tt.Config,
-			}
-			if got := tr.ShouldTransform(tt.r); got != tt.want {
-				t.Errorf("AppTransformer.ShouldTransform() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestNewAppTransformer(t *testing.T) {
 	type args struct {
 		config *config.Config

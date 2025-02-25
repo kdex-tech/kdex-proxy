@@ -115,7 +115,7 @@ func (s *Proxy) modifyResponse(r *http.Response) (err error) {
 		return nil
 	}
 
-	if !(s.transformer).ShouldTransform(r) {
+	if !transform.HtmlTransformCheck(r) {
 		return nil
 	}
 

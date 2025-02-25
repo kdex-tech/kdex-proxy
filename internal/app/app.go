@@ -10,7 +10,6 @@ import (
 	"kdex.dev/proxy/internal/config"
 	kctx "kdex.dev/proxy/internal/context"
 	"kdex.dev/proxy/internal/dom"
-	"kdex.dev/proxy/internal/transform"
 	"kdex.dev/proxy/internal/util"
 )
 
@@ -116,8 +115,4 @@ func (t *AppTransformer) Transform(r *http.Response, doc *html.Node) error {
 	}
 
 	return nil
-}
-
-func (t *AppTransformer) ShouldTransform(r *http.Response) bool {
-	return transform.HtmlTransformCheck(r)
 }
