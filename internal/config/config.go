@@ -108,7 +108,7 @@ type OAuthConfig struct {
 }
 
 type Permission struct {
-	Action    string `json:"action" yaml:"action"`       // Action being performed (e.g., "view", "edit")
+	Action    string `json:"action" yaml:"action"`       // Action being performed (e.g., "read", "write")
 	Principal string `json:"principal" yaml:"principal"` // Principal that can perform this action
 	Resource  string `json:"resource" yaml:"resource"`   // Resource being accessed (e.g., "page", "api")
 }

@@ -24,7 +24,7 @@ type defaultAuthorizer struct {
 }
 
 func (a *defaultAuthorizer) CheckAccess(r *http.Request) error {
-	ok, err := a.checker.Check(r.Context(), fmt.Sprintf("page:%s", r.URL.Path), "view")
+	ok, err := a.checker.Check(r.Context(), fmt.Sprintf("page:%s", r.URL.Path), "read")
 
 	if err != nil && !errors.Is(err, ErrNoPermissions) && !errors.Is(err, ErrNoRoles) {
 		return err

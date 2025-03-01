@@ -75,7 +75,7 @@ func Test_defaultAuthorizer_CheckAccess(t *testing.T) {
 			checker: Checker{
 				PermissionProvider: &mockPermissionProvider{
 					GetPermissionsFunc: func(path string) ([]config.Permission, error) {
-						return []config.Permission{{Principal: "admin", Action: "view"}}, nil
+						return []config.Permission{{Principal: "admin", Action: "read"}}, nil
 					},
 				},
 			},

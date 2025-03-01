@@ -41,28 +41,31 @@ data:
       static:
         permissions:
         - resource: page:/*
-          action: view
+          action: read
           principal: user
         - resource: page:/
-          action: view
+          action: read
+          principal: anonymous
+        - resource: page:/~/check/*
+          action: read
           principal: anonymous
         - resource: page:/~/state
-          action: view
+          action: read
           principal: anonymous
         - resource: page:/css/*
-          action: view
+          action: read
           principal: anonymous
         - resource: page:/favicon*
-          action: view
+          action: read
           principal: anonymous
-        - resource: page:/foo/*
-          action: view
+        - resource: page:/foo*
+          action: read
           principal: anonymous
-        - resource: page:/posts/*
-          action: view
+        - resource: page:/posts*
+          action: read
           principal: anonymous
         - resource: page:/robots.txt
-          action: view
+          action: read
           principal: anonymous
     expressions:
       principal: "data.preferred_username"
