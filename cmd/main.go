@@ -136,7 +136,7 @@ func main() {
 	checkHandler := &check.CheckHandler{
 		Checker: &checker,
 	}
-	mux.Handle("GET "+c.Authz.CheckPrefix+"/single",
+	mux.Handle("GET "+c.Authz.Endpoints.Single,
 		loggerMiddleware.Log(
 			authnMiddleware.Authn(
 				rolesMiddleware.InjectRoles(
@@ -148,7 +148,7 @@ func main() {
 			false,
 		),
 	)
-	mux.Handle("POST "+c.Authz.CheckPrefix+"/batch",
+	mux.Handle("POST "+c.Authz.Endpoints.Batch,
 		loggerMiddleware.Log(
 			authnMiddleware.Authn(
 				rolesMiddleware.InjectRoles(

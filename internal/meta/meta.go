@@ -25,13 +25,15 @@ func (m *MetaTransformer) Transform(r *http.Response, doc *html.Node) error {
 			Data: "meta",
 			Attr: []html.Attribute{
 				{Key: "name", Val: "kdex-ui"},
-				{Key: "data-path-separator", Val: m.Config.Proxy.PathSeparator},
+				{Key: "data-check-single-endpoint", Val: m.Config.Authz.Endpoints.Single},
+				{Key: "data-check-batch-endpoint", Val: m.Config.Authz.Endpoints.Batch},
 				{Key: "data-login-path", Val: m.Config.Authn.Login.Path},
 				{Key: "data-login-label", Val: m.Config.Authn.Login.Label},
 				{Key: "data-login-css-query", Val: m.Config.Authn.Login.Query},
 				{Key: "data-logout-path", Val: m.Config.Authn.Logout.Path},
 				{Key: "data-logout-label", Val: m.Config.Authn.Logout.Label},
 				{Key: "data-logout-css-query", Val: m.Config.Authn.Logout.Query},
+				{Key: "data-path-separator", Val: m.Config.Proxy.PathSeparator},
 				{Key: "data-state-endpoint", Val: m.Config.State.Endpoint},
 			},
 		}
