@@ -110,52 +110,80 @@ func (s *Proxy) joinURLPath(a, b *url.URL) (path, rawpath string) {
 	return a.Path + b.Path, apath + bpath
 }
 
-func (s *Proxy) modifyResponse(r *http.Response) (err error) {
-	if s.transformer == nil {
+func (s *Proxy) modifyResponse(r *http.Response) error {
+	// For 304 responses, we only need to handle ETag
+	if r.StatusCode == http.StatusNotModified {
+		if upstreamETag := r.Header.Get("ETag"); upstreamETag != "" {
+			configHash := s.Config.Hash()
+			derivedETag := fmt.Sprintf(`W/"%s-t%x"`, strings.Trim(upstreamETag, `"`), configHash)
+			r.Header.Set("ETag", derivedETag)
+
+			r.Header.Set("Cache-Control", "no-cache")
+			r.Header.Set("Vary", "Authorization")
+		}
 		return nil
 	}
 
-	// Check if response is HTML and not streaming
+	// For other responses, check if it's HTML we need to transform
 	contentType := r.Header.Get("Content-Type")
-	isHTML := strings.Contains(contentType, "text/html")
-	transferEncoding := r.Header.Get("Transfer-Encoding")
-	isStreaming := strings.Contains(transferEncoding, "chunked")
-
-	if !isHTML || isStreaming {
+	if !strings.Contains(contentType, "text/html") {
 		return nil
 	}
 
-	// Buffer HTML content
-	b, err := io.ReadAll(r.Body)
+	// Check for chunked transfer encoding
+	isChunked := len(r.TransferEncoding) > 0 && r.TransferEncoding[0] == "chunked"
 
+	// Handle ETag for non-304 responses
+	if upstreamETag := r.Header.Get("ETag"); upstreamETag != "" {
+		configHash := s.Config.Hash()
+		derivedETag := fmt.Sprintf(`W/"%s-t%x"`, strings.Trim(upstreamETag, `"`), configHash)
+		r.Header.Set("ETag", derivedETag)
+
+		r.Header.Set("Cache-Control", "no-cache")
+		r.Header.Set("Vary", "Authorization")
+
+		if r.Request.Header.Get("If-None-Match") == derivedETag {
+			r.StatusCode = http.StatusNotModified
+			r.Body = io.NopCloser(bytes.NewReader(nil))
+			r.ContentLength = 0
+			r.Header.Del("Content-Length")
+			r.Header.Del("Content-Type") // Remove Content-Type for 304
+			return nil
+		}
+	}
+
+	// Transform content
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read response body: %w", err)
 	}
+	r.Body.Close()
 
-	if err = r.Body.Close(); err != nil {
-		return err
-	}
-
-	doc, err := html.Parse(bytes.NewReader(b))
+	doc, err := html.Parse(bytes.NewReader(body))
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to parse HTML: %w", err)
 	}
 
-	if err := (s.transformer).Transform(r, doc); err != nil {
-		return err
+	if err := s.transformer.Transform(r, doc); err != nil {
+		return fmt.Errorf("failed to transform response: %w", err)
 	}
 
 	var buf bytes.Buffer
 	if err := html.Render(&buf, doc); err != nil {
-		log.Printf("Error rendering modified HTML: %v", err)
-		return err
+		return fmt.Errorf("failed to render HTML: %w", err)
 	}
 
-	b = buf.Bytes()
-	contentLength := len(b)
-	r.Body = io.NopCloser(bytes.NewReader(b))
-	r.ContentLength = int64(contentLength)
-	r.Header.Set("Content-Length", strconv.Itoa(contentLength))
+	transformedBody := buf.Bytes()
+	r.Body = io.NopCloser(bytes.NewReader(transformedBody))
+
+	// Handle transfer encoding
+	if isChunked {
+		r.TransferEncoding = []string{"chunked"}
+		r.Header.Del("Content-Length")
+	} else {
+		r.ContentLength = int64(len(transformedBody))
+		r.Header.Set("Content-Length", strconv.Itoa(len(transformedBody)))
+	}
 
 	return nil
 }
@@ -208,6 +236,14 @@ func (s *Proxy) rewrite(r *httputil.ProxyRequest) {
 		req.URL.RawQuery = targetQuery + req.URL.RawQuery
 	} else {
 		req.URL.RawQuery = targetQuery + "&" + req.URL.RawQuery
+	}
+
+	// Strip transformer suffix from If-None-Match header
+	if ifNoneMatch := r.Out.Header.Get("If-None-Match"); ifNoneMatch != "" {
+		if idx := strings.LastIndex(ifNoneMatch, "-t"); idx != -1 {
+			originalETag := ifNoneMatch[:idx] + `"`
+			r.Out.Header.Set("If-None-Match", originalETag)
+		}
 	}
 
 	r.Out.Host = r.In.Host

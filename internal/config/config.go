@@ -7,6 +7,8 @@ import (
 	"log"
 	"os"
 
+	"hash/crc32"
+
 	"gopkg.in/yaml.v3"
 	"kdex.dev/proxy/internal/util"
 )
@@ -25,6 +27,7 @@ type Config struct {
 	Proxy         ProxyConfig       `json:"proxy" yaml:"proxy"`
 	Session       SessionConfig     `json:"session,omitempty" yaml:"session,omitempty"`
 	State         StateConfig       `json:"state,omitempty" yaml:"state,omitempty"`
+	hash          uint32
 	json          bool
 }
 
@@ -314,4 +317,16 @@ func (c *Config) prettyPrint() {
 		s, _ = yaml.Marshal(c)
 	}
 	log.Printf("Using config:\n%s", string(s))
+}
+
+func (c *Config) Hash() uint32 {
+	if c.hash != 0 {
+		return c.hash
+	}
+	configBytes, err := json.Marshal(c)
+	if err != nil {
+		return 0
+	}
+	c.hash = crc32.ChecksumIEEE(configBytes)
+	return c.hash
 }
