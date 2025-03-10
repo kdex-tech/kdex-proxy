@@ -557,7 +557,7 @@ func TestServer_ReverseProxy_with_cache(t *testing.T) {
 	// Configure server for proxy
 	s := Proxy{
 		Config:      defaultConfig,
-		cache:       &cache,
+		cache:       cache,
 		transformer: transformer,
 	}
 

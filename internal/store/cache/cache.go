@@ -22,9 +22,10 @@ type CacheStore interface {
 }
 
 // NewCacheStore creates a new cache store implementation
-func NewCacheStore(config *config.Config) CacheStore {
+func NewCacheStore(config *config.Config) *CacheStore {
 	if config.Proxy.Cache.Type == "memory" {
-		return NewMemoryCacheStore(config.Proxy.Cache.TTL)
+		store := NewMemoryCacheStore(config.Proxy.Cache.TTL)
+		return &store
 	}
 
 	return nil

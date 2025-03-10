@@ -92,7 +92,7 @@ func main() {
 
 	proxyServer := proxy.NewProxy(
 		c,
-		&cache,
+		cache,
 		transformer,
 	)
 
