@@ -76,7 +76,7 @@ func main() {
 
 	sessionHelper := &session.SessionHelper{
 		Config:       c,
-		SessionStore: &sessionStore,
+		SessionStore: sessionStore,
 	}
 
 	transformer := &transform.AggregatedTransformer{
@@ -100,7 +100,7 @@ func main() {
 
 	authValidator := authn.AuthValidatorFactory(
 		&c.Authn,
-		&sessionStore,
+		sessionStore,
 		c.Session.CookieName,
 	)
 

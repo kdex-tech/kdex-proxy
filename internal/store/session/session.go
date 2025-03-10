@@ -33,10 +33,11 @@ type SessionStore interface {
 	Set(ctx context.Context, sessionID string, data SessionData) error
 }
 
-func NewSessionStore(ctx context.Context, config *config.SessionConfig) (SessionStore, error) {
+func NewSessionStore(ctx context.Context, config *config.SessionConfig) (*SessionStore, error) {
 	switch config.Store {
 	case "memory":
-		return NewMemorySessionStore(config), nil
+		store := NewMemorySessionStore(config)
+		return &store, nil
 	}
 	return nil, fmt.Errorf("invalid store type: %s", config.Store)
 }
