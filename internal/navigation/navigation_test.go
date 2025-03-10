@@ -110,12 +110,12 @@ func TestNavigationTransformer_Transform(t *testing.T) {
 
 			sessionStore := session.NewMemorySessionStore(&defaultConfig.Session)
 			sessionHelper := session.SessionHelper{
-				Config:       &defaultConfig,
+				Config:       defaultConfig,
 				SessionStore: &sessionStore,
 			}
 
 			tr := &NavigationTransformer{
-				Config:        &defaultConfig,
+				Config:        defaultConfig,
 				navTmpl:       template.Must(template.New("Navigation").Parse(tt.fields.NavItemTemplate)),
 				SessionHelper: &sessionHelper,
 			}

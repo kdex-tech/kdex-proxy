@@ -24,13 +24,13 @@ func TestStateHandler_StateHandler(t *testing.T) {
 	}{
 		{
 			name:           "not logged in",
-			FieldEvaluator: expression.NewFieldEvaluator(&defaultConfig),
+			FieldEvaluator: expression.NewFieldEvaluator(defaultConfig),
 			session:        nil,
 			want:           `{"principal":"","roles":[],"data":{}}`,
 		},
 		{
 			name:           "logged in",
-			FieldEvaluator: expression.NewFieldEvaluator(&defaultConfig),
+			FieldEvaluator: expression.NewFieldEvaluator(defaultConfig),
 			session: &session.SessionData{
 				Data: map[string]interface{}{
 					"roles": []string{"admin"},
@@ -41,7 +41,7 @@ func TestStateHandler_StateHandler(t *testing.T) {
 		},
 		{
 			name:           "logged in with multiple roles",
-			FieldEvaluator: expression.NewFieldEvaluator(&defaultConfig),
+			FieldEvaluator: expression.NewFieldEvaluator(defaultConfig),
 			session: &session.SessionData{
 				Data: map[string]interface{}{
 					"roles": []string{"admin", "user"},
@@ -52,7 +52,7 @@ func TestStateHandler_StateHandler(t *testing.T) {
 		},
 		{
 			name:           "no identity",
-			FieldEvaluator: expression.NewFieldEvaluator(&defaultConfig),
+			FieldEvaluator: expression.NewFieldEvaluator(defaultConfig),
 			session: &session.SessionData{
 				Data: map[string]interface{}{
 					"roles": []string{"admin", "user"},
@@ -62,7 +62,7 @@ func TestStateHandler_StateHandler(t *testing.T) {
 		},
 		{
 			name:           "no roles",
-			FieldEvaluator: expression.NewFieldEvaluator(&defaultConfig),
+			FieldEvaluator: expression.NewFieldEvaluator(defaultConfig),
 			session: &session.SessionData{
 				Data: map[string]interface{}{
 					"sub": "test",

@@ -44,7 +44,7 @@ func TestMetaTransformer_Transform(t *testing.T) {
 		{
 			name: "head node",
 			fields: fields{
-				Config: &defaultConfig,
+				Config: defaultConfig,
 			},
 			doc: &html.Node{
 				Type: html.ElementNode,

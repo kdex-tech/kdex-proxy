@@ -242,11 +242,11 @@ var defaultConfig = Config{
 	},
 }
 
-func DefaultConfig() Config {
-	return defaultConfig
+func DefaultConfig() *Config {
+	return &defaultConfig
 }
 
-func NewConfigFromEnv() Config {
+func NewConfigFromEnv() *Config {
 	configFile := os.Getenv("CONFIG_FILE")
 	if configFile == "" {
 		configFile = "/etc/kdex-proxy/proxy.config"
@@ -255,7 +255,7 @@ func NewConfigFromEnv() Config {
 	configBytes, err := os.ReadFile(configFile)
 	if err != nil {
 		log.Printf("Error reading config file %s: %v", configFile, err)
-		return defaultConfig
+		return &defaultConfig
 	}
 
 	config := defaultConfig
@@ -268,14 +268,14 @@ func NewConfigFromEnv() Config {
 		err = json.Unmarshal(configBytes, &config)
 		if err != nil {
 			log.Printf("Error unmarshalling config: %v", err)
-			return defaultConfig
+			return &defaultConfig
 		}
 	} else {
 		config.json = false
 		err = yaml.Unmarshal(configBytes, &config)
 		if err != nil {
 			log.Printf("Error unmarshalling config: %v", err)
-			return defaultConfig
+			return &defaultConfig
 		}
 	}
 
@@ -287,7 +287,7 @@ func NewConfigFromEnv() Config {
 
 	config.prettyPrint()
 
-	return config
+	return &config
 }
 
 func (a *App) Validate() error {

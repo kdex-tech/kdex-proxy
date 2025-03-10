@@ -75,23 +75,23 @@ func main() {
 	}()
 
 	sessionHelper := &session.SessionHelper{
-		Config:       &c,
+		Config:       c,
 		SessionStore: &sessionStore,
 	}
 
 	transformer := &transform.AggregatedTransformer{
 		Transformers: []transform.Transformer{
-			importmap.NewImportMapTransformer(&c),
-			meta.NewMetaTransformer(&c),
-			navigation.NewNavigationTransformer(&c, sessionHelper),
-			app.NewAppTransformer(&c),
+			importmap.NewImportMapTransformer(c),
+			meta.NewMetaTransformer(c),
+			navigation.NewNavigationTransformer(c, sessionHelper),
+			app.NewAppTransformer(c),
 		},
 	}
 
-	cache := cache.NewCacheStore(&c)
+	cache := cache.NewCacheStore(c)
 
 	proxyServer := proxy.NewProxy(
-		&c,
+		c,
 		&cache,
 		transformer,
 	)
@@ -116,7 +116,7 @@ func main() {
 		AuthValidator:          authValidator,
 	}
 
-	fieldEvaluator := expression.NewFieldEvaluator(&c)
+	fieldEvaluator := expression.NewFieldEvaluator(c)
 
 	// After authn middleware
 	rolesMiddleware := &mRoles.RolesMiddleware{
@@ -124,7 +124,7 @@ func main() {
 	}
 
 	// Create authorizer with provider
-	permProvider := authz.NewPermissionProvider(&c)
+	permProvider := authz.NewPermissionProvider(c)
 	checker := authz.Checker{
 		PermissionProvider: permProvider,
 	}

@@ -15,7 +15,7 @@ import (
 
 func TestRolesMiddleware_InjectRoles(t *testing.T) {
 	defaultConfig := config.DefaultConfig()
-	fieldEvaluator := expression.NewFieldEvaluator(&defaultConfig)
+	fieldEvaluator := expression.NewFieldEvaluator(defaultConfig)
 
 	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rolesObject := r.Context().Value(kctx.UserRolesKey)

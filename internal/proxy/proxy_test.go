@@ -145,19 +145,19 @@ func TestServer_ReverseProxy(t *testing.T) {
 	transformer := &transform.AggregatedTransformer{
 		Transformers: []transform.Transformer{
 			&importmap.ImportMapTransformer{
-				Config: &defaultConfig,
+				Config: defaultConfig,
 				ModuleImports: map[string]string{
 					"@kdex-ui": "@kdex-ui/index.js",
 				},
 			},
 			&app.AppTransformer{
-				Config: &defaultConfig,
+				Config: defaultConfig,
 			},
 			&meta.MetaTransformer{
-				Config: &defaultConfig,
+				Config: defaultConfig,
 			},
 			&navigation.NavigationTransformer{
-				Config: &defaultConfig,
+				Config: defaultConfig,
 			},
 		},
 	}
@@ -166,7 +166,7 @@ func TestServer_ReverseProxy(t *testing.T) {
 
 	// Configure server for proxy
 	s := Proxy{
-		Config:      &defaultConfig,
+		Config:      defaultConfig,
 		transformer: transformer,
 	}
 
@@ -386,26 +386,26 @@ func TestServer_ReverseProxy_304(t *testing.T) {
 	transformer := &transform.AggregatedTransformer{
 		Transformers: []transform.Transformer{
 			&importmap.ImportMapTransformer{
-				Config: &defaultConfig,
+				Config: defaultConfig,
 				ModuleImports: map[string]string{
 					"@kdex/ui": "@kdex/ui/index.js",
 				},
 			},
 			&app.AppTransformer{
-				Config: &defaultConfig,
+				Config: defaultConfig,
 			},
 			&meta.MetaTransformer{
-				Config: &defaultConfig,
+				Config: defaultConfig,
 			},
 			&navigation.NavigationTransformer{
-				Config: &defaultConfig,
+				Config: defaultConfig,
 			},
 		},
 	}
 
 	// Configure server for proxy
 	s := Proxy{
-		Config:      &defaultConfig,
+		Config:      defaultConfig,
 		transformer: transformer,
 	}
 
@@ -535,28 +535,28 @@ func TestServer_ReverseProxy_with_cache(t *testing.T) {
 	transformer := &transform.AggregatedTransformer{
 		Transformers: []transform.Transformer{
 			&importmap.ImportMapTransformer{
-				Config: &defaultConfig,
+				Config: defaultConfig,
 				ModuleImports: map[string]string{
 					"@kdex/ui": "@kdex/ui/index.js",
 				},
 			},
 			&app.AppTransformer{
-				Config: &defaultConfig,
+				Config: defaultConfig,
 			},
 			&meta.MetaTransformer{
-				Config: &defaultConfig,
+				Config: defaultConfig,
 			},
 			&navigation.NavigationTransformer{
-				Config: &defaultConfig,
+				Config: defaultConfig,
 			},
 		},
 	}
 
-	cache := cache.NewCacheStore(&defaultConfig)
+	cache := cache.NewCacheStore(defaultConfig)
 
 	// Configure server for proxy
 	s := Proxy{
-		Config:      &defaultConfig,
+		Config:      defaultConfig,
 		cache:       &cache,
 		transformer: transformer,
 	}
@@ -695,7 +695,7 @@ func TestServer_Probe(t *testing.T) {
 	defaultConfig.Proxy.UpstreamHealthzPath = "/healthz"
 
 	s := &Proxy{
-		Config: &defaultConfig,
+		Config: defaultConfig,
 	}
 
 	proxyServer := httptest.NewServer(http.HandlerFunc(s.ReverseProxy()))
@@ -817,7 +817,7 @@ func TestServer_rewrite(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewProxy(
-				&defaultConfig,
+				defaultConfig,
 				nil,
 				nil,
 			)
