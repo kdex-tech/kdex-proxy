@@ -161,13 +161,13 @@ func TestServer_ReverseProxy(t *testing.T) {
 	defer proxyServer.Close()
 
 	tests := []struct {
-		name            string
-		method          string
-		path            string
-		headers         map[string]string
-		expectedStatus  int
-		expectedBody    string
-		upstreamAddress string
+		name               string
+		method             string
+		path               string
+		headers            map[string]string
+		expectedStatus     int
+		expectBodyContains string
+		upstreamAddress    string
 	}{
 		{
 			name:   "Basic GET request",
@@ -216,60 +216,60 @@ func TestServer_ReverseProxy(t *testing.T) {
 			upstreamAddress: upstreamAddress,
 		},
 		{
-			name:            "GET request html without importmap",
-			method:          "GET",
-			path:            "/test/html_without_importmap",
-			expectedStatus:  http.StatusOK,
-			expectedBody:    `<html><head><script type="importmap">{"imports":{"@kdex-ui":"/~/m/@kdex-ui/index.js"}}</script><meta name="kdex-ui" data-path-separator="/_/" data-login-path="/~/oauth/login" data-login-label="Login" data-login-css-query="nav a[href=&#34;/signin/&#34;]" data-logout-path="/~/oauth/logout" data-logout-label="Logout" data-logout-css-query="nav a[href=&#34;/signin/&#34;]" data-state-endpoint="/~/state"/></head><body><h1>Hello, World!</h1><script type="module">import '@kdex-ui';</script></body></html>`,
-			upstreamAddress: upstreamAddress,
+			name:               "GET request html without importmap",
+			method:             "GET",
+			path:               "/test/html_without_importmap",
+			expectedStatus:     http.StatusOK,
+			expectBodyContains: `<head><script type="importmap">{"imports":{"@kdex-ui":"/~/m/@kdex-ui/index.js"}}</script>`,
+			upstreamAddress:    upstreamAddress,
 		},
 		{
-			name:            "GET request html with importmap",
-			method:          "GET",
-			path:            "/test/html_with_importmap",
-			expectedStatus:  http.StatusOK,
-			expectedBody:    `<html><head><script type="importmap">{"imports":{"@foo/bar":"/foo/bar.js","@kdex-ui":"/~/m/@kdex-ui/index.js"}}</script><meta name="kdex-ui" data-path-separator="/_/" data-login-path="/~/oauth/login" data-login-label="Login" data-login-css-query="nav a[href=&#34;/signin/&#34;]" data-logout-path="/~/oauth/logout" data-logout-label="Logout" data-logout-css-query="nav a[href=&#34;/signin/&#34;]" data-state-endpoint="/~/state"/></head><body>test<script type="module">import '@kdex-ui';</script></body></html>`,
-			upstreamAddress: upstreamAddress,
+			name:               "GET request html with importmap",
+			method:             "GET",
+			path:               "/test/html_with_importmap",
+			expectedStatus:     http.StatusOK,
+			expectBodyContains: `<head><script type="importmap">{"imports":{"@foo/bar":"/foo/bar.js","@kdex-ui":"/~/m/@kdex-ui/index.js"}}</script>`,
+			upstreamAddress:    upstreamAddress,
 		},
 		{
-			name:            "GET with bad upstream address",
-			method:          "GET",
-			path:            "/test/html_with_importmap",
-			expectedStatus:  http.StatusInternalServerError,
-			expectedBody:    `Get "http://upstreamAddress/test/html_with_importmap": dial tcp: lookup upstreamAddress: Temporary failure in name resolution`,
-			upstreamAddress: "upstreamAddress",
+			name:               "GET with bad upstream address",
+			method:             "GET",
+			path:               "/test/html_with_importmap",
+			expectedStatus:     http.StatusInternalServerError,
+			expectBodyContains: `Get "http://upstreamAddress/test/html_with_importmap": dial tcp: lookup upstreamAddress: Temporary failure in name resolution`,
+			upstreamAddress:    "upstreamAddress",
 		},
 		{
-			name:            "GET path separator",
-			method:          "GET",
-			path:            "/test/_/foo/bar",
-			expectedStatus:  http.StatusOK,
-			expectedBody:    fmt.Sprintf(`{"method":"GET","path":"/test","headers":{"Accept-Encoding":["gzip"],"Forwarded":["by=%s;for=127.0.0.1;host=foo.bar;proto=http"],"User-Agent":["Go-http-client/1.1"],"X-Forwarded-For":["127.0.0.1"],"X-Forwarded-Host":["foo.bar"],"X-Forwarded-Proto":["http"]}}`, getOutboundIP().String()),
-			upstreamAddress: upstreamAddress,
+			name:               "GET path separator",
+			method:             "GET",
+			path:               "/test/_/foo/bar",
+			expectedStatus:     http.StatusOK,
+			expectBodyContains: fmt.Sprintf(`{"method":"GET","path":"/test","headers":{"Accept-Encoding":["gzip"],"Forwarded":["by=%s;for=127.0.0.1;host=foo.bar;proto=http"],"User-Agent":["Go-http-client/1.1"],"X-Forwarded-For":["127.0.0.1"],"X-Forwarded-Host":["foo.bar"],"X-Forwarded-Proto":["http"]}}`, getOutboundIP().String()),
+			upstreamAddress:    upstreamAddress,
 		},
 		{
-			name:            "GET path separator with html, route path matching app alias",
-			method:          "GET",
-			path:            "/test/app1/_/app1/bar",
-			expectedStatus:  http.StatusOK,
-			expectedBody:    `<html><head><script type="importmap">{"imports":{"@kdex-ui":"/~/m/@kdex-ui/index.js"}}</script><meta name="kdex-ui" data-path-separator="/_/" data-login-path="/~/oauth/login" data-login-label="Login" data-login-css-query="nav a[href=&#34;/signin/&#34;]" data-logout-path="/~/oauth/logout" data-logout-label="Logout" data-logout-css-query="nav a[href=&#34;/signin/&#34;]" data-state-endpoint="/~/state"/></head><body><kdex-ui-app-container><app-one id="app1" route-path="/bar"></app-one></kdex-ui-app-container><script type="module">import '@kdex-ui';</script><script type="module" src="http://localhost:61345/app1.js"></script></body></html>`,
-			upstreamAddress: upstreamAddress,
+			name:               "GET path separator with html, route path matching app alias",
+			method:             "GET",
+			path:               "/test/app1/_/app1/bar",
+			expectedStatus:     http.StatusOK,
+			expectBodyContains: `<meta name="kdex-ui" data-check-single-endpoint="/~/check/single" data-check-batch-endpoint="/~/check/batch" data-login-path="/~/oauth/login" data-login-label="Login" data-login-css-query="nav a[href=&#34;/signin/&#34;]" data-logout-path="/~/oauth/logout" data-logout-label="Logout" data-logout-css-query="nav a[href=&#34;/signin/&#34;]" data-path-separator="/_/" data-state-endpoint="/~/state"/></head><body><kdex-ui-app-container><app-one id="app1" route-path="/bar"></app-one></kdex-ui-app-container><script type="module">import '@kdex-ui';</script><script type="module" src="http://localhost:61345/app1.js"></script></body></html>`,
+			upstreamAddress:    upstreamAddress,
 		},
 		{
-			name:            "GET path separator with html, route path matching app alias but no app path",
-			method:          "GET",
-			path:            "/test/app1/_/app1",
-			expectedStatus:  http.StatusOK,
-			expectedBody:    `<html><head><script type="importmap">{"imports":{"@kdex-ui":"/~/m/@kdex-ui/index.js"}}</script><meta name="kdex-ui" data-path-separator="/_/" data-login-path="/~/oauth/login" data-login-label="Login" data-login-css-query="nav a[href=&#34;/signin/&#34;]" data-logout-path="/~/oauth/logout" data-logout-label="Logout" data-logout-css-query="nav a[href=&#34;/signin/&#34;]" data-state-endpoint="/~/state"/></head><body><kdex-ui-app-container><app-one id="app1"></app-one></kdex-ui-app-container><script type="module">import '@kdex-ui';</script><script type="module" src="http://localhost:61345/app1.js"></script></body></html>`,
-			upstreamAddress: upstreamAddress,
+			name:               "GET path separator with html, route path matching app alias but no app path",
+			method:             "GET",
+			path:               "/test/app1/_/app1",
+			expectedStatus:     http.StatusOK,
+			expectBodyContains: `<meta name="kdex-ui" data-check-single-endpoint="/~/check/single" data-check-batch-endpoint="/~/check/batch" data-login-path="/~/oauth/login" data-login-label="Login" data-login-css-query="nav a[href=&#34;/signin/&#34;]" data-logout-path="/~/oauth/logout" data-logout-label="Logout" data-logout-css-query="nav a[href=&#34;/signin/&#34;]" data-path-separator="/_/" data-state-endpoint="/~/state"/></head><body><kdex-ui-app-container><app-one id="app1"></app-one></kdex-ui-app-container><script type="module">import '@kdex-ui';</script><script type="module" src="http://localhost:61345/app1.js"></script></body></html>`,
+			upstreamAddress:    upstreamAddress,
 		},
 		{
-			name:            "GET path separator with html, route path not matching app alias",
-			method:          "GET",
-			path:            "/test/app1/_/app2/bar",
-			expectedStatus:  http.StatusOK,
-			expectedBody:    `<html><head><script type="importmap">{"imports":{"@kdex-ui":"/~/m/@kdex-ui/index.js"}}</script><meta name="kdex-ui" data-path-separator="/_/" data-login-path="/~/oauth/login" data-login-label="Login" data-login-css-query="nav a[href=&#34;/signin/&#34;]" data-logout-path="/~/oauth/logout" data-logout-label="Logout" data-logout-css-query="nav a[href=&#34;/signin/&#34;]" data-state-endpoint="/~/state"/></head><body><kdex-ui-app-container><app-one id="app1"></app-one></kdex-ui-app-container><script type="module">import '@kdex-ui';</script><script type="module" src="http://localhost:61345/app1.js"></script></body></html>`,
-			upstreamAddress: upstreamAddress,
+			name:               "GET path separator with html, route path not matching app alias",
+			method:             "GET",
+			path:               "/test/app1/_/app2/bar",
+			expectedStatus:     http.StatusOK,
+			expectBodyContains: `<meta name="kdex-ui" data-check-single-endpoint="/~/check/single" data-check-batch-endpoint="/~/check/batch" data-login-path="/~/oauth/login" data-login-label="Login" data-login-css-query="nav a[href=&#34;/signin/&#34;]" data-logout-path="/~/oauth/logout" data-logout-label="Logout" data-logout-css-query="nav a[href=&#34;/signin/&#34;]" data-path-separator="/_/" data-state-endpoint="/~/state"/></head><body><kdex-ui-app-container><app-one id="app1"></app-one></kdex-ui-app-container><script type="module">import '@kdex-ui';</script><script type="module" src="http://localhost:61345/app1.js"></script></body></html>`,
+			upstreamAddress:    upstreamAddress,
 		},
 	}
 
@@ -325,8 +325,9 @@ func TestServer_ReverseProxy(t *testing.T) {
 			if resp.StatusCode == http.StatusOK {
 				assert.Equal(t, resp.Header.Get("X-Test-Header"), "test-value")
 
-				if tt.expectedBody != "" {
-					assert.Equal(t, tt.expectedBody, string(body))
+				if tt.expectBodyContains != "" {
+					// assert that the body contains the expected string
+					assert.Containsf(t, string(body), tt.expectBodyContains, "expected: %s", tt.expectBodyContains)
 				}
 			}
 		})

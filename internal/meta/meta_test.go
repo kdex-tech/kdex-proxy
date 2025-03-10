@@ -51,7 +51,7 @@ func TestMetaTransformer_Transform(t *testing.T) {
 				Data: "head",
 			},
 			wantErr: false,
-			want:    `<head><meta name="kdex-ui" data-path-separator="/_/" data-login-path="/~/oauth/login" data-login-label="Login" data-login-css-query="nav a[href=&#34;/signin/&#34;]" data-logout-path="/~/oauth/logout" data-logout-label="Logout" data-logout-css-query="nav a[href=&#34;/signin/&#34;]" data-state-endpoint="/~/state"/></head>`,
+			want:    `<head><meta name="kdex-ui" data-check-single-endpoint="/~/check/single" data-check-batch-endpoint="/~/check/batch" data-login-path="/~/oauth/login" data-login-label="Login" data-login-css-query="nav a[href=&#34;/signin/&#34;]" data-logout-path="/~/oauth/logout" data-logout-label="Logout" data-logout-css-query="nav a[href=&#34;/signin/&#34;]" data-path-separator="/_/" data-state-endpoint="/~/state"/></head>`,
 		},
 	}
 	for _, tt := range tests {
