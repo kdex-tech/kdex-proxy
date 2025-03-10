@@ -31,19 +31,21 @@ import (
 	"golang.org/x/net/html"
 	"kdex.dev/proxy/internal/config"
 	kctx "kdex.dev/proxy/internal/context"
+	"kdex.dev/proxy/internal/store/cache"
 	"kdex.dev/proxy/internal/transform"
 	"kdex.dev/proxy/internal/util"
 )
 
 type Proxy struct {
-	proxy       *httputil.ReverseProxy
-	transformer transform.Transformer
 	Config      *config.Config
+	cache       *cache.CacheStore
+	transformer transform.Transformer
 }
 
-func NewProxy(config *config.Config, transformer transform.Transformer) *Proxy {
+func NewProxy(config *config.Config, cache *cache.CacheStore, transformer transform.Transformer) *Proxy {
 	return &Proxy{
 		Config:      config,
+		cache:       cache,
 		transformer: transformer,
 	}
 }
@@ -75,13 +77,13 @@ func (s *Proxy) Probe(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Proxy) ReverseProxy() func(http.ResponseWriter, *http.Request) {
-	s.proxy = &httputil.ReverseProxy{
+	rp := &httputil.ReverseProxy{
 		ErrorHandler:   s.errorHandler,
 		ModifyResponse: s.modifyResponse,
 		Rewrite:        s.rewrite,
 	}
 
-	return s.proxy.ServeHTTP
+	return rp.ServeHTTP
 }
 
 func (s *Proxy) errorHandler(w http.ResponseWriter, r *http.Request, err error) {
@@ -111,17 +113,42 @@ func (s *Proxy) joinURLPath(a, b *url.URL) (path, rawpath string) {
 }
 
 func (s *Proxy) modifyResponse(r *http.Response) error {
+	proxiedEtag, ok := r.Request.Context().Value(kctx.ProxiedEtagKey).(string)
+
+	if !ok {
+		proxiedEtag = ""
+	}
+
+	configHash := s.Config.Hash()
+	cacheHit := false
+
 	// For 304 responses, we only need to handle ETag
 	if r.StatusCode == http.StatusNotModified {
-		if upstreamETag := r.Header.Get("ETag"); upstreamETag != "" {
-			configHash := s.Config.Hash()
-			derivedETag := fmt.Sprintf(`W/"%s-t%x"`, strings.Trim(upstreamETag, `"`), configHash)
-			r.Header.Set("ETag", derivedETag)
+		upstreamETag := r.Header.Get("ETag")
+		if upstreamETag != "" {
+			derivedETag := fmt.Sprintf(`W/"%s-t%x"`, strings.Trim(upstreamETag[2:], `"`), configHash)
 
-			r.Header.Set("Cache-Control", "no-cache")
-			r.Header.Set("Vary", "Authorization")
+			if s.cache != nil {
+				// Check if we have cached content
+				if entry, _ := (*s.cache).Get(r.Request.Context(), upstreamETag); entry != nil {
+					cacheHit = true
+					if derivedETag == proxiedEtag {
+						r.Header.Set("Cache-Control", "no-cache")
+						r.Header.Set("ETag", derivedETag)
+						r.Header.Set("Vary", "Authorization")
+
+						return nil
+					}
+
+					// Config changed, need to transform cached content
+					r.StatusCode = entry.StatusCode
+					r.Body = io.NopCloser(bytes.NewReader(entry.Content))
+					r.ContentLength = int64(len(entry.Content))
+					r.Header.Set("Content-Type", entry.ContentType)
+					r.Header.Set("Content-Length", strconv.Itoa(len(entry.Content)))
+				}
+			}
 		}
-		return nil
 	}
 
 	// For other responses, check if it's HTML we need to transform
@@ -130,27 +157,14 @@ func (s *Proxy) modifyResponse(r *http.Response) error {
 		return nil
 	}
 
+	upstreamETag := r.Header.Get("ETag")
+	if upstreamETag != "" {
+		derivedETag := fmt.Sprintf(`W/"%s-t%x"`, strings.Trim(upstreamETag[2:], `"`), configHash)
+		r.Header.Set("ETag", derivedETag)
+	}
+
 	// Check for chunked transfer encoding
 	isChunked := len(r.TransferEncoding) > 0 && r.TransferEncoding[0] == "chunked"
-
-	// Handle ETag for non-304 responses
-	if upstreamETag := r.Header.Get("ETag"); upstreamETag != "" {
-		configHash := s.Config.Hash()
-		derivedETag := fmt.Sprintf(`W/"%s-t%x"`, strings.Trim(upstreamETag, `"`), configHash)
-		r.Header.Set("ETag", derivedETag)
-
-		r.Header.Set("Cache-Control", "no-cache")
-		r.Header.Set("Vary", "Authorization")
-
-		if r.Request.Header.Get("If-None-Match") == derivedETag {
-			r.StatusCode = http.StatusNotModified
-			r.Body = io.NopCloser(bytes.NewReader(nil))
-			r.ContentLength = 0
-			r.Header.Del("Content-Length")
-			r.Header.Del("Content-Type") // Remove Content-Type for 304
-			return nil
-		}
-	}
 
 	// Transform content
 	body, err := io.ReadAll(r.Body)
@@ -158,6 +172,19 @@ func (s *Proxy) modifyResponse(r *http.Response) error {
 		return fmt.Errorf("failed to read response body: %w", err)
 	}
 	r.Body.Close()
+
+	// Cache the original content
+	if upstreamETag != "" && !cacheHit {
+		if s.cache != nil {
+			(*s.cache).Set(r.Request.Context(), upstreamETag, cache.CacheEntry{
+				Content:     body,
+				ContentType: r.Header.Get("Content-Type"),
+				CreatedAt:   time.Now(),
+				ETag:        upstreamETag,
+				StatusCode:  r.StatusCode,
+			})
+		}
+	}
 
 	doc, err := html.Parse(bytes.NewReader(body))
 	if err != nil {
@@ -175,6 +202,9 @@ func (s *Proxy) modifyResponse(r *http.Response) error {
 
 	transformedBody := buf.Bytes()
 	r.Body = io.NopCloser(bytes.NewReader(transformedBody))
+
+	r.Header.Set("Cache-Control", "no-cache")
+	r.Header.Set("Vary", "Authorization")
 
 	// Handle transfer encoding
 	if isChunked {
@@ -239,10 +269,11 @@ func (s *Proxy) rewrite(r *httputil.ProxyRequest) {
 	}
 
 	// Strip transformer suffix from If-None-Match header
-	if ifNoneMatch := r.Out.Header.Get("If-None-Match"); ifNoneMatch != "" {
+	if ifNoneMatch := r.In.Header.Get("If-None-Match"); ifNoneMatch != "" {
 		if idx := strings.LastIndex(ifNoneMatch, "-t"); idx != -1 {
 			originalETag := ifNoneMatch[:idx] + `"`
 			r.Out.Header.Set("If-None-Match", originalETag)
+			r.Out = r.Out.WithContext(context.WithValue(r.Out.Context(), kctx.ProxiedEtagKey, ifNoneMatch))
 		}
 	}
 

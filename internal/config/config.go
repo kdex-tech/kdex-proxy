@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"hash/crc32"
 
@@ -68,6 +69,11 @@ type BasicAuthConfig struct {
 	Password string `json:"password,omitempty" yaml:"password,omitempty"`
 }
 
+type CacheConfig struct {
+	Type string        `json:"type" yaml:"type"`
+	TTL  time.Duration `json:"ttl" yaml:"ttl"`
+}
+
 type ExpressionsConfig struct {
 	Roles     string `json:"roles,omitempty" yaml:"roles,omitempty"`
 	Principal string `json:"principal,omitempty" yaml:"principal,omitempty"`
@@ -119,15 +125,16 @@ type Permission struct {
 }
 
 type ProxyConfig struct {
-	AlwaysAppendSlash   bool   `json:"always_append_slash,omitempty" yaml:"always_append_slash,omitempty"`
-	AppendIndex         bool   `json:"append_index,omitempty" yaml:"append_index,omitempty"`
-	IndexFile           string `json:"index_file,omitempty" yaml:"index_file,omitempty"`
-	PathSeparator       string `json:"path_separator,omitempty" yaml:"path_separator,omitempty"`
-	ProbePath           string `json:"probe_path,omitempty" yaml:"probe_path,omitempty"`
-	UpstreamAddress     string `json:"upstream_address" yaml:"upstream_address"`
-	UpstreamPrefix      string `json:"upstream_prefix,omitempty" yaml:"upstream_prefix,omitempty"`
-	UpstreamScheme      string `json:"upstream_scheme,omitempty" yaml:"upstream_scheme,omitempty"`
-	UpstreamHealthzPath string `json:"upstream_healthz_path,omitempty" yaml:"upstream_healthz_path,omitempty"`
+	AlwaysAppendSlash   bool        `json:"always_append_slash,omitempty" yaml:"always_append_slash,omitempty"`
+	AppendIndex         bool        `json:"append_index,omitempty" yaml:"append_index,omitempty"`
+	Cache               CacheConfig `json:"cache,omitempty" yaml:"cache,omitempty"`
+	IndexFile           string      `json:"index_file,omitempty" yaml:"index_file,omitempty"`
+	PathSeparator       string      `json:"path_separator,omitempty" yaml:"path_separator,omitempty"`
+	ProbePath           string      `json:"probe_path,omitempty" yaml:"probe_path,omitempty"`
+	UpstreamAddress     string      `json:"upstream_address" yaml:"upstream_address"`
+	UpstreamPrefix      string      `json:"upstream_prefix,omitempty" yaml:"upstream_prefix,omitempty"`
+	UpstreamScheme      string      `json:"upstream_scheme,omitempty" yaml:"upstream_scheme,omitempty"`
+	UpstreamHealthzPath string      `json:"upstream_healthz_path,omitempty" yaml:"upstream_healthz_path,omitempty"`
 }
 
 type SessionConfig struct {
@@ -214,8 +221,12 @@ var defaultConfig = Config{
 		TemplatePaths:   []TemplatePath{},
 	},
 	Proxy: ProxyConfig{
-		AlwaysAppendSlash:   false,
-		AppendIndex:         false,
+		AlwaysAppendSlash: false,
+		AppendIndex:       false,
+		Cache: CacheConfig{
+			Type: "memory",
+			TTL:  time.Minute * 20,
+		},
 		IndexFile:           "index.html",
 		PathSeparator:       "/_/",
 		ProbePath:           "/~/p/{$}",

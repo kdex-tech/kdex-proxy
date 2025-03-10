@@ -31,6 +31,7 @@ import (
 	"kdex.dev/proxy/internal/importmap"
 	"kdex.dev/proxy/internal/meta"
 	"kdex.dev/proxy/internal/navigation"
+	"kdex.dev/proxy/internal/store/cache"
 	"kdex.dev/proxy/internal/transform"
 )
 
@@ -44,6 +45,19 @@ type Result struct {
 func mockTargetServer() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Test-Header", "test-value")
+
+		if r.URL.Path == "/test/304/a" && r.Header.Get("If-None-Match") == "" {
+			w.Header().Set("ETag", `W/"test304a"`)
+			w.Header().Set("Content-Type", "text/html")
+			w.Write([]byte(`<html><body><h1>Hello, World!</h1></body></html>`))
+			return
+		}
+
+		if r.URL.Path == "/test/304/a" && r.Header.Get("If-None-Match") == `W/"test304a"` {
+			w.Header().Set("ETag", `W/"test304a"`)
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
 
 		if r.URL.Path == "/healthz" {
 			w.WriteHeader(http.StatusOK)
@@ -334,6 +348,342 @@ func TestServer_ReverseProxy(t *testing.T) {
 	}
 }
 
+func TestServer_ReverseProxy_304(t *testing.T) {
+	// Start mock target server
+	targetServer := mockTargetServer()
+	defer targetServer.Close()
+
+	upstreamAddress := strings.TrimPrefix(targetServer.URL, "http://")
+	defaultConfig := config.DefaultConfig()
+	defaultConfig.Apps = []config.App{
+		{
+			Alias:   "app1",
+			Address: "localhost:61345",
+			Element: "app-one",
+			Path:    "/app1.js",
+			Targets: []config.Target{
+				{
+					Path:      "/test/app1",
+					Container: "main",
+				},
+			},
+		},
+	}
+	defaultConfig.Authn.Login.Query = `nav a[href="/signin/"]`
+	defaultConfig.Authn.Login.Label = "Login"
+	defaultConfig.Authn.Login.Path = "/~/oauth/login"
+	defaultConfig.Authn.Logout.Query = `nav a[href="/signin/"]`
+	defaultConfig.Authn.Logout.Label = "Logout"
+	defaultConfig.Authn.Logout.Path = "/~/oauth/logout"
+	defaultConfig.Importmap.PreloadModules = []string{
+		"@kdex-ui",
+	}
+	defaultConfig.Proxy.PathSeparator = "/_/"
+	defaultConfig.Proxy.UpstreamAddress = upstreamAddress
+
+	configHash := defaultConfig.Hash()
+
+	transformer := &transform.AggregatedTransformer{
+		Transformers: []transform.Transformer{
+			&importmap.ImportMapTransformer{
+				Config: &defaultConfig,
+				ModuleImports: map[string]string{
+					"@kdex/ui": "@kdex/ui/index.js",
+				},
+			},
+			&app.AppTransformer{
+				Config: &defaultConfig,
+			},
+			&meta.MetaTransformer{
+				Config: &defaultConfig,
+			},
+			&navigation.NavigationTransformer{
+				Config: &defaultConfig,
+			},
+		},
+	}
+
+	// Configure server for proxy
+	s := Proxy{
+		Config:      &defaultConfig,
+		transformer: transformer,
+	}
+
+	// Create test proxy server
+	proxyServer := httptest.NewServer(http.HandlerFunc(s.ReverseProxy()))
+	defer proxyServer.Close()
+
+	tests := []struct {
+		name               string
+		path               string
+		headers            map[string]string
+		expectedHeaders    map[string]string
+		expectedStatus     int
+		expectBodyContains string
+	}{
+		{
+			name: "GET request returns 304 without proxied hash",
+			path: "/test/304/a",
+			headers: map[string]string{
+				"If-None-Match": `W/"test304a"`,
+			},
+			expectedStatus: http.StatusNotModified,
+			expectedHeaders: map[string]string{
+				"ETag": `W/"test304a"`,
+			},
+		},
+		{
+			name: "GET request returns 304 with proxied hash",
+			path: "/test/304/a",
+			headers: map[string]string{
+				"If-None-Match": fmt.Sprintf(`W/"test304a-t%x"`, configHash),
+			},
+			expectedStatus: http.StatusNotModified,
+			expectedHeaders: map[string]string{
+				"ETag": `W/"test304a"`,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			// Create request to proxy
+			req, _ := http.NewRequest("GET", proxyServer.URL+tt.path, nil)
+
+			for k, v := range tt.headers {
+				req.Header.Set(k, v)
+			}
+
+			req.Host = "foo.bar"
+			req.URL.Scheme = "http"
+			req.Header.Set("Host", req.Host)
+
+			// Send request
+			client := &http.Client{}
+			resp, err := client.Do(req)
+			if err != nil {
+				t.Fatalf("Failed to send request: %v", err)
+				return
+			}
+
+			defer resp.Body.Close()
+
+			// Check status code
+			if resp.StatusCode != tt.expectedStatus {
+				t.Errorf("Expected status %d, got %d", tt.expectedStatus, resp.StatusCode)
+				return
+			}
+
+			// Read and verify response
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				t.Fatalf("Failed to read response body: %v", err)
+				return
+			}
+
+			// Verify expected response headers were properly returned
+			for k, v := range tt.expectedHeaders {
+				if resp.Header.Get(k) != v {
+					t.Errorf("Response doesn't contain expected header value %s: %s", k, v)
+				}
+			}
+
+			if resp.StatusCode == http.StatusOK && tt.expectBodyContains != "" {
+				assert.Containsf(t, string(body), tt.expectBodyContains, "expected: %s", tt.expectBodyContains)
+			}
+		})
+	}
+}
+
+func TestServer_ReverseProxy_with_cache(t *testing.T) {
+	// Start mock target server
+	targetServer := mockTargetServer()
+	defer targetServer.Close()
+
+	upstreamAddress := strings.TrimPrefix(targetServer.URL, "http://")
+	defaultConfig := config.DefaultConfig()
+	defaultConfig.Apps = []config.App{
+		{
+			Alias:   "app1",
+			Address: "localhost:61345",
+			Element: "app-one",
+			Path:    "/app1.js",
+			Targets: []config.Target{
+				{
+					Path:      "/test/app1",
+					Container: "main",
+				},
+			},
+		},
+	}
+	defaultConfig.Authn.Login.Query = `nav a[href="/signin/"]`
+	defaultConfig.Authn.Login.Label = "Login"
+	defaultConfig.Authn.Login.Path = "/~/oauth/login"
+	defaultConfig.Authn.Logout.Query = `nav a[href="/signin/"]`
+	defaultConfig.Authn.Logout.Label = "Logout"
+	defaultConfig.Authn.Logout.Path = "/~/oauth/logout"
+	defaultConfig.Importmap.PreloadModules = []string{
+		"@kdex-ui",
+	}
+	defaultConfig.Proxy.Cache.Type = "memory"
+	defaultConfig.Proxy.PathSeparator = "/_/"
+	defaultConfig.Proxy.UpstreamAddress = upstreamAddress
+
+	configHash := defaultConfig.Hash()
+
+	transformer := &transform.AggregatedTransformer{
+		Transformers: []transform.Transformer{
+			&importmap.ImportMapTransformer{
+				Config: &defaultConfig,
+				ModuleImports: map[string]string{
+					"@kdex/ui": "@kdex/ui/index.js",
+				},
+			},
+			&app.AppTransformer{
+				Config: &defaultConfig,
+			},
+			&meta.MetaTransformer{
+				Config: &defaultConfig,
+			},
+			&navigation.NavigationTransformer{
+				Config: &defaultConfig,
+			},
+		},
+	}
+
+	cache := cache.NewCacheStore(&defaultConfig)
+
+	// Configure server for proxy
+	s := Proxy{
+		Config:      &defaultConfig,
+		cache:       &cache,
+		transformer: transformer,
+	}
+
+	// Create test proxy server
+	proxyServer := httptest.NewServer(http.HandlerFunc(s.ReverseProxy()))
+	defer proxyServer.Close()
+
+	type attempt struct {
+		requestHeaders          map[string]string
+		expectedResponseHeaders map[string]string
+		expectedStatus          int
+		expectBodyContains      string
+	}
+
+	tests := []struct {
+		name     string
+		path     string
+		attempts []attempt
+	}{
+		{
+			name: "GET request returns 304 without proxied hash",
+			path: "/test/304/a",
+			attempts: []attempt{
+				{
+					requestHeaders:     map[string]string{},
+					expectedStatus:     http.StatusOK,
+					expectBodyContains: `<body><h1>Hello, World!</h1><script`,
+					expectedResponseHeaders: map[string]string{
+						"ETag": fmt.Sprintf(`W/"test304a-t%x"`, configHash),
+					},
+				},
+				{
+					requestHeaders: map[string]string{
+						"If-None-Match": fmt.Sprintf(`W/"test304a-t%x"`, configHash),
+					},
+					expectedStatus: http.StatusNotModified,
+					expectedResponseHeaders: map[string]string{
+						"ETag": fmt.Sprintf(`W/"test304a-t%x"`, configHash),
+					},
+				},
+				{
+					requestHeaders: map[string]string{
+						"If-None-Match": fmt.Sprintf(`W/"test304a-t%x"`, "oldhash"),
+					},
+					expectedStatus:     http.StatusOK,
+					expectBodyContains: `<body><h1>Hello, World!</h1><script`,
+					expectedResponseHeaders: map[string]string{
+						"ETag": fmt.Sprintf(`W/"test304a-t%x"`, configHash),
+					},
+				},
+			},
+		},
+		// {
+		// 	name: "GET request returns 304 with proxied hash",
+		// 	path: "/test/304/a",
+		// 	attempts: []attempt{
+		// 		{
+		// 			requestHeaders: map[string]string{
+		// 				"If-None-Match": fmt.Sprintf(`W/"test304a-t%x"`, configHash),
+		// 			},
+		// 			expectedStatus: http.StatusNotModified,
+		// 			expectedResponseHeaders: map[string]string{
+		// 				"ETag": `W/"test304a"`,
+		// 			},
+		// 		},
+		// 	},
+		// },
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			for _, attempt := range tt.attempts {
+				// Create request to proxy
+				req, _ := http.NewRequest("GET", proxyServer.URL+tt.path, nil)
+				req.Host = "foo.bar"
+				req.URL.Scheme = "http"
+				req.Header.Set("Host", req.Host)
+
+				for k, v := range attempt.requestHeaders {
+					req.Header.Set(k, v)
+				}
+
+				// Send request
+				client := &http.Client{}
+				resp, err := client.Do(req)
+				if err != nil {
+					t.Fatalf("Failed to send request: %v", err)
+					return
+				}
+
+				defer resp.Body.Close()
+
+				// Check status code
+				if resp.StatusCode != attempt.expectedStatus {
+					t.Errorf("Expected status %d, got %d", attempt.expectedStatus, resp.StatusCode)
+					return
+				}
+
+				// Read and verify response
+				body, err := io.ReadAll(resp.Body)
+				if err != nil {
+					t.Fatalf("Failed to read response body: %v", err)
+					return
+				}
+
+				// Verify expected response headers were properly returned
+				for k, v := range attempt.expectedResponseHeaders {
+					if got := resp.Header.Get(k); got != v {
+						t.Errorf("Response doesn't contain expected header value %s: %s but got %s", k, v, got)
+						return
+					}
+				}
+
+				if resp.StatusCode == http.StatusOK && attempt.expectBodyContains != "" {
+					result := assert.Containsf(t, string(body), attempt.expectBodyContains, "expected: %s", attempt.expectBodyContains)
+					if !result {
+						t.Errorf("Response body doesn't contain expected content:\n----\n%s\n----\n%s\n----\n", string(body), attempt.expectBodyContains)
+						return
+					}
+				}
+			}
+		})
+	}
+}
+
 func TestServer_Probe(t *testing.T) {
 	targetServer := mockTargetServer()
 	defer targetServer.Close()
@@ -468,6 +818,7 @@ func TestServer_rewrite(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewProxy(
 				&defaultConfig,
+				nil,
 				nil,
 			)
 			s.rewrite(tt.r)

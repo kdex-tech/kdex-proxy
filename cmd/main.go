@@ -40,6 +40,7 @@ import (
 	"kdex.dev/proxy/internal/navigation"
 	"kdex.dev/proxy/internal/proxy"
 	"kdex.dev/proxy/internal/state"
+	"kdex.dev/proxy/internal/store/cache"
 	"kdex.dev/proxy/internal/store/session"
 	"kdex.dev/proxy/internal/transform"
 )
@@ -87,7 +88,13 @@ func main() {
 		},
 	}
 
-	proxyServer := proxy.NewProxy(&c, transformer)
+	cache := cache.NewCacheStore(&c)
+
+	proxyServer := proxy.NewProxy(
+		&c,
+		&cache,
+		transformer,
+	)
 
 	mux := http.NewServeMux()
 

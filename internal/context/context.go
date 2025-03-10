@@ -3,6 +3,7 @@ package context
 type ContextKey string
 
 const (
+	ProxiedEtagKey  ContextKey = "proxiedEtag"
 	ProxiedPartsKey ContextKey = "proxiedParts"
 	SessionDataKey  ContextKey = "sessionData"
 	UserRolesKey    ContextKey = "userRoles"
