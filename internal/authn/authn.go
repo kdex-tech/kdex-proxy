@@ -1,13 +1,9 @@
 package authn
 
 import (
-	"context"
-	"log"
 	"net/http"
 
 	"kdex.dev/proxy/internal/config"
-	"kdex.dev/proxy/internal/store/session"
-	"kdex.dev/proxy/internal/store/state"
 )
 
 const (
@@ -24,11 +20,7 @@ type AuthValidator interface {
 	Register(mux *http.ServeMux)
 }
 
-func AuthValidatorFactory(
-	config *config.Config,
-	sessionStore *session.SessionStore,
-	sessionCookieName string,
-) AuthValidator {
+func AuthValidatorFactory(config *config.Config) AuthValidator {
 	var auth_validator AuthValidator
 
 	switch config.Authn.AuthValidator {
@@ -42,17 +34,7 @@ func AuthValidatorFactory(
 			Password:               config.Authn.BasicAuth.Password,
 		}
 	case Validator_OAuth:
-		stateStore, err := state.NewStateStore(context.Background(), "memory")
-		if err != nil {
-			log.Fatalf("Failed to create state store: %v", err)
-		}
-		auth_validator = NewOAuthValidator(
-			context.Background(),
-			&config.Authn,
-			sessionCookieName,
-			sessionStore,
-			&stateStore,
-		)
+		auth_validator = NewOAuthValidator(config)
 	default: // Validator_NoOp
 		auth_validator = &NoOpAuthValidator{}
 	}

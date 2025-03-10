@@ -5,38 +5,28 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"kdex.dev/proxy/internal/config"
-	"kdex.dev/proxy/internal/store/session"
 )
 
 func TestAuthValidatorFactory(t *testing.T) {
-	type args struct {
-		c                 *config.Config
-		sessionStore      *session.SessionStore
-		sessionCookieName string
-	}
 	tests := []struct {
 		name string
-		args args
+		c    *config.Config
 		want interface{}
 	}{
 		{
 			name: "constructor with default config",
-			args: args{
-				c: &config.Config{
-					Authn: config.AuthnConfig{
-						AuthValidator: Validator_NoOp,
-					},
+			c: &config.Config{
+				Authn: config.AuthnConfig{
+					AuthValidator: Validator_NoOp,
 				},
 			},
 			want: &NoOpAuthValidator{},
 		},
 		{
 			name: "constructor with static basic auth config",
-			args: args{
-				c: &config.Config{
-					Authn: config.AuthnConfig{
-						AuthValidator: Validator_StaticBasicAuth,
-					},
+			c: &config.Config{
+				Authn: config.AuthnConfig{
+					AuthValidator: Validator_StaticBasicAuth,
 				},
 			},
 			want: &StaticBasicAuthValidator{},
@@ -51,7 +41,7 @@ func TestAuthValidatorFactory(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := AuthValidatorFactory(tt.args.c, tt.args.sessionStore, tt.args.sessionCookieName)
+			got := AuthValidatorFactory(tt.c)
 			assert.Equal(t, tt.want, got)
 		})
 	}

@@ -41,7 +41,6 @@ import (
 	"kdex.dev/proxy/internal/proxy"
 	"kdex.dev/proxy/internal/state"
 	"kdex.dev/proxy/internal/store/cache"
-	"kdex.dev/proxy/internal/store/session"
 	"kdex.dev/proxy/internal/transform"
 )
 
@@ -55,11 +54,6 @@ func main() {
 		Dir:    c.ModuleDir,
 		Prefix: c.Fileserver.Prefix,
 	}
-	sessionStore, err := session.NewSessionStore(context.Background(), &c.Session)
-	if err != nil {
-		log.Fatalf("Failed to create session store: %v", err)
-	}
-
 	go func() {
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
@@ -74,16 +68,11 @@ func main() {
 		log.Println("Server graceful shutdown complete.")
 	}()
 
-	sessionHelper := &session.SessionHelper{
-		Config:       c,
-		SessionStore: sessionStore,
-	}
-
 	transformer := &transform.AggregatedTransformer{
 		Transformers: []transform.Transformer{
 			importmap.NewImportMapTransformer(c),
 			meta.NewMetaTransformer(c),
-			navigation.NewNavigationTransformer(c, sessionHelper),
+			navigation.NewNavigationTransformer(c),
 			app.NewAppTransformer(c),
 		},
 	}
@@ -98,11 +87,7 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	authValidator := authn.AuthValidatorFactory(
-		c,
-		sessionStore,
-		c.Session.CookieName,
-	)
+	authValidator := authn.AuthValidatorFactory(c)
 
 	loggerMiddleware := &mLogger.LoggerMiddleware{
 		Impl: log.Default(),

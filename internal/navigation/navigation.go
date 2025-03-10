@@ -12,24 +12,21 @@ import (
 	"github.com/antchfx/htmlquery"
 	"golang.org/x/net/html"
 	"kdex.dev/proxy/internal/config"
-	"kdex.dev/proxy/internal/store/session"
 	"kdex.dev/proxy/internal/transform"
 	"kdex.dev/proxy/internal/util"
 )
 
 type NavigationTransformer struct {
 	transform.Transformer
-	Config        *config.Config
-	SessionHelper *session.SessionHelper
-	navTmpl       *template.Template
+	Config  *config.Config
+	navTmpl *template.Template
 }
 
-func NewNavigationTransformer(config *config.Config, sessionHelper *session.SessionHelper) *NavigationTransformer {
+func NewNavigationTransformer(config *config.Config) *NavigationTransformer {
 	tmpl := template.Must(template.New("Navigation").Parse(config.Navigation.NavItemTemplate))
 	return &NavigationTransformer{
-		Config:        config,
-		SessionHelper: sessionHelper,
-		navTmpl:       tmpl,
+		Config:  config,
+		navTmpl: tmpl,
 	}
 }
 

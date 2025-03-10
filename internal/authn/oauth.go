@@ -28,20 +28,16 @@ type OAuthValidator struct {
 }
 
 func NewOAuthValidator(
-	ctx context.Context,
-	config *config.AuthnConfig,
-	sessionCookieName string,
-	sessionStore *session.SessionStore,
-	stateStore *state.StateStore,
+	config *config.Config,
 ) *OAuthValidator {
-	providerURL := fmt.Sprintf("%s/realms/%s", config.OAuth.AuthServerURL, url.PathEscape(config.Realm))
-	provider, err := oidc.NewProvider(ctx, providerURL)
+	providerURL := fmt.Sprintf("%s/realms/%s", config.Authn.OAuth.AuthServerURL, url.PathEscape(config.Authn.Realm))
+	provider, err := oidc.NewProvider(context.Background(), providerURL)
 
 	if err != nil {
 		log.Fatalf("Failed to create provider: %v", err)
 	}
 
-	scopes := config.OAuth.Scopes
+	scopes := config.Authn.OAuth.Scopes
 	if !slices.Contains(scopes, oidc.ScopeOpenID) {
 		scopes = append(scopes, oidc.ScopeOpenID)
 	}
@@ -56,24 +52,34 @@ func NewOAuthValidator(
 	}
 
 	verifier := provider.Verifier(&oidc.Config{
-		ClientID: config.OAuth.ClientID,
+		ClientID: config.Authn.OAuth.ClientID,
 	})
 
 	oauth2Config := oauth2.Config{
-		ClientID:     config.OAuth.ClientID,
-		ClientSecret: config.OAuth.ClientSecret,
-		RedirectURL:  config.OAuth.RedirectURI,
+		ClientID:     config.Authn.OAuth.ClientID,
+		ClientSecret: config.Authn.OAuth.ClientSecret,
+		RedirectURL:  config.Authn.OAuth.RedirectURI,
 		Endpoint:     provider.Endpoint(),
 		Scopes:       scopes,
 	}
 
+	stateStore, err := state.NewStateStore(config)
+	if err != nil {
+		log.Fatalf("Failed to create state store: %v", err)
+	}
+
+	sessionStore, err := session.NewSessionStore(config)
+	if err != nil {
+		log.Fatalf("Failed to create session store: %v", err)
+	}
+
 	return &OAuthValidator{
-		Config:            config,
+		Config:            &config.Authn,
 		Oauth2Config:      &oauth2Config,
 		Provider:          provider,
-		SessionCookieName: sessionCookieName,
-		SessionStore:      sessionStore,
-		StateStore:        stateStore,
+		SessionCookieName: config.Session.CookieName,
+		SessionStore:      &sessionStore,
+		StateStore:        &stateStore,
 		Verifier:          verifier,
 	}
 }

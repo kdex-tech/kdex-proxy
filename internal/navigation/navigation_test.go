@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/html"
 	"kdex.dev/proxy/internal/config"
-	"kdex.dev/proxy/internal/store/session"
 	"kdex.dev/proxy/internal/util"
 )
 
@@ -106,18 +105,10 @@ func TestNavigationTransformer_Transform(t *testing.T) {
 			defaultConfig.Navigation.NavItemFields = tt.fields.NavItemFields
 			defaultConfig.Navigation.ProtectedPaths = tt.fields.ProtectedPaths
 			defaultConfig.Navigation.TemplatePaths = tt.fields.TemplatePaths
-			defaultConfig.Session.CookieName = "session_id"
-
-			sessionStore := session.NewMemorySessionStore(&defaultConfig.Session)
-			sessionHelper := session.SessionHelper{
-				Config:       defaultConfig,
-				SessionStore: &sessionStore,
-			}
 
 			tr := &NavigationTransformer{
-				Config:        defaultConfig,
-				navTmpl:       template.Must(template.New("Navigation").Parse(tt.fields.NavItemTemplate)),
-				SessionHelper: &sessionHelper,
+				Config:  defaultConfig,
+				navTmpl: template.Must(template.New("Navigation").Parse(tt.fields.NavItemTemplate)),
 			}
 
 			rec := httptest.NewRecorder()

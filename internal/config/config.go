@@ -144,6 +144,7 @@ type SessionConfig struct {
 
 type StateConfig struct {
 	Endpoint string `json:"endpoint,omitempty" yaml:"endpoint,omitempty"`
+	Type     string `json:"type,omitempty" yaml:"type,omitempty"`
 }
 
 type StaticAuthzProviderConfig struct {
@@ -239,6 +240,7 @@ var defaultConfig = Config{
 	},
 	State: StateConfig{
 		Endpoint: "/~/state",
+		Type:     "memory",
 	},
 }
 
