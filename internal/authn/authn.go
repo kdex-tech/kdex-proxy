@@ -25,20 +25,21 @@ type AuthValidator interface {
 }
 
 func AuthValidatorFactory(
-	config *config.AuthnConfig,
+	config *config.Config,
 	sessionStore *session.SessionStore,
 	sessionCookieName string,
-) *AuthValidator {
+) AuthValidator {
 	var auth_validator AuthValidator
-	switch config.AuthValidator {
+
+	switch config.Authn.AuthValidator {
 	case Validator_StaticBasicAuth:
 		auth_validator = &StaticBasicAuthValidator{
-			AuthorizationHeader:    config.AuthorizationHeader,
-			AuthenticateHeader:     config.AuthenticateHeader,
-			AuthenticateStatusCode: config.AuthenticateStatusCode,
-			Realm:                  config.Realm,
-			Username:               config.BasicAuth.Username,
-			Password:               config.BasicAuth.Password,
+			AuthorizationHeader:    config.Authn.AuthorizationHeader,
+			AuthenticateHeader:     config.Authn.AuthenticateHeader,
+			AuthenticateStatusCode: config.Authn.AuthenticateStatusCode,
+			Realm:                  config.Authn.Realm,
+			Username:               config.Authn.BasicAuth.Username,
+			Password:               config.Authn.BasicAuth.Password,
 		}
 	case Validator_OAuth:
 		stateStore, err := state.NewStateStore(context.Background(), "memory")
@@ -47,7 +48,7 @@ func AuthValidatorFactory(
 		}
 		auth_validator = NewOAuthValidator(
 			context.Background(),
-			config,
+			&config.Authn,
 			sessionCookieName,
 			sessionStore,
 			&stateStore,
@@ -56,5 +57,5 @@ func AuthValidatorFactory(
 		auth_validator = &NoOpAuthValidator{}
 	}
 
-	return &auth_validator
+	return auth_validator
 }

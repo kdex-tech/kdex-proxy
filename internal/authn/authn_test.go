@@ -10,7 +10,7 @@ import (
 
 func TestAuthValidatorFactory(t *testing.T) {
 	type args struct {
-		c                 *config.AuthnConfig
+		c                 *config.Config
 		sessionStore      *session.SessionStore
 		sessionCookieName string
 	}
@@ -22,14 +22,22 @@ func TestAuthValidatorFactory(t *testing.T) {
 		{
 			name: "constructor with default config",
 			args: args{
-				c: &config.AuthnConfig{},
+				c: &config.Config{
+					Authn: config.AuthnConfig{
+						AuthValidator: Validator_NoOp,
+					},
+				},
 			},
 			want: &NoOpAuthValidator{},
 		},
 		{
 			name: "constructor with static basic auth config",
 			args: args{
-				c: &config.AuthnConfig{AuthValidator: Validator_StaticBasicAuth},
+				c: &config.Config{
+					Authn: config.AuthnConfig{
+						AuthValidator: Validator_StaticBasicAuth,
+					},
+				},
 			},
 			want: &StaticBasicAuthValidator{},
 		},

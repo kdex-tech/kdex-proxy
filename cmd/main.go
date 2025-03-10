@@ -99,7 +99,7 @@ func main() {
 	mux := http.NewServeMux()
 
 	authValidator := authn.AuthValidatorFactory(
-		&c.Authn,
+		c,
 		sessionStore,
 		c.Session.CookieName,
 	)
@@ -108,12 +108,12 @@ func main() {
 		Impl: log.Default(),
 	}
 
-	(*authValidator).Register(mux)
+	authValidator.Register(mux)
 
 	authnMiddleware := &mAuthn.AuthnMiddleware{
 		AuthenticateHeader:     c.Authn.AuthenticateHeader,
 		AuthenticateStatusCode: c.Authn.AuthenticateStatusCode,
-		AuthValidator:          *authValidator,
+		AuthValidator:          authValidator,
 	}
 
 	fieldEvaluator := expression.NewFieldEvaluator(c)
