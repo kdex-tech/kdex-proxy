@@ -106,25 +106,25 @@ func (s *Proxy) errorHandler(w http.ResponseWriter, r *http.Request, err error) 
 	http.Error(w, err.Error(), http.StatusInternalServerError)
 }
 
-func (s *Proxy) joinURLPath(a, b *url.URL) (path, rawpath string) {
+func (s *Proxy) joinURLPath(a, b *url.URL) (path, rawPath string) {
 	if a.RawPath == "" && b.RawPath == "" {
 		return s.singleJoiningSlash(a.Path, b.Path), ""
 	}
 	// Same as singleJoiningSlash, but uses EscapedPath to determine
 	// whether a slash should be added
-	apath := a.EscapedPath()
-	bpath := b.EscapedPath()
+	aPath := a.EscapedPath()
+	bPath := b.EscapedPath()
 
-	aslash := strings.HasSuffix(apath, "/")
-	bslash := strings.HasPrefix(bpath, "/")
+	aSlash := strings.HasSuffix(aPath, "/")
+	bSlash := strings.HasPrefix(bPath, "/")
 
 	switch {
-	case aslash && bslash:
-		return a.Path + b.Path[1:], apath + bpath[1:]
-	case !aslash && !bslash:
-		return a.Path + "/" + b.Path, apath + "/" + bpath
+	case aSlash && bSlash:
+		return a.Path + b.Path[1:], aPath + bPath[1:]
+	case !aSlash && !bSlash:
+		return a.Path + "/" + b.Path, aPath + "/" + bPath
 	}
-	return a.Path + b.Path, apath + bpath
+	return a.Path + b.Path, aPath + bPath
 }
 
 func (s *Proxy) modifyResponse(r *http.Response) error {
@@ -353,12 +353,12 @@ func (s *Proxy) rewritePath(r *httputil.ProxyRequest) kctx.ProxiedParts {
 }
 
 func (s *Proxy) singleJoiningSlash(a, b string) string {
-	aslash := strings.HasSuffix(a, "/")
-	bslash := strings.HasPrefix(b, "/")
+	aSlash := strings.HasSuffix(a, "/")
+	bSlash := strings.HasPrefix(b, "/")
 	switch {
-	case aslash && bslash:
+	case aSlash && bSlash:
 		return a + b[1:]
-	case !aslash && !bslash:
+	case !aSlash && !bSlash:
 		return a + "/" + b
 	}
 	return a + b
