@@ -310,15 +310,28 @@ func (s *Proxy) rewrite(r *httputil.ProxyRequest) {
 	}
 }
 
+func (s *Proxy) proxiedPath(accept string, proxiedPath string) string {
+	if s.Config.Proxy.AlwaysAppendSlash && (strings.Contains(accept, "text/html") ||
+		strings.Contains(accept, "application/xhtml+xml") ||
+		strings.Contains(accept, "application/xml")) &&
+		!strings.HasSuffix(proxiedPath, ".html") &&
+		!strings.HasSuffix(proxiedPath, ".htm") &&
+		!strings.HasSuffix(proxiedPath, ".xhtml") &&
+		!strings.HasSuffix(proxiedPath, ".xml") &&
+		!strings.HasSuffix(proxiedPath, "/") {
+
+		proxiedPath = proxiedPath + "/"
+	}
+
+	return proxiedPath
+}
+
 func (s *Proxy) rewritePath(r *httputil.ProxyRequest) kctx.ProxiedParts {
+	accept := r.In.Header.Get("Accept")
 	parts := strings.SplitN(r.In.URL.Path, s.Config.Proxy.PathSeparator, 2)
 
 	if len(parts) > 1 {
-		proxiedPath := parts[0]
-
-		if s.Config.Proxy.AlwaysAppendSlash && !strings.HasSuffix(proxiedPath, "/") {
-			proxiedPath = proxiedPath + "/"
-		}
+		proxiedPath := s.proxiedPath(accept, parts[0])
 
 		appParts := strings.SplitN(parts[1], "/", 2)
 
@@ -342,7 +355,7 @@ func (s *Proxy) rewritePath(r *httputil.ProxyRequest) kctx.ProxiedParts {
 	return kctx.ProxiedParts{
 		AppAlias:    "",
 		AppPath:     "",
-		ProxiedPath: r.In.URL.Path,
+		ProxiedPath: s.proxiedPath(accept, r.In.URL.Path),
 	}
 }
 
