@@ -281,7 +281,7 @@ func (s *Proxy) rewrite(r *httputil.ProxyRequest) {
 		req.URL.Path = req.URL.Path + s.Config.Proxy.IndexFile
 	}
 
-	log.Printf("Path rewritten as: %s to %s (Alias: %s, Path: %s)", r.In.URL.Path, req.URL.Path, proxiedParts.AppAlias, proxiedParts.AppPath)
+	log.Printf("Path rewritten '%s' to '%s', Alias: '%s', Path: '%s', Upstream: '%s'", r.In.URL.Path, req.URL.Path, proxiedParts.AppAlias, proxiedParts.AppPath, req.URL.String())
 
 	if targetQuery == "" || req.URL.RawQuery == "" {
 		req.URL.RawQuery = targetQuery + req.URL.RawQuery
