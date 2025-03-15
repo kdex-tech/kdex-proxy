@@ -30,10 +30,10 @@
             "type": "go",
             "request": "launch",
             "mode": "debug",
-            "program": "cmd/scanner/main.go",
+            "program": "internal/scanner/main/main.go",
             "cwd": "${workspaceFolder}",
             "env": {
-                "MODULE_DIR": "${workspaceFolder}/tmp/node_modules",
+                "MODULE_DIR": "${workspaceFolder}/test/modules",
             }
         }
     ]
