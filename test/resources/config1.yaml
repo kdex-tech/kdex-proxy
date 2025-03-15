@@ -1,0 +1,91 @@
+apps:
+- alias: ke
+  address: sample-app.docker.localhost
+  element: kdex-example
+  path: app.js
+  targets:
+  - path: /posts
+    container_id: main
+- alias: k2
+  address: sample-app.docker.localhost
+  element: kdex-example
+  path: app.js
+  targets:
+  - path: /admin
+    container_id: main
+authn:
+  auth_validator: oauth
+  login:
+    path: /~/oauth/login
+    label: Login
+    query: nav a[href="/signin/"]
+  logout:
+    path: /~/oauth/logout
+    label: Logout
+    query: nav a[href="/signin/"]
+  oauth:
+    auth_server_url: http://keycloak.docker.localhost
+    client_id: kdex-proxy
+    client_secret: FZd8qsIive63taCdU3y3fARCCMU1SCUS
+    dump_claims: true
+    redirect_uri: http://proxy.docker.localhost/~/oauth/callback
+authz:
+  static:
+    permissions:
+    - resource: page:/*
+      action: read
+      principal: user
+    - resource: page:/
+      action: read
+      principal: anonymous
+    - resource: page:/~/check/*
+      action: read
+      principal: anonymous
+    - resource: page:/~/state
+      action: read
+      principal: anonymous
+    - resource: page:/css/*
+      action: read
+      principal: anonymous
+    - resource: page:/favicon*
+      action: read
+      principal: anonymous
+    - resource: page:/foo*
+      action: read
+      principal: anonymous
+    - resource: page:/posts*
+      action: read
+      principal: anonymous
+    - resource: page:/robots.txt
+      action: read
+      principal: anonymous
+expressions:
+  principal: "data.preferred_username"
+  roles: "data.realm_access.roles"
+module_dir: ../test/modules
+navigation:
+  nav_items_query: //nav//li[not(contains(@class,'Banner-item--title')) and contains(@class,'Banner-item')]
+  nav_item_fields:
+    href: a/@href
+    label: a/text()
+  nav_item_template: |
+    <li class="Banner-item">
+      <a class="Banner-link u-clickable" href="{{ .href }}">{{ .label }}</a>
+    </li>
+  template_paths:
+  - href: /foo
+    label: Foo
+    template: /template1
+    weight: 0.5
+  - href: /admin
+    label: Admin
+    template: /template1
+    weight: 1.5
+proxy:
+  always_append_slash: true
+  append_index: true
+  # upstream_address: sample-site
+  # upstream_address: objectstore-api.docker.localhost
+  upstream_address: localhost:9000
+  upstream_healthz_path: /site/public/index.html
+  upstream_prefix: /site/public

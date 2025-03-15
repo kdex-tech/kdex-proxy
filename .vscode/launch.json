@@ -19,7 +19,8 @@
             "mode": "debug",
             "program": "cmd/main.go",
             "env": {
-                "MODULE_DIR": "${workspaceFolder}/tmp/node_modules",
+                "CONFIG_FILE": "${workspaceFolder}/test/resources/config1.yaml",
+                "MODULE_DIR": "${workspaceFolder}/test/modules",
                 "UPSTREAM_ADDRESS": "main.dxp.docker.localhost",
                 "UPSTREAM_HEALTHZ_PATH": "/c/portal/robots"
             }
