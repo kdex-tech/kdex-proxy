@@ -29,8 +29,12 @@ import (
 	"time"
 
 	"golang.org/x/net/html"
+	"kdex.dev/proxy/internal/app"
 	"kdex.dev/proxy/internal/config"
 	kctx "kdex.dev/proxy/internal/context"
+	"kdex.dev/proxy/internal/importmap"
+	"kdex.dev/proxy/internal/meta"
+	"kdex.dev/proxy/internal/navigation"
 	"kdex.dev/proxy/internal/store/cache"
 	"kdex.dev/proxy/internal/transform"
 	"kdex.dev/proxy/internal/util"
@@ -42,7 +46,18 @@ type Proxy struct {
 	transformer transform.Transformer
 }
 
-func NewProxy(config *config.Config, cache *cache.CacheStore, transformer transform.Transformer) *Proxy {
+func NewProxy(config *config.Config) *Proxy {
+	transformer := &transform.AggregatedTransformer{
+		Transformers: []transform.Transformer{
+			importmap.NewImportMapTransformer(config),
+			meta.NewMetaTransformer(config),
+			navigation.NewNavigationTransformer(config),
+			app.NewAppTransformer(config),
+		},
+	}
+
+	cache := cache.NewCacheStore(config)
+
 	return &Proxy{
 		Config:      config,
 		cache:       cache,

@@ -7,8 +7,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"kdex.dev/proxy/internal/check"
 	"kdex.dev/proxy/internal/config"
 	kctx "kdex.dev/proxy/internal/context"
+	"kdex.dev/proxy/internal/permission"
 )
 
 type mockPermissionProvider struct {
@@ -22,13 +24,13 @@ func (m *mockPermissionProvider) GetPermissions(path string) ([]config.Permissio
 func Test_defaultAuthorizer_CheckAccess(t *testing.T) {
 	tests := []struct {
 		name    string
-		checker Checker
+		checker *check.Checker
 		r       *http.Request
 		err     error
 	}{
 		{
 			name: "permission required but don't have roles",
-			checker: Checker{
+			checker: &check.Checker{
 				PermissionProvider: &mockPermissionProvider{
 					GetPermissionsFunc: func(path string) ([]config.Permission, error) {
 						return []config.Permission{{Principal: "admin"}}, nil
@@ -40,10 +42,10 @@ func Test_defaultAuthorizer_CheckAccess(t *testing.T) {
 		},
 		{
 			name: "no permission are defined",
-			checker: Checker{
+			checker: &check.Checker{
 				PermissionProvider: &mockPermissionProvider{
 					GetPermissionsFunc: func(path string) ([]config.Permission, error) {
-						return nil, ErrNoPermissions
+						return nil, permission.ErrNoPermissions
 					},
 				},
 			},
@@ -56,7 +58,7 @@ func Test_defaultAuthorizer_CheckAccess(t *testing.T) {
 		},
 		{
 			name: "permission required but user doesn't have correct role",
-			checker: Checker{
+			checker: &check.Checker{
 				PermissionProvider: &mockPermissionProvider{
 					GetPermissionsFunc: func(path string) ([]config.Permission, error) {
 						return []config.Permission{{Principal: "admin"}}, nil
@@ -72,7 +74,7 @@ func Test_defaultAuthorizer_CheckAccess(t *testing.T) {
 		},
 		{
 			name: "permission required and user has correct role",
-			checker: Checker{
+			checker: &check.Checker{
 				PermissionProvider: &mockPermissionProvider{
 					GetPermissionsFunc: func(path string) ([]config.Permission, error) {
 						return []config.Permission{{Principal: "admin", Action: "read"}}, nil

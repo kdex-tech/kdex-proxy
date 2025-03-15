@@ -610,21 +610,6 @@ func TestServer_ReverseProxy_with_cache(t *testing.T) {
 				},
 			},
 		},
-		// {
-		// 	name: "GET request returns 304 with proxied hash",
-		// 	path: "/test/304/a",
-		// 	attempts: []attempt{
-		// 		{
-		// 			requestHeaders: map[string]string{
-		// 				"If-None-Match": fmt.Sprintf(`W/"test304a-t%x"`, configHash),
-		// 			},
-		// 			expectedStatus: http.StatusNotModified,
-		// 			expectedResponseHeaders: map[string]string{
-		// 				"ETag": `W/"test304a"`,
-		// 			},
-		// 		},
-		// 	},
-		// },
 	}
 
 	for _, tt := range tests {
@@ -816,11 +801,7 @@ func TestServer_rewrite(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewProxy(
-				defaultConfig,
-				nil,
-				nil,
-			)
+			s := NewProxy(defaultConfig)
 			s.rewrite(tt.r)
 			assert.Equal(t, tt.want, tt.r.Out.URL)
 		})
