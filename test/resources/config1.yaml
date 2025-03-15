@@ -28,7 +28,7 @@ authn:
     client_id: kdex-proxy
     client_secret: FZd8qsIive63taCdU3y3fARCCMU1SCUS
     dump_claims: true
-    redirect_uri: http://localhost:8080/~/oauth/callback
+    redirect_uri: http://proxy.docker.localhost:8080/~/oauth/callback
 authz:
   static:
     permissions:
