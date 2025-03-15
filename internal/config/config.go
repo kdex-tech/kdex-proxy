@@ -143,8 +143,9 @@ type SessionConfig struct {
 }
 
 type StateConfig struct {
-	Endpoint string `json:"endpoint,omitempty" yaml:"endpoint,omitempty"`
-	Type     string `json:"type,omitempty" yaml:"type,omitempty"`
+	Endpoint string        `json:"endpoint,omitempty" yaml:"endpoint,omitempty"`
+	TTL      time.Duration `json:"ttl,omitempty" yaml:"ttl,omitempty"`
+	Type     string        `json:"type,omitempty" yaml:"type,omitempty"`
 }
 
 type StaticAuthzProviderConfig struct {
@@ -240,6 +241,7 @@ var defaultConfig = Config{
 	},
 	State: StateConfig{
 		Endpoint: "/~/state",
+		TTL:      time.Minute * 2,
 		Type:     "memory",
 	},
 }

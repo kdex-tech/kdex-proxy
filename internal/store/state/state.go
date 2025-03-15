@@ -3,7 +3,6 @@ package state
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"kdex.dev/proxy/internal/config"
 )
@@ -17,7 +16,7 @@ type StateStore interface {
 func NewStateStore(config *config.Config) (StateStore, error) {
 	switch config.State.Type {
 	case "memory":
-		return NewMemoryStateStore(time.Minute * 2), nil
+		return NewMemoryStateStore(config.State.TTL), nil
 	}
 	return nil, fmt.Errorf("invalid store type: %s", config.State.Type)
 }
