@@ -339,10 +339,16 @@ func (s *Proxy) rewritePath(r *httputil.ProxyRequest) kctx.ProxiedParts {
 		}
 	}
 
+	proxiedPath := r.In.URL.Path
+
+	if s.Config.Proxy.AlwaysAppendSlash && !strings.HasSuffix(proxiedPath, "/") {
+		proxiedPath = proxiedPath + "/"
+	}
+
 	return kctx.ProxiedParts{
 		AppAlias:    "",
 		AppPath:     "",
-		ProxiedPath: r.In.URL.Path,
+		ProxiedPath: proxiedPath,
 	}
 }
 
