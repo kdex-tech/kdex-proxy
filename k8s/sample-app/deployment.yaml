@@ -16,7 +16,17 @@ spec:
     spec:
       containers:
       - name: sample-app
+        env:
+        - name: CORS_ALLOW_ORIGIN
+          value: http://proxy.docker.localhost:8080
+          # value: http://localhost:8080
         image: registry:5000/sample-app:latest
+        imagePullPolicy: Always
+        command:
+        - /bin/sh
+        - -c
+        - |
+          envsubst '\$CORS_ALLOW_ORIGIN' < /etc/nginx/conf.d/default.conf > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'
         ports:
         - containerPort: 80
         resources:
