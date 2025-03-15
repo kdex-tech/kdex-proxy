@@ -738,6 +738,7 @@ func TestServer_Probe(t *testing.T) {
 
 func TestServer_rewrite(t *testing.T) {
 	defaultConfig := config.DefaultConfig()
+	defaultConfig.ModuleDir = "../../test/modules"
 	defaultConfig.Proxy.UpstreamAddress = "target-server"
 	defaultConfig.Proxy.UpstreamScheme = "http"
 	defaultConfig.Proxy.PathSeparator = "/_/"
