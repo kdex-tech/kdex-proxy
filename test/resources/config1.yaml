@@ -28,7 +28,7 @@ authn:
     client_id: kdex-proxy
     client_secret: FZd8qsIive63taCdU3y3fARCCMU1SCUS
     dump_claims: true
-    redirect_uri: http://proxy.docker.localhost/~/oauth/callback
+    redirect_uri: http://localhost:8080/~/oauth/callback
 authz:
   static:
     permissions:
@@ -85,7 +85,6 @@ proxy:
   always_append_slash: true
   append_index: true
   # upstream_address: sample-site
-  # upstream_address: objectstore-api.docker.localhost
-  upstream_address: localhost:9000
+  upstream_address: objectstore-api.docker.localhost
   upstream_healthz_path: /site/public/index.html
   upstream_prefix: /site/public
