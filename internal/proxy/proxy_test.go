@@ -47,14 +47,14 @@ func mockTargetServer() *httptest.Server {
 		w.Header().Set("X-Test-Header", "test-value")
 
 		if r.URL.Path == "/test/304/a" && r.Header.Get("If-None-Match") == "" {
-			w.Header().Set("ETag", `W/"test304a"`)
+			w.Header().Set("ETag", `"test304a"`)
 			w.Header().Set("Content-Type", "text/html")
 			w.Write([]byte(`<html><body><h1>Hello, World!</h1></body></html>`))
 			return
 		}
 
-		if r.URL.Path == "/test/304/a" && r.Header.Get("If-None-Match") == `W/"test304a"` {
-			w.Header().Set("ETag", `W/"test304a"`)
+		if r.URL.Path == "/test/304/a" && r.Header.Get("If-None-Match") == `"test304a"` {
+			w.Header().Set("ETag", `"test304a"`)
 			w.WriteHeader(http.StatusNotModified)
 			return
 		}
@@ -425,22 +425,22 @@ func TestServer_ReverseProxy_304(t *testing.T) {
 			name: "GET request returns 304 without proxied hash",
 			path: "/test/304/a",
 			headers: map[string]string{
-				"If-None-Match": `W/"test304a"`,
+				"If-None-Match": `"test304a"`,
 			},
 			expectedStatus: http.StatusNotModified,
 			expectedHeaders: map[string]string{
-				"ETag": `W/"test304a"`,
+				"ETag": `"test304a"`,
 			},
 		},
 		{
 			name: "GET request returns 304 with proxied hash",
 			path: "/test/304/a",
 			headers: map[string]string{
-				"If-None-Match": fmt.Sprintf(`W/"test304a-t%x"`, configHash),
+				"If-None-Match": fmt.Sprintf(`"test304a"-t%x`, configHash),
 			},
 			expectedStatus: http.StatusNotModified,
 			expectedHeaders: map[string]string{
-				"ETag": `W/"test304a"`,
+				"ETag": fmt.Sprintf(`"test304a"-t%x`, configHash),
 			},
 		},
 	}
@@ -485,7 +485,7 @@ func TestServer_ReverseProxy_304(t *testing.T) {
 			// Verify expected response headers were properly returned
 			for k, v := range tt.expectedHeaders {
 				if resp.Header.Get(k) != v {
-					t.Errorf("Response doesn't contain expected header value %s: %s", k, v)
+					t.Errorf("Response doesn't contain expected header value %s: %s, got %s", k, v, resp.Header.Get(k))
 				}
 			}
 
@@ -586,26 +586,26 @@ func TestServer_ReverseProxy_with_cache(t *testing.T) {
 					expectedStatus:     http.StatusOK,
 					expectBodyContains: `<body><h1>Hello, World!</h1><script`,
 					expectedResponseHeaders: map[string]string{
-						"ETag": fmt.Sprintf(`W/"test304a-t%x"`, configHash),
+						"ETag": fmt.Sprintf(`"test304a"-t%x`, configHash),
 					},
 				},
 				{
 					requestHeaders: map[string]string{
-						"If-None-Match": fmt.Sprintf(`W/"test304a-t%x"`, configHash),
+						"If-None-Match": fmt.Sprintf(`"test304a"-t%x`, configHash),
 					},
 					expectedStatus: http.StatusNotModified,
 					expectedResponseHeaders: map[string]string{
-						"ETag": fmt.Sprintf(`W/"test304a-t%x"`, configHash),
+						"ETag": fmt.Sprintf(`"test304a"-t%x`, configHash),
 					},
 				},
 				{
 					requestHeaders: map[string]string{
-						"If-None-Match": fmt.Sprintf(`W/"test304a-t%x"`, "oldhash"),
+						"If-None-Match": fmt.Sprintf(`"test304a"-t%x`, "oldhash"),
 					},
 					expectedStatus:     http.StatusOK,
 					expectBodyContains: `<body><h1>Hello, World!</h1><script`,
 					expectedResponseHeaders: map[string]string{
-						"ETag": fmt.Sprintf(`W/"test304a-t%x"`, configHash),
+						"ETag": fmt.Sprintf(`"test304a"-t%x`, configHash),
 					},
 				},
 			},

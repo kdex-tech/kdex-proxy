@@ -141,28 +141,34 @@ func (s *Proxy) modifyResponse(r *http.Response) error {
 	if r.StatusCode == http.StatusNotModified {
 		upstreamETag := r.Header.Get("ETag")
 		if upstreamETag != "" {
-			derivedETag := fmt.Sprintf(`W/"%s-t%x"`, strings.Trim(upstreamETag[2:], `"`), configHash)
+			derivedETag := fmt.Sprintf(`%s-t%x`, upstreamETag, configHash)
 
+			if derivedETag == proxiedEtag {
+				r.Header.Set("Cache-Control", "no-cache")
+				r.Header.Set("ETag", derivedETag)
+				r.Header.Add("Vary", "Authorization")
+
+				return nil
+			}
+
+			// Check if we have cached content
 			if s.cache != nil {
-				// Check if we have cached content
 				if entry, _ := (*s.cache).Get(r.Request.Context(), upstreamETag); entry != nil {
 					cacheHit = true
-					if derivedETag == proxiedEtag {
-						r.Header.Set("Cache-Control", "no-cache")
-						r.Header.Set("ETag", derivedETag)
-						r.Header.Set("Vary", "Authorization")
-
-						return nil
-					}
-
 					// Config changed, need to transform cached content
 					r.StatusCode = entry.StatusCode
 					r.Body = io.NopCloser(bytes.NewReader(entry.Content))
 					r.ContentLength = int64(len(entry.Content))
 					r.Header.Set("Content-Type", entry.ContentType)
 					r.Header.Set("Content-Length", strconv.Itoa(len(entry.Content)))
+				} else {
+					return nil
 				}
+			} else {
+				return nil
 			}
+		} else {
+			return nil
 		}
 	}
 
@@ -174,7 +180,7 @@ func (s *Proxy) modifyResponse(r *http.Response) error {
 
 	upstreamETag := r.Header.Get("ETag")
 	if upstreamETag != "" {
-		derivedETag := fmt.Sprintf(`W/"%s-t%x"`, strings.Trim(upstreamETag[2:], `"`), configHash)
+		derivedETag := fmt.Sprintf(`%s-t%x`, upstreamETag, configHash)
 		r.Header.Set("ETag", derivedETag)
 	}
 
@@ -219,7 +225,7 @@ func (s *Proxy) modifyResponse(r *http.Response) error {
 	r.Body = io.NopCloser(bytes.NewReader(transformedBody))
 
 	r.Header.Set("Cache-Control", "no-cache")
-	r.Header.Set("Vary", "Authorization")
+	r.Header.Add("Vary", "Authorization")
 
 	// Handle transfer encoding
 	if isChunked {
@@ -286,7 +292,7 @@ func (s *Proxy) rewrite(r *httputil.ProxyRequest) {
 	// Strip transformer suffix from If-None-Match header
 	if ifNoneMatch := r.In.Header.Get("If-None-Match"); ifNoneMatch != "" {
 		if idx := strings.LastIndex(ifNoneMatch, "-t"); idx != -1 {
-			originalETag := ifNoneMatch[:idx] + `"`
+			originalETag := ifNoneMatch[:idx]
 			r.Out.Header.Set("If-None-Match", originalETag)
 			r.Out = r.Out.WithContext(context.WithValue(r.Out.Context(), kctx.ProxiedEtagKey, ifNoneMatch))
 		}
