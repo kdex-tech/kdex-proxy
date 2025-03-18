@@ -6,6 +6,10 @@ metadata:
 data:
   test.override: |
     rewrite stop {
+      name regex (.*)\.(.*)\.docker\.localhost {1}.{2}.svc.cluster.local
+      answer name (.*)\.(.*)\.svc\.cluster\.local {1}.{2}.docker.localhost
+    }
+    rewrite stop {
       name regex (.*)\.docker\.localhost {1}.default.svc.cluster.local
       answer name (.*)\.default\.svc\.cluster\.local {1}.docker.localhost
     }
