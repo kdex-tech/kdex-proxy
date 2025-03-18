@@ -231,7 +231,7 @@ var defaultConfig = Config{
 		},
 		IndexFile:           "index.html",
 		PathSeparator:       "/_/",
-		ProbePath:           "/~/p/{$}",
+		ProbePath:           "/~/probe",
 		UpstreamScheme:      "http",
 		UpstreamHealthzPath: "/",
 	},
