@@ -1,15 +1,15 @@
 apps:
 - alias: ke
-  address: sample-app.docker.localhost
+  address: objectstore-api.docker.localhost
   element: kdex-example
-  path: app.js
+  path: /app1/app.js
   targets:
   - path: /posts
     container_id: main
 - alias: k2
-  address: sample-app.docker.localhost
+  address: objectstore-api.docker.localhost
   element: kdex-example
-  path: app.js
+  path: /app1/app.js
   targets:
   - path: /admin
     container_id: main
@@ -24,11 +24,12 @@ authn:
     label: Logout
     query: nav a[href="/signin/"]
   oauth:
-    auth_server_url: http://keycloak.docker.localhost
+    auth_server_url: http://kc.keycloak.docker.localhost
     client_id: kdex-proxy
     client_secret: FZd8qsIive63taCdU3y3fARCCMU1SCUS
     dump_claims: true
     redirect_uri: http://proxy.docker.localhost:8080/~/oauth/callback
+  realm: KDEXProxy
 authz:
   static:
     permissions:
@@ -62,7 +63,7 @@ authz:
 expressions:
   principal: "data.preferred_username"
   roles: "data.realm_access.roles"
-module_dir: ../test/modules_processed
+module_dir: ../test/node_modules
 navigation:
   nav_items_query: //nav//li[not(contains(@class,'Banner-item--title')) and contains(@class,'Banner-item')]
   nav_item_fields:
