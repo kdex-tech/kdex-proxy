@@ -26,4 +26,4 @@ go.work.sum
 
 cmd/__debug_bin*
 
-tmp/
+test/kdex-ui.tgz

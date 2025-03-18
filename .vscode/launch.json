@@ -20,7 +20,7 @@
             "program": "cmd/main.go",
             "env": {
                 "CONFIG_FILE": "${workspaceFolder}/test/resources/config1.yaml",
-                "MODULE_DIR": "${workspaceFolder}/test/modules_processed",
+                "MODULE_DIR": "${workspaceFolder}/test/node_modules",
                 "UPSTREAM_ADDRESS": "main.dxp.docker.localhost",
                 "UPSTREAM_HEALTHZ_PATH": "/c/portal/robots"
             }
@@ -33,7 +33,7 @@
             "program": "internal/scanner/main/main.go",
             "cwd": "${workspaceFolder}",
             "env": {
-                "MODULE_DIR": "${workspaceFolder}/test/modules",
+                "MODULE_DIR": "${workspaceFolder}/test/node_modules",
             }
         }
     ]
