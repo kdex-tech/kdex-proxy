@@ -137,6 +137,10 @@ func (s *Proxy) modifyResponse(r *http.Response) error {
 	configHash := s.Config.Hash()
 	cacheHit := false
 
+	if r.StatusCode == http.StatusNotFound {
+		return nil
+	}
+
 	// For 304 responses, we only need to handle ETag
 	if r.StatusCode == http.StatusNotModified {
 		upstreamETag := r.Header.Get("ETag")
@@ -289,25 +293,28 @@ func (s *Proxy) rewrite(r *httputil.ProxyRequest) {
 		req.URL.RawQuery = targetQuery + "&" + req.URL.RawQuery
 	}
 
+	req.Host = target.Host
+
 	// Strip transformer suffix from If-None-Match header
 	if ifNoneMatch := r.In.Header.Get("If-None-Match"); ifNoneMatch != "" {
 		if idx := strings.LastIndex(ifNoneMatch, "-t"); idx != -1 {
 			originalETag := ifNoneMatch[:idx]
-			r.Out.Header.Set("If-None-Match", originalETag)
-			r.Out = r.Out.WithContext(context.WithValue(r.Out.Context(), kctx.ProxiedEtagKey, ifNoneMatch))
+			req.Header.Set("If-None-Match", originalETag)
+			req = req.WithContext(context.WithValue(req.Context(), kctx.ProxiedEtagKey, ifNoneMatch))
 		}
 	}
 
-	r.Out.Host = r.In.Host
-	r.Out = r.Out.WithContext(context.WithValue(r.Out.Context(), kctx.ProxiedPartsKey, proxiedParts))
+	req = req.WithContext(context.WithValue(req.Context(), kctx.ProxiedPartsKey, proxiedParts))
 
 	{
 		// Everything bellow is about Proxy Protocol
-		r.Out.Header["X-Forwarded-For"] = r.In.Header["X-Forwarded-For"]
+		req.Header["X-Forwarded-For"] = r.In.Header["X-Forwarded-For"]
 		r.SetXForwarded()
-		setXForwardedPort(r.In, r.Out)
-		setForwarded(r.In, r.Out)
+		setXForwardedPort(r.In, req)
+		setForwarded(r.In, req)
 	}
+
+	r.Out = req
 }
 
 func (s *Proxy) proxiedPath(accept string, proxiedPath string) string {
