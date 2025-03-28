@@ -12,7 +12,8 @@ LDFLAGS=-ldflags "-s -w"
 
 # Docker parameters
 DOCKER_IMAGE=ghcr.io/kdex-tech/proxy
-DOCKER_TAG=latest
+# Get the latest git tag, if repo is dirty append -dirty suffix
+DOCKER_TAG=$(shell git describe --tags --dirty --always)
 
 # License parameters
 LICENSE_YEAR=2025
