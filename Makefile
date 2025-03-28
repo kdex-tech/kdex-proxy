@@ -13,7 +13,7 @@ MAIN_PATH=cmd/main.go
 LICENSE_HOLDER=KDex Tech
 PLATFORMS?=linux/arm64,linux/amd64,linux/s390x,linux/ppc64le
 
-.PHONY: all build test clean run debug deps tidy docker-build docker-buildx docker-run docker-push install-addlicense license check-license
+.PHONY: all build test clean run debug deps tidy docker-build docker-build-debug docker-buildx docker-run docker-push install-addlicense license check-license
 
 all: deps test build
 
@@ -49,6 +49,9 @@ dev: build run
 # Docker targets
 docker-build:
 	docker build --build-arg GO_VERSION=$(GO_VERSION) -t $(DOCKER_IMAGE):$(DOCKER_TAG) .
+
+docker-build-debug:
+	docker build --build-arg GO_VERSION=$(GO_VERSION) -t $(DOCKER_IMAGE):$(DOCKER_TAG)-DEBUG -f Dockerfile.debug .
 
 docker-run: export LISTEN_PORT=8080
 docker-run: export LISTEN_ADDRESS=""
