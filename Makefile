@@ -1,7 +1,7 @@
 # Go parameters
 BINARY_NAME=proxy
-DOCKER_IMAGE=ghcr.io/kdex-tech/proxy
-DOCKER_TAG=$(shell git describe --tags --dirty --always)
+DOCKER_IMAGE?=ghcr.io/kdex-tech/proxy
+DOCKER_TAG?=$(shell git describe --tags --dirty --always)
 GOCMD=go
 GOBUILD=$(GOCMD) build
 GOTEST=$(GOCMD) test
