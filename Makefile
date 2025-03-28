@@ -1,26 +1,19 @@
 # Go parameters
+BINARY_NAME=proxy
+DOCKER_IMAGE=ghcr.io/kdex-tech/proxy
+DOCKER_TAG=$(shell git describe --tags --dirty --always)
 GOCMD=go
 GOBUILD=$(GOCMD) build
 GOTEST=$(GOCMD) test
 GOGET=$(GOCMD) get
 GOMOD=$(GOCMD) mod
 GO_VERSION=$(shell go mod edit -json | jq -r .Go)
-BINARY_NAME=proxy
-MAIN_PATH=cmd/main.go
-
-# Build flags
 LDFLAGS=-ldflags "-s -w"
-
-# Docker parameters
-DOCKER_IMAGE=ghcr.io/kdex-tech/proxy
-# Get the latest git tag, if repo is dirty append -dirty suffix
-DOCKER_TAG=$(shell git describe --tags --dirty --always)
-
-# License parameters
-LICENSE_YEAR=2025
+MAIN_PATH=cmd/main.go
 LICENSE_HOLDER=KDex Tech
+PLATFORMS?=linux/arm64,linux/amd64,linux/s390x,linux/ppc64le
 
-.PHONY: all build test clean run debug deps tidy docker-build docker-run docker-push
+.PHONY: all build test clean run debug deps tidy docker-build docker-buildx docker-run docker-push install-addlicense license check-license
 
 all: deps test build
 
@@ -74,8 +67,6 @@ docker-run:
 docker-push:
 	@docker push $(DOCKER_IMAGE):$(DOCKER_TAG)
 
-PLATFORMS ?= linux/arm64,linux/amd64,linux/s390x,linux/ppc64le
-.PHONY: docker-buildx
 docker-buildx: ## Build and push docker image for the proxy for cross-platform support
 	# copy existing Dockerfile and insert --platform=${BUILDPLATFORM} into Dockerfile.cross, and preserve the original Dockerfile
 	@sed -e '4 s/\(^FROM\)/FROM --platform=\$$\{BUILDPLATFORM\}/; t' -e ' 4,// s//FROM --platform=\$$\{BUILDPLATFORM\}/' Dockerfile > Dockerfile.cross
@@ -97,29 +88,24 @@ manifest:org.opencontainers.image.licenses=Apache-2.0' \
 	@rm Dockerfile.cross
 
 # Install addlicense tool if not present
-.PHONY: install-addlicense
 install-addlicense:
 	@which addlicense > /dev/null || go install github.com/google/addlicense@latest
 
 # Add/update license headers
-.PHONY: license
 license: install-addlicense
 	@echo "Updating license headers..."
 	@addlicense -v \
 		-f LICENSE.header \
-		-y $(LICENSE_YEAR) \
 		-c "$(LICENSE_HOLDER)" \
 		Dockerfile* ./cmd/* ./internal/* ./k8s/*
 
 # Check license headers
 # in CI do: make check-license || exit 1
 # to fail if license headers are not present
-.PHONY: check-license
 check-license: install-addlicense
 	@echo "Checking license headers..."
 	@addlicense -check \
 		-f LICENSE.header \
-		-y $(LICENSE_YEAR) \
 		-c "$(LICENSE_HOLDER)" \
 		Dockerfile* ./cmd/* ./internal/* ./k8s/*
 
