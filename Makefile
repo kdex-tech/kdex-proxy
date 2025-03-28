@@ -4,6 +4,7 @@ GOBUILD=$(GOCMD) build
 GOTEST=$(GOCMD) test
 GOGET=$(GOCMD) get
 GOMOD=$(GOCMD) mod
+GO_VERSION=$(shell go mod edit -json | jq -r .Go)
 BINARY_NAME=proxy
 MAIN_PATH=cmd/main.go
 
@@ -54,7 +55,6 @@ dev: build run
 
 # Docker targets
 docker-build:
-	$(eval GO_VERSION := $(shell go mod edit -json | jq -r .Go))
 	docker build --build-arg GO_VERSION=$(GO_VERSION) -t $(DOCKER_IMAGE):$(DOCKER_TAG) .
 
 docker-run: export LISTEN_PORT=8080
@@ -77,7 +77,6 @@ docker-push:
 PLATFORMS ?= linux/arm64,linux/amd64,linux/s390x,linux/ppc64le
 .PHONY: docker-buildx
 docker-buildx: ## Build and push docker image for the proxy for cross-platform support
-	$(eval GO_VERSION := $(shell go mod edit -json | jq -r .Go))
 	# copy existing Dockerfile and insert --platform=${BUILDPLATFORM} into Dockerfile.cross, and preserve the original Dockerfile
 	@sed -e '4 s/\(^FROM\)/FROM --platform=\$$\{BUILDPLATFORM\}/; t' -e ' 4,// s//FROM --platform=\$$\{BUILDPLATFORM\}/' Dockerfile > Dockerfile.cross
 	@echo "--- Dockerfile.cross ---"
