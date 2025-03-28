@@ -29,8 +29,8 @@ test:
 	$(GOTEST) -v ./...
 
 clean:
-	rm -f $(BINARY_NAME)
-	rm -f coverage.out
+	@rm -f $(BINARY_NAME)
+	@rm -f coverage.out
 
 run: build
 	./$(BINARY_NAME)
@@ -71,19 +71,19 @@ docker-run:
 		$(DOCKER_IMAGE):$(DOCKER_TAG)
 
 docker-push:
-	docker push $(DOCKER_IMAGE):$(DOCKER_TAG)
+	@docker push $(DOCKER_IMAGE):$(DOCKER_TAG)
 
 PLATFORMS ?= linux/arm64,linux/amd64,linux/s390x,linux/ppc64le
 .PHONY: docker-buildx
 docker-buildx: ## Build and push docker image for the proxy for cross-platform support
 	$(eval GO_VERSION := $(shell go mod edit -json | jq -r .Go))
 	# copy existing Dockerfile and insert --platform=${BUILDPLATFORM} into Dockerfile.cross, and preserve the original Dockerfile
-	sed -e '4 s/\(^FROM\)/FROM --platform=\$$\{BUILDPLATFORM\}/; t' -e ' 4,// s//FROM --platform=\$$\{BUILDPLATFORM\}/' Dockerfile > Dockerfile.cross
-	echo "--- Dockerfile.cross ---"
-	cat Dockerfile.cross
-	echo "---"
-	- docker buildx create --name kdex-proxy-builder
-	docker buildx use kdex-proxy-builder
+	@sed -e '4 s/\(^FROM\)/FROM --platform=\$$\{BUILDPLATFORM\}/; t' -e ' 4,// s//FROM --platform=\$$\{BUILDPLATFORM\}/' Dockerfile > Dockerfile.cross
+	@echo "--- Dockerfile.cross ---"
+	@cat Dockerfile.cross
+	@echo "---"
+	- @docker buildx create --name kdex-proxy-builder
+	@docker buildx use kdex-proxy-builder
 	- docker buildx build \
 		--push \
 		--platform=$(PLATFORMS) \
@@ -94,7 +94,7 @@ docker-buildx: ## Build and push docker image for the proxy for cross-platform s
 manifest:org.opencontainers.image.description="KDex Proxy",\
 manifest:org.opencontainers.image.licenses=Apache-2.0' \
 		-f Dockerfile.cross .
-	rm Dockerfile.cross
+	@rm Dockerfile.cross
 
 # Install addlicense tool if not present
 .PHONY: install-addlicense
