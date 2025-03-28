@@ -109,7 +109,7 @@ license: install-addlicense
 		-f LICENSE.header \
 		-y $(LICENSE_YEAR) \
 		-c "$(LICENSE_HOLDER)" \
-		./**/*.go
+		Dockerfile ./cmd/* ./internal/* ./k8s/*
 
 # Check license headers
 # in CI do: make check-license || exit 1
@@ -121,6 +121,6 @@ check-license: install-addlicense
 		-f LICENSE.header \
 		-y $(LICENSE_YEAR) \
 		-c "$(LICENSE_HOLDER)" \
-		./**/*.go
+		Dockerfile ./cmd/* ./internal/* ./k8s/*
 
 .DEFAULT_GOAL := all 
